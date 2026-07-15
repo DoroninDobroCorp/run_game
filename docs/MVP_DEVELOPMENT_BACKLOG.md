@@ -1,5 +1,8 @@
 # Run Game — разработческий backlog осмысленного MVP
 
+> [!IMPORTANT]
+> **Заменён новым планом.** Этот backlog описывает прежний шестимиссионный MVP без автоматической карты. Не начинать задачи отсюда. Текущая последовательность и готовые автономные промпты находятся в [AI_FIRST_EXECUTION_PLAN.md](./AI_FIRST_EXECUTION_PLAN.md); продуктовая граница — в [GEO_NARRATIVE_PRODUCT_STRATEGY.md](./GEO_NARRATIVE_PRODUCT_STRATEGY.md).
+
 **Версия:** 0.1
 
 **Язык первого MVP:** русский
