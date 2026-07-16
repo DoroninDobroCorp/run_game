@@ -1,0 +1,561 @@
+{
+  "schema_version": "0.1",
+  "concept_id": "null_layer",
+  "title": "Нулевой слой",
+  "logline": "Игрок думает, что пробежками спасает девушку из стёртой карты. Затем узнаёт: до первого маршрута её не существовало.",
+  "emotional_promise": "Игрок не просто открывает тайну города: его регулярные выходы создают человека, который сначала нуждается в нём, затем помогает ему в ответ и получает право определить, кем стать.",
+  "editorial_status": "provisional_authoring_canon_not_field_proven",
+  "product_scope": {
+    "campaign_behavior": "single_persistent_home_territory",
+    "founder_research_logistics": "traveler_based_replaceable_field_fixture",
+    "travel_is_story_mechanic": false,
+    "field_fixture_is_not_canon": true
+  },
+  "runner_contract": {
+    "why_movement_matters": "Новый физический след дорисовывает линию в Нулевом слое; одну кнопку нельзя подменить пройденным маршрутом.",
+    "why_walk_matters": "Спокойные интервалы стабилизируют линию и дают полосу для разговора и решений.",
+    "why_run_matters": "Плановые беговые интервалы проводят линию через белые разрывы; сверх утверждённого workout ускоряться или бежать дольше никогда не требуется.",
+    "home_territory_return_engine": "Знакомые места сохраняют следы прежних миссий и возвращаются с новой функцией: якорь, свидетель, архив, спорная территория или место решения.",
+    "safety_rule": "Леа и Архив никогда не спорят с NAV, не меняют маршрут и не превращают безопасный отказ, остановку или fallback в гибель персонажа."
+  },
+  "companion": {
+    "name": "Леа",
+    "role": "картограф Нулевого слоя и голос внутри белого пятна",
+    "surface_want": "дорисовать путь домой и доказать, что она существует",
+    "true_want": "понять, какие воспоминания принадлежат ей, а какие она только несёт",
+    "fear": "распасться на чужие голоса и потерять единственные собственные воспоминания, созданные с игроком",
+    "secret": "Леа не потерянный заранее существовавший человек, а новая личность, которую маршруты игрока собирают из отброшенных следов множества людей",
+    "contradiction": "она просит доверять её памяти, скрывая, что один объект иногда помнит с несовместимых точек зрения",
+    "voice_signature": "наблюдательная, сухо смешная, компетентная; никогда не стыдит за темп и не произносит пустых мотивационных клише",
+    "why_the_runner_matters": "только новый человеческий маршрут связывает разрозненные фрагменты в опыт, которого раньше не было ни у одного владельца следа",
+    "how_the_companion_reciprocates": "во второй миссии выполняет обещание провести игрока, рискует устойчивостью и отдаёт улику, которая может доказать, что её биография ложна"
+  },
+  "voices": {
+    "NAV": {
+      "delivery": "TTS с отдельным коротким chime",
+      "authority": "единственный голос фактической навигации, workout и safety",
+      "truth_rule": "всегда фактически верен и имеет абсолютный аудиоприоритет"
+    },
+    "ATLAS": {
+      "delivery": "TTS с другим звуковым префиксом",
+      "role": "архивная политика официальной карты и моральный оппонент Леа",
+      "moral_position": "не злодей: удаляет непроверенные следы, потому что смешение чужих данных действительно может вредить людям"
+    },
+    "LEA": {
+      "delivery": "актёрский голос",
+      "authority": "сюжет и восприятие Нулевого слоя; никогда не переопределяет NAV"
+    }
+  },
+  "world_rules": [
+    "Под официальной картой существует Нулевой слой — следы отброшенных маршрутов, воспоминаний и недостоверных совпадений.",
+    "Стабильные реальные места могут стать якорями, потому что присутствуют во множестве человеческих маршрутов.",
+    "Плановый бег проводит линию через разрыв; ходьба стабилизирует её для разговора.",
+    "Замкнутый безопасный маршрут сохраняет нарисованный фрагмент до следующей миссии.",
+    "Атлас удаляет непроверенные следы ради надёжности официальной карты; его позиция спорна, но не заведомо зла.",
+    "Леа знает Нулевой слой, но не получает доступ к фактической навигации и не может просить отклониться от утверждённого маршрута.",
+    "Повторное посещение места раскрывает новый след или последствие, а не просто повторяет название POI."
+  ],
+  "state_schema": {
+    "atlas_disclosure": {
+      "type": "enum",
+      "values": ["unset", "concealed", "reported"],
+      "initial": "unset",
+      "meaning": "скрыл ли игрок первый голос от Атласа"
+    },
+    "fragment_status": {
+      "type": "enum",
+      "values": ["unset", "opened", "sealed"],
+      "initial": "unset",
+      "meaning": "впустила ли Леа спорный пакет чужих воспоминаний"
+    },
+    "lea_form": {
+      "type": "enum",
+      "values": ["unset", "composite", "core"],
+      "initial": "unset",
+      "meaning": "какую форму личности Леа выбрали после раскрытия"
+    }
+  },
+  "missions": [
+    {
+      "id": "m01",
+      "title": "Линия, которой нет",
+      "entry_node": "m01_start",
+      "end_nodes": ["m01_end"],
+      "dramatic_question": "Рискнёт ли игрок завершить линию для неизвестного голоса?",
+      "goal": "провести маршрут через три якоря и замкнуть линию до закрытия окна",
+      "complication": "Атлас классифицирует голос как непроверенный шум и предлагает зарегистрировать его",
+      "decision": "сообщить Атласу о Леа или скрыть канал на одну миссию",
+      "price": "любой выбор определяет, как Атлас и Леа встретят игрока в M2",
+      "hook": "Атлас сообщает о 214 восстановленных фрагментах следа, не объясняя их происхождение"
+    },
+    {
+      "id": "m02",
+      "title": "Обратный маршрут",
+      "entry_node": "m02_start",
+      "end_nodes": ["m02_end"],
+      "dramatic_question": "Можно ли доверять человеку, чья память явно принадлежит не только ему?",
+      "goal": "сохранить линию во время архивной очистки и добраться до пакета памяти",
+      "complication": "пакет содержит несовместимые голоса, но Леа узнаёт его как собственный",
+      "decision": "позволить Леа открыть пакет или запечатать его для проверки",
+      "price": "открытие усиливает Леа и её нестабильность; печать сохраняет границы, но лишает её части ответа",
+      "hook": "в реестре нет человека с полной биографией Леа"
+    },
+    {
+      "id": "m03",
+      "title": "Человек из следов",
+      "entry_node": "m03_start",
+      "end_nodes": ["m03_end_composite", "m03_end_core"],
+      "dramatic_question": "Если новая личность возникла из чужих воспоминаний, что в ней принадлежит ей?",
+      "goal": "замкнуть архивный узел и определить происхождение Леа",
+      "complication": "чужие следы имеют владельцев, но у Леа уже есть собственные решения и обещания",
+      "decision": "сохранить составную Леа или вернуть исходные следы, оставив её новое ядро",
+      "price": "composite сохраняет силу и внутренний конфликт; core теряет большую часть памяти, но получает цельное собственное я",
+      "hook": "кто-то ещё научился рисовать линии в Нулевом слое и Атлас скрывал это не только ради порядка"
+    }
+  ],
+  "central_reveal": {
+    "id": "runner_created_lea",
+    "payoff_node": "m03_reveal",
+    "setup_ids": ["clue_dual_viewpoint", "clue_trace_fragments", "clue_multiple_source_ids", "clue_no_single_biography"],
+    "recontextualization": "игрок не спасал готовую Леа: завершённые маршруты связывали чужие отброшенные следы и создали новую личность",
+    "relational_consequence": "игрок несёт ответственность не за освобождение пленницы, а за форму жизни, появившуюся благодаря их совместным действиям"
+  },
+  "nodes": [
+    {
+      "id": "m01_start",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Установить безопасный NAV и нарушить обычную тренировку невозможным голосом",
+      "relationship_change": "сбой впервые звучит как человек, который знает расписание интервала",
+      "runner_action": {"kind": "start_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "warmup_walk", "max_spoken_seconds": 22, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_contact",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Дать Леа конкретную нужду и воплощённое правило без требования ускоряться",
+      "relationship_change": "игрок слышит компетентность и сдерживаемый страх, а не абстрактную аномалию",
+      "runner_action": {"kind": "complete_approved_interval", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "warmup_end", "max_spoken_seconds": 30, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_threshold",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Доказать, что реальное пересечение дорисовывает линию в слое",
+      "relationship_change": "Леа благодарит за действие, а не за скорость",
+      "runner_action": {"kind": "cross_boundary", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 32, "attention_demand": "low"},
+      "geo_slot": {
+        "slot_id": "threshold",
+        "role": "boundary_where_line_appears",
+        "allowed_archetypes": ["bridge", "gate", "passage", "park_entrance", "district_boundary", "path_transition"],
+        "requires_named_poi": false,
+        "fallback_summary": "граница фиксируется по route progress без ложного упоминания внешнего объекта"
+      },
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_witness",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Сделать место общим свидетелем и посеять честную трещину в памяти Леа",
+      "relationship_change": "Леа впервые пугается собственной памяти и не успевает спрятаться за шуткой",
+      "runner_action": {"kind": "pass_stable_landmark", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 42, "attention_demand": "low"},
+      "geo_slot": {
+        "slot_id": "witness",
+        "role": "shared_witness_with_incompatible_memories",
+        "allowed_archetypes": ["public_building", "monument", "waterfront", "open_square", "tower", "distinct_structure"],
+        "requires_named_poi": false,
+        "fallback_summary": "Леа узнаёт только обезличенный маршрутный паттерн и прямо признаёт, что внешний свидетель не подтверждён"
+      },
+      "setup_ids": ["clue_dual_viewpoint"],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_choice_disclosure",
+      "mission_id": "m01",
+      "kind": "choice",
+      "choice_id": "atlas_disclosure",
+      "dramatic_function": "Выбрать между проверяемым протоколом Атласа и одной отсрочкой для Леа",
+      "relationship_change": "решение создаёт долг или трудное уважение, но не определяет правильную сторону",
+      "runner_action": {"kind": "voice_or_operator_choice", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 35, "attention_demand": "low"},
+      "options": ["concealed", "reported"],
+      "authored_fallback": "reported",
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_response_concealed",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Признать риск доверия и получить обещание взаимности",
+      "relationship_change": "Леа впервые называет игрока союзником и обещает в M2 провести его сама",
+      "runner_action": {"kind": "continue_approved_route", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 26, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_response_reported",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Не наказывать безопасную осторожность и сохранить взаимность",
+      "relationship_change": "Леа принимает границу игрока и обещает доказать полезность вместо требования слепой веры",
+      "runner_action": {"kind": "continue_approved_route", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 28, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_triangulation",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Дать второму типу пространства причинную роль и подготовить замыкание",
+      "relationship_change": "Леа делится первым личным образом дома, который позже окажется составным",
+      "runner_action": {"kind": "triangulate_on_open_segment", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 38, "attention_demand": "low"},
+      "geo_slot": {
+        "slot_id": "triangulation",
+        "role": "open_space_for_line_fix",
+        "allowed_archetypes": ["open_square", "waterfront", "viewpoint", "long_straight", "park_edge", "open_field"],
+        "requires_named_poi": false,
+        "fallback_summary": "триангуляция использует подтверждённый открытый route segment"
+      },
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_loop_close",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Замкнуть физический и эмоциональный контур первой миссии",
+      "relationship_change": "у Леа появляется первая новая фраза, которую она помнит только благодаря игроку",
+      "runner_action": {"kind": "close_route_loop", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 44, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_clue_fragments",
+      "mission_id": "m01",
+      "kind": "scene",
+      "dramatic_function": "Дать количественную подсказку, не спойлеря нескольких владельцев",
+      "relationship_change": "успех спасения соседствует с первым серьёзным сомнением в происхождении Леа",
+      "runner_action": {"kind": "begin_cooldown", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 24, "attention_demand": "low"},
+      "setup_ids": ["clue_trace_fragments"],
+      "payoff_ids": []
+    },
+    {
+      "id": "m01_end",
+      "mission_id": "m01",
+      "kind": "mission_end",
+      "dramatic_function": "Закрыть M1 обещанием Леа вернуть долг",
+      "relationship_change": "игрок получает конкретную причину проверить не тайну, а надёжность Леа",
+      "runner_action": {"kind": "finish_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 25, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_start",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Доказать межмиссионную память и начать архивную очистку",
+      "relationship_change": "возвращается та же Леа с общей новой фразой из M1",
+      "runner_action": {"kind": "start_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "warmup_walk", "max_spoken_seconds": 28, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_disclosure_gate",
+      "mission_id": "m02",
+      "kind": "gate",
+      "dramatic_function": "Прочитать решение M1",
+      "relationship_change": "Атлас и Леа помнят, был ли канал скрыт",
+      "runner_action": {"kind": "continue_warmup", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "warmup_walk", "max_spoken_seconds": 0, "attention_demand": "none"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_after_concealed",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Вернуть долг за сокрытие, не романтизируя нарушение протокола",
+      "relationship_change": "Леа отдаёт игроку контроль над линией; Атлас усиливает аудит, но не саботирует NAV",
+      "runner_action": {"kind": "reach_first_sample", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 34, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_after_reported",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Вернуть долг после честной регистрации",
+      "relationship_change": "Леа добровольно проходит проверку и делится данными, которые могут её разоблачить",
+      "runner_action": {"kind": "reach_first_sample", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 34, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_reciprocity",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Выполнить обещание: Леа проводит игрока через сюжетную очистку по заранее approved route",
+      "relationship_change": "Напарник становится полезным союзником, а не постоянным объектом спасения",
+      "runner_action": {"kind": "follow_nav_on_approved_route", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "mixed_short_cues", "max_spoken_seconds": 12, "attention_demand": "none"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_memory_packet",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Найти память, которую Леа считает своей, хотя её происхождение спорно",
+      "relationship_change": "игрок впервые держит границу между желанием Леа и правами неизвестных владельцев",
+      "runner_action": {"kind": "reach_archive_edge", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 40, "attention_demand": "low"},
+      "geo_slot": {
+        "slot_id": "archive_edge",
+        "role": "memory_packet_boundary",
+        "allowed_archetypes": ["library_exterior", "monument", "old_structure", "junction", "distinct_public_landmark", "quiet_edge"],
+        "requires_named_poi": false,
+        "fallback_summary": "пакет находится на подтверждённой относительной границе route progress"
+      },
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_choice_fragment",
+      "mission_id": "m02",
+      "kind": "choice",
+      "choice_id": "fragment_status",
+      "dramatic_function": "Выбрать между автономией Леа и правами источников памяти",
+      "relationship_change": "игрок либо доверяет Леа выдержать пакет, либо устанавливает границу",
+      "runner_action": {"kind": "voice_or_operator_choice", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 34, "attention_demand": "low"},
+      "options": ["opened", "sealed"],
+      "authored_fallback": "sealed",
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_fragment_opened",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Дать Леа больше памяти и немедленную цену нестабильности",
+      "relationship_change": "доверие усиливает близость, но игрок слышит в Леа чужую интонацию",
+      "runner_action": {"kind": "continue_approved_route", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 30, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_fragment_sealed",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Сделать границу заботой, а не наказанием",
+      "relationship_change": "Леа злится, затем сама признаёт, что не знает, кому принадлежит пакет",
+      "runner_action": {"kind": "continue_approved_route", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 30, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_voice_split",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Дать вторую честную подсказку: один голос имеет несколько source IDs",
+      "relationship_change": "страх Леа распасться становится слышимым, а не объяснённым лором",
+      "runner_action": {"kind": "stabilize_line_during_walk", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 36, "attention_demand": "low"},
+      "setup_ids": ["clue_multiple_source_ids"],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_no_registry",
+      "mission_id": "m02",
+      "kind": "scene",
+      "dramatic_function": "Отделить существование Леа от заявленной биографии",
+      "relationship_change": "игрок знает, что Леа солгала не о детали, а о собственном происхождении",
+      "runner_action": {"kind": "begin_cooldown", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 28, "attention_demand": "low"},
+      "setup_ids": ["clue_no_single_biography"],
+      "payoff_ids": []
+    },
+    {
+      "id": "m02_end",
+      "mission_id": "m02",
+      "kind": "mission_end",
+      "dramatic_function": "Назначить M3 как добровольное раскрытие, а не очередное спасение",
+      "relationship_change": "Леа отдаёт игроку право выбрать её форму после правды",
+      "runner_action": {"kind": "finish_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 26, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_start",
+      "mission_id": "m03",
+      "kind": "scene",
+      "dramatic_function": "Открыть миссию собственным воспоминанием Леа, которого нет в чужих следах",
+      "relationship_change": "общая шутка игрока и Леа становится доказательством нового я",
+      "runner_action": {"kind": "start_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "warmup_walk", "max_spoken_seconds": 28, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_fragment_gate",
+      "mission_id": "m03",
+      "kind": "gate",
+      "dramatic_function": "Прочитать решение M2",
+      "relationship_change": "состояние Леа и тон признания отражают открытую или запечатанную память",
+      "runner_action": {"kind": "continue_warmup", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "warmup_walk", "max_spoken_seconds": 0, "attention_demand": "none"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_after_opened",
+      "mission_id": "m03",
+      "kind": "scene",
+      "dramatic_function": "Показать пользу и цену открытого пакета",
+      "relationship_change": "Леа знает больше, но просит игрока останавливать её, если чужие голоса вытеснят собственный",
+      "runner_action": {"kind": "approach_archive_junction", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 34, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_after_sealed",
+      "mission_id": "m03",
+      "kind": "scene",
+      "dramatic_function": "Показать пользу и цену границы",
+      "relationship_change": "Леа приходит с меньшим знанием, но её голос устойчив и решение признаться полностью её",
+      "runner_action": {"kind": "approach_archive_junction", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 34, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_archive_junction",
+      "mission_id": "m03",
+      "kind": "scene",
+      "dramatic_function": "Дать Атласу и Леа сильнейшие версии аргумента у общего реального свидетеля",
+      "relationship_change": "игрок видит конфликт прав, а не доброго персонажа против злой системы",
+      "runner_action": {"kind": "reach_archive_junction", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 48, "attention_demand": "low"},
+      "geo_slot": {
+        "slot_id": "archive_junction",
+        "role": "shared_evidence_anchor",
+        "allowed_archetypes": ["revisited_landmark", "junction", "public_archive_like_place", "monument", "stable_structure", "loop_return"],
+        "requires_named_poi": false,
+        "fallback_summary": "аргументы привязаны к подтверждённому loop-return sample без ложного POI"
+      },
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_reveal",
+      "mission_id": "m03",
+      "kind": "scene",
+      "dramatic_function": "Выплатить подсказки и переосмыслить все завершённые маршруты как рождение личности",
+      "relationship_change": "игрок понимает, что отвечает не за спасение Леа, а за человека, которого помог создать",
+      "runner_action": {"kind": "close_archive_loop", "causally_required": true, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "walk_recovery", "max_spoken_seconds": 52, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": ["clue_dual_viewpoint", "clue_trace_fragments", "clue_multiple_source_ids", "clue_no_single_biography"]
+    },
+    {
+      "id": "m03_choice_form",
+      "mission_id": "m03",
+      "kind": "choice",
+      "choice_id": "lea_form",
+      "dramatic_function": "Выбрать не жизнь или смерть, а форму дальнейшей жизни Леа",
+      "relationship_change": "Леа доверяет игроку решение, которое сама не может принять без конфликта интересов",
+      "runner_action": {"kind": "voice_or_operator_choice", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 38, "attention_demand": "low"},
+      "options": ["composite", "core"],
+      "authored_fallback": "core",
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_end_composite",
+      "mission_id": "m03",
+      "kind": "ending",
+      "dramatic_function": "Сохранить составную Леа со всей памятью и конфликтом",
+      "relationship_change": "Леа остаётся сильной и многоголосой; союз строится на помощи удерживать собственное я",
+      "runner_action": {"kind": "finish_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 42, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    },
+    {
+      "id": "m03_end_core",
+      "mission_id": "m03",
+      "kind": "ending",
+      "dramatic_function": "Вернуть чужие следы и сохранить только собственное ядро Леа",
+      "relationship_change": "Леа теряет способности и большую часть памяти, но сохраняет имя, общую шутку и обещание, выбранные ею самой",
+      "runner_action": {"kind": "finish_workout", "causally_required": false, "failure_fallback_preserves_canon": true},
+      "workout_fit": {"preferred_block": "cooldown_walk", "max_spoken_seconds": 44, "attention_demand": "low"},
+      "setup_ids": [],
+      "payoff_ids": []
+    }
+  ],
+  "edges": [
+    {"id": "e001", "from": "m01_start", "to": "m01_contact", "fallback": false, "requires": {}, "effects": {}, "because": "обычная тренировка нарушается контактом"},
+    {"id": "e002", "from": "m01_contact", "to": "m01_threshold", "fallback": false, "requires": {}, "effects": {}, "because": "невозможное правило получает физическую проверку"},
+    {"id": "e003", "from": "m01_threshold", "to": "m01_witness", "fallback": false, "requires": {}, "effects": {}, "because": "первая линия позволяет сравнить память о месте"},
+    {"id": "e004", "from": "m01_witness", "to": "m01_choice_disclosure", "fallback": false, "requires": {}, "effects": {}, "because": "доказательство и трещина делают выбор честным"},
+    {"id": "e005", "from": "m01_choice_disclosure", "to": "m01_response_concealed", "choice_id": "atlas_disclosure", "option": "concealed", "fallback": false, "requires": {}, "effects": {"atlas_disclosure": "concealed"}, "because": "игрок даёт Леа одну миссию отсрочки"},
+    {"id": "e006", "from": "m01_choice_disclosure", "to": "m01_response_reported", "choice_id": "atlas_disclosure", "option": "reported", "fallback": false, "requires": {}, "effects": {"atlas_disclosure": "reported"}, "because": "игрок выбирает проверяемый протокол"},
+    {"id": "e007", "from": "m01_choice_disclosure", "to": "m01_response_reported", "choice_id": "atlas_disclosure", "fallback": true, "requires": {}, "effects": {"atlas_disclosure": "reported"}, "because": "молчание использует безопасный авторский fallback"},
+    {"id": "e008", "from": "m01_response_concealed", "to": "m01_triangulation", "fallback": false, "requires": {}, "effects": {}, "because": "союз продолжает линию"},
+    {"id": "e009", "from": "m01_response_reported", "to": "m01_triangulation", "fallback": false, "requires": {}, "effects": {}, "because": "аудит не прерывает безопасную миссию"},
+    {"id": "e010", "from": "m01_triangulation", "to": "m01_loop_close", "fallback": false, "requires": {}, "effects": {}, "because": "третий якорь позволяет замкнуть контур"},
+    {"id": "e011", "from": "m01_loop_close", "to": "m01_clue_fragments", "fallback": false, "requires": {}, "effects": {}, "because": "эмоциональный успех получает противоречащие данные"},
+    {"id": "e012", "from": "m01_clue_fragments", "to": "m01_end", "fallback": false, "requires": {}, "effects": {}, "because": "подсказка формулирует ожидание M2"},
+    {"id": "e013", "from": "m01_end", "to": "m02_start", "fallback": false, "requires": {}, "effects": {}, "because": "следующая тренировка проверяет память и обещание Леа"},
+    {"id": "e014", "from": "m02_start", "to": "m02_disclosure_gate", "fallback": false, "requires": {}, "effects": {}, "because": "M2 читает выбор M1"},
+    {"id": "e015", "from": "m02_disclosure_gate", "to": "m02_after_concealed", "fallback": false, "requires": {"atlas_disclosure": "concealed"}, "effects": {}, "because": "канал был скрыт"},
+    {"id": "e016", "from": "m02_disclosure_gate", "to": "m02_after_reported", "fallback": false, "requires": {"atlas_disclosure": "reported"}, "effects": {}, "because": "канал был зарегистрирован"},
+    {"id": "e017", "from": "m02_after_concealed", "to": "m02_reciprocity", "fallback": false, "requires": {}, "effects": {}, "because": "Леа выполняет обещание"},
+    {"id": "e018", "from": "m02_after_reported", "to": "m02_reciprocity", "fallback": false, "requires": {}, "effects": {}, "because": "Леа выполняет обещание"},
+    {"id": "e019", "from": "m02_reciprocity", "to": "m02_memory_packet", "fallback": false, "requires": {}, "effects": {}, "because": "сохранённая линия достигает памяти"},
+    {"id": "e020", "from": "m02_memory_packet", "to": "m02_choice_fragment", "fallback": false, "requires": {}, "effects": {}, "because": "неизвестное происхождение требует согласия"},
+    {"id": "e021", "from": "m02_choice_fragment", "to": "m02_fragment_opened", "choice_id": "fragment_status", "option": "opened", "fallback": false, "requires": {}, "effects": {"fragment_status": "opened"}, "because": "игрок разрешает Леа открыть пакет"},
+    {"id": "e022", "from": "m02_choice_fragment", "to": "m02_fragment_sealed", "choice_id": "fragment_status", "option": "sealed", "fallback": false, "requires": {}, "effects": {"fragment_status": "sealed"}, "because": "игрок сохраняет границу источников"},
+    {"id": "e023", "from": "m02_choice_fragment", "to": "m02_fragment_sealed", "choice_id": "fragment_status", "fallback": true, "requires": {}, "effects": {"fragment_status": "sealed"}, "because": "молчание выбирает обратимую печать"},
+    {"id": "e024", "from": "m02_fragment_opened", "to": "m02_voice_split", "fallback": false, "requires": {}, "effects": {}, "because": "открытый пакет делает расщепление явным"},
+    {"id": "e025", "from": "m02_fragment_sealed", "to": "m02_voice_split", "fallback": false, "requires": {}, "effects": {}, "because": "метаданные запечатанного пакета всё равно показывают источники"},
+    {"id": "e026", "from": "m02_voice_split", "to": "m02_no_registry", "fallback": false, "requires": {}, "effects": {}, "because": "множество источников заставляет проверить биографию"},
+    {"id": "e027", "from": "m02_no_registry", "to": "m02_end", "fallback": false, "requires": {}, "effects": {}, "because": "отсутствие единого человека требует раскрытия"},
+    {"id": "e028", "from": "m02_end", "to": "m03_start", "fallback": false, "requires": {}, "effects": {}, "because": "следующая тренировка достигает архивного узла"},
+    {"id": "e029", "from": "m03_start", "to": "m03_fragment_gate", "fallback": false, "requires": {}, "effects": {}, "because": "M3 читает выбор M2"},
+    {"id": "e030", "from": "m03_fragment_gate", "to": "m03_after_opened", "fallback": false, "requires": {"fragment_status": "opened"}, "effects": {}, "because": "Леа несёт открытый пакет"},
+    {"id": "e031", "from": "m03_fragment_gate", "to": "m03_after_sealed", "fallback": false, "requires": {"fragment_status": "sealed"}, "effects": {}, "because": "пакет остался запечатан"},
+    {"id": "e032", "from": "m03_after_opened", "to": "m03_archive_junction", "fallback": false, "requires": {}, "effects": {}, "because": "нестабильная Леа доходит до общего доказательства"},
+    {"id": "e033", "from": "m03_after_sealed", "to": "m03_archive_junction", "fallback": false, "requires": {}, "effects": {}, "because": "устойчивая Леа доходит до общего доказательства"},
+    {"id": "e034", "from": "m03_archive_junction", "to": "m03_reveal", "fallback": false, "requires": {}, "effects": {}, "because": "оба аргумента открывают происхождение личности"},
+    {"id": "e035", "from": "m03_reveal", "to": "m03_choice_form", "fallback": false, "requires": {}, "effects": {}, "because": "раскрытие создаёт выбор формы"},
+    {"id": "e036", "from": "m03_choice_form", "to": "m03_end_composite", "choice_id": "lea_form", "option": "composite", "fallback": false, "requires": {}, "effects": {"lea_form": "composite"}, "because": "игрок сохраняет все следы внутри Леа"},
+    {"id": "e037", "from": "m03_choice_form", "to": "m03_end_core", "choice_id": "lea_form", "option": "core", "fallback": false, "requires": {}, "effects": {"lea_form": "core"}, "because": "игрок возвращает исходные следы и сохраняет новое ядро"},
+    {"id": "e038", "from": "m03_choice_form", "to": "m03_end_core", "choice_id": "lea_form", "fallback": true, "requires": {}, "effects": {"lea_form": "core"}, "because": "молчание выбирает более обратимое разделение"}
+  ]
+}

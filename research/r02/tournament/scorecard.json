@@ -1,0 +1,93 @@
+{
+  "schema_version": "0.1",
+  "decision_date": "2026-07-16",
+  "status": "editorial_hypothesis_not_user_evidence",
+  "weights": {
+    "companion_attachment_and_reciprocity": 20,
+    "episodic_return_engine": 15,
+    "recontextualizing_twist": 15,
+    "embodied_movement_causality": 15,
+    "meaningful_choice_and_consequence": 10,
+    "home_territory_geo_depth": 10,
+    "audio_first_potential": 5,
+    "original_ip_differentiation": 5,
+    "founder_ai_producibility": 5
+  },
+  "candidates": [
+    {
+      "concept_id": "blood_city",
+      "working_title": "Кровь города",
+      "premise": "Игрок замыкает защитные контуры вокруг городских узлов, помогая охотнице, которая может быть связана с той же сущностью, от которой его защищает.",
+      "three_mission_shape": [
+        "M1: голос охотницы помогает замкнуть первый контур и просит скрыть след от Ордена",
+        "M2: она возвращает долг, но найденная улика связывает её с пробуждением сущности",
+        "M3: выясняется, что контуры были одновременно печатями и путями питания; игрок решает сохранить союз или передать её Ордену"
+      ],
+      "scores": {
+        "companion_attachment_and_reciprocity": 15,
+        "episodic_return_engine": 12,
+        "recontextualizing_twist": 10,
+        "embodied_movement_causality": 13,
+        "meaningful_choice_and_consequence": 7,
+        "home_territory_geo_depth": 7,
+        "audio_first_potential": 5,
+        "original_ip_differentiation": 3,
+        "founder_ai_producibility": 5
+      },
+      "total": 77,
+      "hard_gate": "conditional_pass",
+      "main_risk": "Знакомые вампирские ходы и зависимость от ночной/исторической эстетики могут победить продуктовую универсальность. Dracula-derived branding также ослабляет собственный IP."
+    },
+    {
+      "concept_id": "zero_frequency",
+      "working_title": "Нулевая частота",
+      "premise": "На каждой пробежке у игрока есть тридцать минут связи с Никой — картографом, которая утверждает, что говорит из будущего города, постепенно исчезающего с карты.",
+      "three_mission_shape": [
+        "M1: игрок стабилизирует невозможный сигнал и выбирает, скрыть его от системы или зарегистрировать",
+        "M2: Ника возвращает долг; фиксированная задержка и локальное происхождение сигнала разрушают её версию о будущем",
+        "M3: Ника признаётся, что она прогнозная реконструкция пропавшего человека; игрок решает защищать её непрерывность или отдать на карантин ради поиска оригинала"
+      ],
+      "scores": {
+        "companion_attachment_and_reciprocity": 18,
+        "episodic_return_engine": 13,
+        "recontextualizing_twist": 14,
+        "embodied_movement_causality": 13,
+        "meaningful_choice_and_consequence": 8,
+        "home_territory_geo_depth": 8,
+        "audio_first_potential": 5,
+        "original_ip_differentiation": 5,
+        "founder_ai_producibility": 3
+      },
+      "total": 87,
+      "hard_gate": "pass",
+      "main_risk": "Онтологический sci-fi поворот легко превратить в холодную головоломку; удержание зависит от живого голоса Ники и взаимности, а не от объяснения технологии."
+    },
+    {
+      "concept_id": "null_layer",
+      "working_title": "Нулевой слой",
+      "premise": "Под официальной картой существует слой отброшенных человеческих маршрутов; пробежки игрока дорисовывают его и постепенно собирают Леа — новую личность из фрагментов чужих следов.",
+      "three_mission_shape": [
+        "M1: три реальных якоря дорисовывают линию к голосу Леа; игрок сообщает о ней Атласу или скрывает канал",
+        "M2: Леа возвращает долг и помогает сохранить безопасный маршрут; найденный пакет заставляет открыть или запечатать чужие воспоминания",
+        "M3: раскрывается, что пробежки не спасали готовую Леа, а создавали её; игрок сохраняет составную личность либо возвращает чужие следы, оставляя её собственное ядро"
+      ],
+      "scores": {
+        "companion_attachment_and_reciprocity": 18,
+        "episodic_return_engine": 15,
+        "recontextualizing_twist": 14,
+        "embodied_movement_causality": 15,
+        "meaningful_choice_and_consequence": 8,
+        "home_territory_geo_depth": 10,
+        "audio_first_potential": 5,
+        "original_ip_differentiation": 5,
+        "founder_ai_producibility": 3
+      },
+      "total": 93,
+      "hard_gate": "pass",
+      "main_risk": "Высококонцептуальная метафора может стать абстрактной; каждая миссия обязана развивать отношения с Леа, а не только объяснять слой."
+    }
+  ],
+  "winner": "null_layer",
+  "margin_over_runner_up": 6,
+  "selection_reason": "Победитель выбран не только по редакционным баллам, но по стратегическому tie-break: в «Нулевом слое» сюжетный конфликт, физическое движение, реальные POI и повторное использование домашнего района являются одной системой. Решение остаётся редакционной гипотезой до слепого cold-open и полевых тестов."
+}

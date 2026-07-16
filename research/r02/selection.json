@@ -1,0 +1,15 @@
+{
+  "schema_version": "0.1",
+  "selected_concept_id": "null_layer",
+  "canonical_title": "Нулевой слой",
+  "selection_status": "provisional_editorial_lock",
+  "selected_at": "2026-07-16",
+  "logline": "Ты думаешь, что пробежками спасаешь девушку из стёртой карты. Потом узнаёшь: до твоего первого маршрута её не существовало.",
+  "next_proof": "Bind M1 to a manually approved public loop in the founder's current city, render A/B cue sheets, prepare temporary audio, and complete one founder dry run.",
+  "not_proven": [
+    "что поворот неожидан для слепого слушателя",
+    "что игрок эмоционально привязывается к Леа",
+    "что сюжет вызывает фактический старт следующей тренировки",
+    "что одна домашняя территория выдерживает повторное использование"
+  ]
+}

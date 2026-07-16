@@ -1,0 +1,55 @@
+{
+  "schema_version": "0.1",
+  "run_id": "replace_after_dry_run",
+  "binding_id": "replace_with_approved_binding",
+  "mission_id": "m01",
+  "condition": "A",
+  "participant_role": "founder",
+  "started_at_local": "REPLACE",
+  "precommitted_next_workout_at_local": "REPLACE_BEFORE_START",
+  "safety": {
+    "route_manually_checked": false,
+    "abort": false,
+    "abort_reason": null,
+    "needed_screen_while_moving": null,
+    "nav_conflicts": []
+  },
+  "runtime": {
+    "completed": null,
+    "geo_slots_reached": [],
+    "geo_fallbacks_used": [],
+    "missed_or_late_cues": [],
+    "operator_improvisation_used": false,
+    "audio_incidents": [],
+    "off_route_incidents": []
+  },
+  "immediate_debrief_before_edits": {
+    "mission_goal_in_one_sentence": null,
+    "moment_companion_became_important": null,
+    "unaided_memorable_scene": null,
+    "attention_drop_moment": null,
+    "what_physical_movement_changed": null,
+    "desire_for_m02_1_to_7": null,
+    "place_necessity_1_to_7": null,
+    "predicted_next_twist": null,
+    "next_workout_still_scheduled": null
+  },
+  "recall_after_24h": {
+    "completed_at_local": null,
+    "unaided_story_recall": null,
+    "unaided_place_recall": [],
+    "desire_for_m02_1_to_7": null
+  },
+  "confounds": {
+    "unfamiliar_city_novelty": null,
+    "fatigue": null,
+    "noise": null,
+    "weather": null,
+    "route_quality": null,
+    "audio_quality": null
+  },
+  "evidence_limits": [
+    "Founder knows the graph, so this run cannot validate twist surprise.",
+    "A traveler fixture does not validate six-session reuse of one home territory."
+  ]
+}

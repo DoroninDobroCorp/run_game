@@ -1,0 +1,6 @@
+# R02 founder field fixtures may contain exact starts, routes, or raw traces.
+research/r02/local/
+research/r02/build/
+
+__pycache__/
+*.pyc

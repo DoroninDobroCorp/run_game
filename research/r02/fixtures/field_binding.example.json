@@ -1,0 +1,43 @@
+{
+  "schema_version": "0.1",
+  "binding_id": "replace_with_founder_current_fixture",
+  "research_mode": "traveler_fixture",
+  "product_model": "home_territory",
+  "city_alias": "founder_current_city_2026_07",
+  "route_id": "replace_with_public_loop_id",
+  "public_start": true,
+  "human_route_approved": false,
+  "workout_approved": false,
+  "human_approved": false,
+  "slots": {
+    "threshold": {
+      "name": "REPLACE_WITH_VISIBLE_BOUNDARY",
+      "archetype": "bridge_or_gate_or_path_transition",
+      "visible_attributes": [],
+      "source_refs": [],
+      "operator_trigger": "REPLACE_WITH_RELATIVE_TRIGGER",
+      "human_approved": false
+    },
+    "witness": {
+      "name": "REPLACE_WITH_STABLE_VISIBLE_LANDMARK",
+      "archetype": "public_building_or_monument_or_open_space",
+      "visible_attributes": [],
+      "source_refs": [],
+      "operator_trigger": "REPLACE_WITH_RELATIVE_TRIGGER",
+      "human_approved": false
+    },
+    "triangulation": {
+      "name": "REPLACE_WITH_OPEN_PUBLIC_SEGMENT",
+      "archetype": "open_square_or_waterfront_or_long_straight",
+      "visible_attributes": [],
+      "source_refs": [],
+      "operator_trigger": "REPLACE_WITH_RELATIVE_TRIGGER",
+      "human_approved": false
+    }
+  },
+  "evidence_limits": [
+    "Founder travel is a research logistics constraint, not a product feature.",
+    "This fixture does not prove repeated use of one home territory.",
+    "No exact coordinates or private start are stored in this committed file."
+  ]
+}

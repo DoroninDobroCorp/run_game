@@ -1,8 +1,8 @@
 # Run Game — техническая спецификация geo-narrative MVP
 
-**Версия:** 0.2
+**Версия:** 0.3
 
-**Дата:** 15 июля 2026 года
+**Дата:** 16 июля 2026 года
 
 **Связанный продуктовый документ:** [GEO_NARRATIVE_PRODUCT_STRATEGY.md](./GEO_NARRATIVE_PRODUCT_STRATEGY.md)
 
@@ -294,6 +294,32 @@ score =
 - fallback;
 - требуемый голос;
 - канонические state changes.
+
+### R02 research authoring graph
+
+До production `Story Template Registry` используется маленький machine-readable authoring graph, а не runtime engine. Он содержит три миссии, но полностью производит только M1:
+
+```text
+ConceptGraph
+  companion + emotional promise
+  world rules + runner contract
+  declared enum state (не более пяти переменных)
+  mission spine M1–M3
+  scene / choice / gate / ending nodes
+  deterministic edges + authored silence fallback
+  geo roles + route-neutral fallback
+  setup/payoff ledger центрального reveal
+```
+
+Research validator обязан проверять уникальность и достижимость узлов, отсутствие циклов и тупиков, объявленные state reads/writes, достижимость каждого финала, ограничение branch explosion, позднее чтение решений, минимум две независимые clues до reveal и fallback каждого geo-slot. На пробежку graph заранее линеаризуется в один cue sheet; live branching engine не требуется.
+
+Город не является полем канонического graph/state. Продукт предполагает одну домашнюю территорию пользователя; меняющийся город основателя существует только в отдельном privacy-safe `traveler_fixture` для ручной полевой привязки.
+
+Три системных художественных роли разделены даже при временно одинаковом TTS:
+
+- `NAV` — фактические maneuver/workout/safety cues с абсолютным приоритетом;
+- `ATLAS`/другой diegetic system — сюжетные утверждения и политика мира;
+- актёрский Напарник — драматические сцены, не имеющие права оспаривать `NAV`.
 
 ### Scene Assignment Solver
 
