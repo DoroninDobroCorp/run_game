@@ -1,0 +1,1005 @@
+[
+  {
+    "id": "SP01",
+    "name": "Bar City Center (Robna Kuca)",
+    "lat": 42.1006,
+    "lng": 19.091,
+    "stratum": "dense_center",
+    "status": "SUCCESS",
+    "raw_count": 57,
+    "eligible_count": 57,
+    "tier": "L2",
+    "latency": 22.793352365493774,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "ulica mar\u0161ala Tita",
+        "osm_id": "node_9823733685",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "sidro",
+        "osm_id": "node_10067757331",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10208496729",
+        "osm_id": "node_10208496729",
+        "categories": [
+          "man_made=tower",
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "Sutorman",
+        "osm_id": "node_10309644146",
+        "categories": [
+          "tourism=attraction"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP02",
+    "name": "King Nikola's Palace (Museum Area)",
+    "lat": 42.099,
+    "lng": 19.088,
+    "stratum": "dense_center",
+    "status": "SUCCESS",
+    "raw_count": 45,
+    "eligible_count": 45,
+    "tier": "L2",
+    "latency": 0.0005850791931152344,
+    "source": "cache",
+    "top_pois": [
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "ulica mar\u0161ala Tita",
+        "osm_id": "node_9823733685",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "sidro",
+        "osm_id": "node_10067757331",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10208496729",
+        "osm_id": "node_10208496729",
+        "categories": [
+          "man_made=tower",
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "Sutorman",
+        "osm_id": "node_10309644146",
+        "categories": [
+          "tourism=attraction"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP03",
+    "name": "Bar Marina / Promenade",
+    "lat": 42.1025,
+    "lng": 19.085,
+    "stratum": "dense_center",
+    "status": "SUCCESS",
+    "raw_count": 37,
+    "eligible_count": 37,
+    "tier": "L2",
+    "latency": 0.00033092498779296875,
+    "source": "cache",
+    "top_pois": [
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "ulica mar\u0161ala Tita",
+        "osm_id": "node_9823733685",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "sidro",
+        "osm_id": "node_10067757331",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10693543605",
+        "osm_id": "node_10693543605",
+        "categories": [
+          "man_made=tower"
+        ]
+      },
+      {
+        "name": "Jehovini svedoci \u2013 Dvorana Kraljevstva",
+        "osm_id": "node_11256327365",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP04",
+    "name": "\u0160u\u0161anj Beach Entrance",
+    "lat": 42.109,
+    "lng": 19.0965,
+    "stratum": "ordinary_residential",
+    "status": "SUCCESS",
+    "raw_count": 44,
+    "eligible_count": 44,
+    "tier": "L2",
+    "latency": 144.58320212364197,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "sidro",
+        "osm_id": "node_10067757331",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10693543605",
+        "osm_id": "node_10693543605",
+        "categories": [
+          "man_made=tower"
+        ]
+      },
+      {
+        "name": "Jehovini svedoci \u2013 Dvorana Kraljevstva",
+        "osm_id": "node_11256327365",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      },
+      {
+        "name": "Vladimir Popovi\u0107 \u0160panac",
+        "osm_id": "node_11548228552",
+        "categories": [
+          "historic=memorial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP05",
+    "name": "Zeleni Pojas (Pine Forest Slope)",
+    "lat": 42.115,
+    "lng": 19.098,
+    "stratum": "ordinary_residential",
+    "status": "SUCCESS",
+    "raw_count": 41,
+    "eligible_count": 41,
+    "tier": "L2",
+    "latency": 15.092805862426758,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Voda \u010ciponj 1938",
+        "osm_id": "node_6807531685",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "POI_9046345070",
+        "osm_id": "node_9046345070",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_9987825236",
+        "osm_id": "node_9987825236",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "POI_10028222111",
+        "osm_id": "node_10028222111",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "Jehovini svedoci \u2013 Dvorana Kraljevstva",
+        "osm_id": "node_11256327365",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP06",
+    "name": "Stari Bar Old Town Entrance",
+    "lat": 42.0924,
+    "lng": 19.135,
+    "stratum": "dense_historic",
+    "status": "SUCCESS",
+    "raw_count": 77,
+    "eligible_count": 77,
+    "tier": "L2",
+    "latency": 18.39412522315979,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "\u0160kanjevi\u0107a d\u017eamija",
+        "osm_id": "node_3699618299",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      },
+      {
+        "name": "Church",
+        "osm_id": "node_4364589191",
+        "categories": [
+          "tourism=attraction"
+        ]
+      },
+      {
+        "name": "POI_4777595916",
+        "osm_id": "node_4777595916",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "POI_4777595917",
+        "osm_id": "node_4777595917",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "POI_5709757653",
+        "osm_id": "node_5709757653",
+        "categories": [
+          "historic=ruins"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP07",
+    "name": "Podgrad (Stari Bar Approach)",
+    "lat": 42.0936,
+    "lng": 19.1284,
+    "stratum": "dense_historic",
+    "status": "SUCCESS",
+    "raw_count": 78,
+    "eligible_count": 78,
+    "tier": "L2",
+    "latency": 395.9966719150543,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "\u0160kanjevi\u0107a d\u017eamija",
+        "osm_id": "node_3699618299",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      },
+      {
+        "name": "Church",
+        "osm_id": "node_4364589191",
+        "categories": [
+          "tourism=attraction"
+        ]
+      },
+      {
+        "name": "POI_4777595916",
+        "osm_id": "node_4777595916",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "POI_4777595917",
+        "osm_id": "node_4777595917",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "POI_5709757653",
+        "osm_id": "node_5709757653",
+        "categories": [
+          "historic=ruins"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP08",
+    "name": "Bar Train Station",
+    "lat": 42.0834,
+    "lng": 19.1024,
+    "stratum": "industrial_transport",
+    "status": "SUCCESS",
+    "raw_count": 76,
+    "eligible_count": 76,
+    "tier": "L2",
+    "latency": 0.0006439685821533203,
+    "source": "cache",
+    "top_pois": [
+      {
+        "name": "POI_7058455710",
+        "osm_id": "node_7058455710",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "Velji vrh",
+        "osm_id": "node_7078208385",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8936521406",
+        "osm_id": "node_8936521406",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8936643599",
+        "osm_id": "node_8936643599",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8936657000",
+        "osm_id": "node_8936657000",
+        "categories": [
+          "natural=peak"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP09",
+    "name": "Port of Bar (Cargo area boundary)",
+    "lat": 42.079,
+    "lng": 19.099,
+    "stratum": "industrial_transport",
+    "status": "SUCCESS",
+    "raw_count": 57,
+    "eligible_count": 57,
+    "tier": "L2",
+    "latency": 17.995123147964478,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "POI_7058455710",
+        "osm_id": "node_7058455710",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "Filin Tuz",
+        "osm_id": "node_7078208384",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Velji vrh",
+        "osm_id": "node_7078208385",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8936521406",
+        "osm_id": "node_8936521406",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8936643598",
+        "osm_id": "node_8936643598",
+        "categories": [
+          "natural=peak"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP10",
+    "name": "Dobra Voda (Veliki Pijesak resort plain)",
+    "lat": 42.062,
+    "lng": 19.145,
+    "stratum": "sparse_outskirts",
+    "status": "SUCCESS",
+    "raw_count": 21,
+    "eligible_count": 21,
+    "tier": "L2",
+    "latency": 28.875385761260986,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "POI_6925446765",
+        "osm_id": "node_6925446765",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "POI_7082146601",
+        "osm_id": "node_7082146601",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "Mu\u010dibaba",
+        "osm_id": "node_7488422914",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Mramor",
+        "osm_id": "node_7488422915",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Zijo Metovi\u0107 1965-2015",
+        "osm_id": "node_11834506758",
+        "categories": [
+          "historic=memorial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP11",
+    "name": "Sutomore Promenade Center",
+    "lat": 42.138,
+    "lng": 19.062,
+    "stratum": "dense_center",
+    "status": "SUCCESS",
+    "raw_count": 34,
+    "eligible_count": 34,
+    "tier": "L2",
+    "latency": 6.382678985595703,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "POI_2476533310",
+        "osm_id": "node_2476533310",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "Mala Vrsuta",
+        "osm_id": "node_6995772494",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_9007153645",
+        "osm_id": "node_9007153645",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "Grlo od Culeta",
+        "osm_id": "node_9020989369",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Crkva Svetog Nikole",
+        "osm_id": "node_10873162805",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP12",
+    "name": "Sutomore Mountain Slope",
+    "lat": 42.146,
+    "lng": 19.072,
+    "stratum": "ordinary_residential",
+    "status": "SUCCESS",
+    "raw_count": 21,
+    "eligible_count": 21,
+    "tier": "L2",
+    "latency": 0.0007910728454589844,
+    "source": "cache",
+    "top_pois": [
+      {
+        "name": "POI_5595759967",
+        "osm_id": "node_5595759967",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      },
+      {
+        "name": "Vrsuta",
+        "osm_id": "node_6919104055",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Mala Vrsuta",
+        "osm_id": "node_6995772494",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Petilje",
+        "osm_id": "node_7388184378",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_9007153645",
+        "osm_id": "node_9007153645",
+        "categories": [
+          "tourism=viewpoint"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP13",
+    "name": "\u010celuga Plain",
+    "lat": 42.106,
+    "lng": 19.108,
+    "stratum": "ordinary_residential",
+    "status": "SUCCESS",
+    "raw_count": 64,
+    "eligible_count": 64,
+    "tier": "L2",
+    "latency": 18.250786066055298,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "ulica mar\u0161ala Tita",
+        "osm_id": "node_9823733685",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "sidro",
+        "osm_id": "node_10067757331",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10289642858",
+        "osm_id": "node_10289642858",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "POI_10693543605",
+        "osm_id": "node_10693543605",
+        "categories": [
+          "man_made=tower"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP14",
+    "name": "Bjeli\u0161i (Residential)",
+    "lat": 42.097,
+    "lng": 19.106,
+    "stratum": "ordinary_residential",
+    "status": "SUCCESS",
+    "raw_count": 74,
+    "eligible_count": 74,
+    "tier": "L2",
+    "latency": 40.23785901069641,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "POI_7058455710",
+        "osm_id": "node_7058455710",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "ulica mar\u0161ala Tita",
+        "osm_id": "node_9823733685",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "sidro",
+        "osm_id": "node_10067757331",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10208496729",
+        "osm_id": "node_10208496729",
+        "categories": [
+          "man_made=tower",
+          "historic=memorial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP15",
+    "name": "Polje Plain (Sparse houses)",
+    "lat": 42.088,
+    "lng": 19.112,
+    "stratum": "sparse_outskirts",
+    "status": "SUCCESS",
+    "raw_count": 83,
+    "eligible_count": 83,
+    "tier": "L2",
+    "latency": 6.619102239608765,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "POI_7058455710",
+        "osm_id": "node_7058455710",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_8936657001",
+        "osm_id": "node_8936657001",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Oldest olive tree",
+        "osm_id": "node_9251401617",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "ulica mar\u0161ala Tita",
+        "osm_id": "node_9823733685",
+        "categories": [
+          "historic=memorial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP16",
+    "name": "Tomba (Base of Mount Rumija)",
+    "lat": 42.075,
+    "lng": 19.124,
+    "stratum": "sparse_outskirts",
+    "status": "SUCCESS",
+    "raw_count": 25,
+    "eligible_count": 25,
+    "tier": "L2",
+    "latency": 29.15735101699829,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Filin Tuz",
+        "osm_id": "node_7078208384",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8936657000",
+        "osm_id": "node_8936657000",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Duga\u010dki Vrh",
+        "osm_id": "node_8942268769",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_8942315940",
+        "osm_id": "node_8942315940",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Oldest olive tree",
+        "osm_id": "node_9251401617",
+        "categories": [
+          "historic=memorial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP17",
+    "name": "\u017deljeznica River Mouth (Bridge area)",
+    "lat": 42.111,
+    "lng": 19.091,
+    "stratum": "ordinary_residential",
+    "status": "SUCCESS",
+    "raw_count": 36,
+    "eligible_count": 36,
+    "tier": "L2",
+    "latency": 0.0009031295776367188,
+    "source": "cache",
+    "top_pois": [
+      {
+        "name": "POI_7034655340",
+        "osm_id": "node_7034655340",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "Knez Vladimir",
+        "osm_id": "node_7068081580",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_10693543605",
+        "osm_id": "node_10693543605",
+        "categories": [
+          "man_made=tower"
+        ]
+      },
+      {
+        "name": "Jehovini svedoci \u2013 Dvorana Kraljevstva",
+        "osm_id": "node_11256327365",
+        "categories": [
+          "amenity=place_of_worship"
+        ]
+      },
+      {
+        "name": "Vladimir Popovi\u0107 \u0160panac",
+        "osm_id": "node_11548228552",
+        "categories": [
+          "historic=memorial"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP18",
+    "name": "\u0160u\u0161anj Forest Edge",
+    "lat": 42.122,
+    "lng": 19.115,
+    "stratum": "sparse_outskirts",
+    "status": "SUCCESS",
+    "raw_count": 96,
+    "eligible_count": 96,
+    "tier": "L2",
+    "latency": 33.827340841293335,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Gradac",
+        "osm_id": "node_7078338933",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_7219679829",
+        "osm_id": "node_7219679829",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_9046345070",
+        "osm_id": "node_9046345070",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_9356035594",
+        "osm_id": "node_9356035594",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "POI_9356152654",
+        "osm_id": "node_9356152654",
+        "categories": [
+          "natural=spring"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP19",
+    "name": "Gornja \u0160u\u0161anj (High rural slope)",
+    "lat": 42.128,
+    "lng": 19.105,
+    "stratum": "difficult_point",
+    "status": "SUCCESS",
+    "raw_count": 75,
+    "eligible_count": 75,
+    "tier": "L2",
+    "latency": 0.0005419254302978516,
+    "source": "cache",
+    "top_pois": [
+      {
+        "name": "Grbavac",
+        "osm_id": "node_7388184377",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Sto",
+        "osm_id": "node_7388184379",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "Gornja voda",
+        "osm_id": "node_7388184382",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "POI_9046345070",
+        "osm_id": "node_9046345070",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_9356035594",
+        "osm_id": "node_9356035594",
+        "categories": [
+          "natural=spring"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "SP20",
+    "name": "Haj-Nehaj Fortress (Base approach)",
+    "lat": 42.155,
+    "lng": 19.025,
+    "stratum": "difficult_point",
+    "status": "SUCCESS",
+    "raw_count": 30,
+    "eligible_count": 28,
+    "tier": "L2",
+    "latency": 5.879745006561279,
+    "source": "live",
+    "top_pois": [
+      {
+        "name": "Velji Grad",
+        "osm_id": "node_2234728772",
+        "categories": [
+          "man_made=tower"
+        ]
+      },
+      {
+        "name": "POI_5923653661",
+        "osm_id": "node_5923653661",
+        "categories": [
+          "natural=peak"
+        ]
+      },
+      {
+        "name": "POI_7030046049",
+        "osm_id": "node_7030046049",
+        "categories": [
+          "historic=memorial"
+        ]
+      },
+      {
+        "name": "POI_8897242369",
+        "osm_id": "node_8897242369",
+        "categories": [
+          "natural=spring"
+        ]
+      },
+      {
+        "name": "Lorovik",
+        "osm_id": "node_10591655560",
+        "categories": [
+          "natural=spring"
+        ]
+      }
+    ]
+  }
+]
