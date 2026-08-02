@@ -1,6 +1,6 @@
 # Журнал выполнения Run Game (EXECUTION_STATUS)
 
-**Последнее обновление:** 16 июля 2026 года
+**Последнее обновление:** 1 августа 2026 года
 **Текущая фаза:** Research Phase (`R02` — `IN_PROGRESS`, narrative foundation реализована)
 
 ---
@@ -44,7 +44,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», machine-readable M1–M3 graph (32 nodes, 38 edges, 8 paths), полный M1 A/B beat draft, privacy-safe binding/run fixtures, stdlib validator и 14 passing tests. | 16.07.2026 | В текущем городе вручную утвердить public loop и 3 geo slots, собрать temp audio и пройти M1-A founder dry run. |
+| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft, stdlib validator (19 passing tests). Сформирован активный provisional draft для г. Сантьяго, Чили возле Metro Cumming (OSM candidates: `node/253281419`, `way/592372641`, `way/180191510`, `way/23389924`); сгенерирован 1800.0s master audio (`m01_solo_founder_30min.m4a`/`.aiff`) с 27 NAV сигналом и manifest. Ла-Пас сохранён как frozen historical fixture. Статус: `audio clips generated; 30-minute master and route walk-through pending`. Human approvals остаются `false`. | 01.08.2026 | Дневной пеший проход маршрута основателем возле Metro Cumming с открытой картой для записи GPX ➔ замер дистанции и высоты ➔ домашний тест 30-мин трека ➔ solo founder run (R02 не отмечается COMPLETE до забега). |
 | **R03** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02. |
 | **R04** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02 (может идти параллельно с R03). |
 
@@ -58,7 +58,9 @@
 2. `git clone https://github.com/DoroninDobroCorp/TerraIncognita.git` — успешный импорт и аудит существующего кода карт/маршрутов основателя.
 3. `python3 scratch/r01_feasibility_bar.py` — успешный запуск скрипта гео-аудита и сбор кэша Overpass по г. Бар, Черногория.
 4. `python3 tools/r02_story.py validate` — graph, M1 beats, scorecard и draft binding прошли semantic validation; graph содержит 8 путей.
-5. `python3 -m unittest discover -s tests -p 'test_*.py' -v` — 14/14 narrative process tests прошли.
+5. `python3 -m unittest discover -s tests -p 'test_*.py' -v` — 19/19 passing unit tests прошли.
+6. `python3 tools/r02_verify_santiago_geo.py` — 4/4 live OSM objects verified online.
+7. `python3 tools/r02_verify_field.py --audio-dir research/r02/local/santiago_cumming/audio` — PASSED.
 
 ---
 
