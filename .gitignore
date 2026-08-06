@@ -1,6 +1,10 @@
 # R02 founder field fixtures may contain exact starts, routes, or raw traces.
 research/r02/local/
 research/r02/build/
+ios/RunGameFounder/Resources/Local/
+
+ios/RunGameFounder/DerivedData/
+ios/RunGameFounder/*.xcresult
 
 __pycache__/
 *.pyc

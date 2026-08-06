@@ -1,0 +1,56 @@
+name: RunGameFounder
+options:
+  bundleIdPrefix: com.doronindobro
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    DEVELOPMENT_TEAM: RYH84JAC66
+    CODE_SIGN_STYLE: Automatic
+targets:
+  RunGameFounder:
+    type: application
+    platform: iOS
+    sources:
+      - path: RunGameFounder
+      - path: Resources/Local/mission.json
+        buildPhase: resources
+      - path: Resources/Local/m01_solo_founder_30min.m4a
+        buildPhase: resources
+      - path: Resources/Local/m01_solo_founder_30min.manifest.json
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.doronindobro.rungame.founder
+        INFOPLIST_FILE: RunGameFounder/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme:
+      testTargets:
+        - RunGameFounderTests
+        - RunGameFounderUITests
+  RunGameFounderTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RunGameFounderTests
+    dependencies:
+      - target: RunGameFounder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.doronindobro.rungame.founder.tests
+        GENERATE_INFOPLIST_FILE: YES
+  RunGameFounderUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: RunGameFounderUITests
+    dependencies:
+      - target: RunGameFounder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.doronindobro.rungame.founder.uitests
+        GENERATE_INFOPLIST_FILE: YES

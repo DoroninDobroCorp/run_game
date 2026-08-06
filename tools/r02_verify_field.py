@@ -19,7 +19,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_AUDIO_DIR = ROOT / "research/r02/local/santiago_cumming/audio"
+DEFAULT_AUDIO_DIR = ROOT / "research/r02/local/valparaiso_central/audio"
 
 
 def compute_sha256(path: Path) -> str:

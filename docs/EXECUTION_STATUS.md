@@ -1,6 +1,6 @@
 # Журнал выполнения Run Game (EXECUTION_STATUS)
 
-**Последнее обновление:** 1 августа 2026 года
+**Последнее обновление:** 7 августа 2026 года
 **Текущая фаза:** Research Phase (`R02` — `IN_PROGRESS`, narrative foundation реализована)
 
 ---
@@ -44,7 +44,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft, stdlib validator (19 passing tests). Сформирован активный provisional draft для г. Сантьяго, Чили возле Metro Cumming (OSM candidates: `node/253281419`, `way/592372641`, `way/180191510`, `way/23389924`); сгенерирован 1800.0s master audio (`m01_solo_founder_30min.m4a`/`.aiff`) с 27 NAV сигналом и manifest. Ла-Пас сохранён как frozen historical fixture. Статус: `audio clips generated; 30-minute master and route walk-through pending`. Human approvals остаются `false`. | 01.08.2026 | Дневной пеший проход маршрута основателем возле Metro Cumming с открытой картой для записи GPX ➔ замер дистанции и высоты ➔ домашний тест 30-мин трека ➔ solo founder run (R02 не отмечается COMPLETE до забега). |
+| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft и stdlib validator. Активная founder-фикстура перенесена в центральный Вальпараисо: Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins (OSM `way/313292626`, `way/479821102`, `way/313291642`, `way/313290496`). Live OSM: 4/4; новый 1800.0s master с 27 NAV-сигналами прошёл SHA/duration verification. По founder decision собран локальный SwiftUI iPhone vertical slice: Apple Maps pedestrian preview, отдельный walk-through, binding/audio-versioned safety gates, background master audio, lock-screen controls, локальный GPS→GPX, emergency stop и JSON-дебриф. Simulator build успешен; 19 Python + 5 Swift unit + 2 UI tests проходят. Human approvals остаются `false`. | 07.08.2026 | Установить build на физический iPhone ➔ дневной обход с GPX ➔ при необходимости исправить маршрут/тайминги ➔ route approval ➔ полный lock-screen аудиотест ➔ solo founder run. |
 | **R03** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02. |
 | **R04** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02 (может идти параллельно с R03). |
 
@@ -59,13 +59,18 @@
 3. `python3 scratch/r01_feasibility_bar.py` — успешный запуск скрипта гео-аудита и сбор кэша Overpass по г. Бар, Черногория.
 4. `python3 tools/r02_story.py validate` — graph, M1 beats, scorecard и draft binding прошли semantic validation; graph содержит 8 путей.
 5. `python3 -m unittest discover -s tests -p 'test_*.py' -v` — 19/19 passing unit tests прошли.
-6. `python3 tools/r02_verify_santiago_geo.py` — 4/4 live OSM objects verified online.
-7. `python3 tools/r02_verify_field.py --audio-dir research/r02/local/santiago_cumming/audio` — PASSED.
+6. `python3 tools/r02_verify_geo.py` — PASSED, 4/4 объекта активной Valparaíso-фикстуры подтверждены через live OSM API.
+7. `python3 tools/r02_build_master.py` — PASSED, собран 1800.0s master с активным Valparaíso binding.
+8. `python3 tools/r02_verify_field.py` — PASSED, оба master-файла имеют длительность 1800.00s и совпадающие SHA-256.
+9. `python3 tools/r02_prepare_ios.py` — PASSED, локальный iPhone bundle содержит mission config, manifest и verified M4A.
+10. `xcodebuild ... build` — PASSED на iPhone 16 Pro simulator (iOS 18.5).
+11. `xcodebuild ... -only-testing:RunGameFounderTests test` — PASSED, 5/5 Swift unit tests.
+12. `xcodebuild ... -only-testing:RunGameFounderUITests test` — PASSED, 2/2 UI smoke tests, включая запуск bundled master audio.
 
 ---
 
 ## 6. Open Blockers
-Нет критических блокеров для продолжения R02. Для завершения этапа отсутствуют реальные human-approved route binding, временное аудио, founder dry run и A/B parity evidence. Точная fitness-сетка остаётся narrative fixture до review профильного специалиста.
+Нет критических блокеров для продолжения R02. Для завершения этапа отсутствуют physical-device background audio/GPS evidence, реальный human-approved route binding, founder dry run и A/B parity evidence. Точная fitness-сетка остаётся narrative fixture до review профильного специалиста.
 
 ---
 

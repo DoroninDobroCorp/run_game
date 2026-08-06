@@ -321,7 +321,14 @@ def validate_graph(graph: dict[str, Any]) -> dict[str, Any]:
                 )
 
     canonical_text = json.dumps(graph, ensure_ascii=False).lower()
-    forbidden_city_patterns = [r"\bбар\b", r"сантьяго", r"черногори", r"montenegro"]
+    forbidden_city_patterns = [
+        r"\bбар\b",
+        r"сантьяго",
+        r"valpara[ií]so",
+        r"вальпараисо",
+        r"черногори",
+        r"montenegro",
+    ]
     for pattern in forbidden_city_patterns:
         if re.search(pattern, canonical_text):
             errors.append(f"graph: canonical story contains research-city token {pattern!r}")

@@ -1,79 +1,86 @@
-# R02B Field Verification & Evidence Memo (Santiago Master Audio & Route Draft)
+# R02B Field Verification & Evidence Memo (Valparaíso Route Draft)
 
-**Дата составления:** 1 августа 2026 года
-**Текущий статус:** `generated_unverified, route walk-through pending`
+**Дата обновления:** 7 августа 2026 года
+
+**Текущий статус:** `native_founder_build_simulator_verified, physical walk-through pending`
+
 **Исследовательский режим:** `SOLO_FOUNDER_NARRATIVE_RUN` (самостоятельный забег, телефон заблокирован в кармане)
-**Активная локация:** г. Сантьяго, Чили (стартовая зона возле Metro Cumming, Баррио Юнгай / Брасил)
-**Архивный fixture:** г. Ла-Пас, Боливия сохранён как замороженный исторический фикстура
+
+**Активная локация:** г. Вальпараисо, Чили (предварительный центральный контур)
+
+**Предыдущая локация:** фикстура Santiago / Metro Cumming больше не активна; её локальные файлы не переносились
+
 **Зафиксированная ветка M1:** `atlas_disclosure = concealed`
 **Выбранный канон:** «Нулевой слой»
-**Тестовое покрытие:** 19 standard unit tests + live OSM geo verifier (`tools/r02_verify_santiago_geo.py`) + field verification (`tools/r02_verify_field.py`)
 
 ---
 
-## 1. Спецификация проверенных OSM кандидатов (г. Сантьяго, Чили)
+## 1. Предварительные OSM-кандидаты в Вальпараисо
 
-Маршрут имеет предварительный статус `provisional_unverified`. Проверенные через live OpenStreetMap API кандидаты вокруг Metro Cumming:
+Для активной фикстуры выбраны четыре публичных ориентира в центральной части города:
 
-- **Старт и Финиш**: Cumming ([OSM node 253281419](https://www.openstreetmap.org/node/253281419))
-- **`threshold` (Slot 1)**: Centro Comunitario Palacio Álamos ([OSM way 592372641](https://www.openstreetmap.org/way/592372641)) — здание общественного центра на ул. Santo Domingo 2398
-- **`witness` (Slot 2)**: Basílica del Salvador ([OSM way 180191510](https://www.openstreetmap.org/way/180191510)) — неоготическое культовое сооружение на ул. Huérfanos
-- **`triangulation` (Slot 3)**: Plaza Brasil ([OSM way 23389924](https://www.openstreetmap.org/way/23389924)) — открытый городской парк
+- **Старт и финиш:** Plaza de la Victoria ([OSM way 313292626](https://www.openstreetmap.org/way/313292626))
+- **`threshold` (Slot 1):** Arco Británico ([OSM way 479821102](https://www.openstreetmap.org/way/479821102))
+- **`witness` (Slot 2):** Parque Italia ([OSM way 313291642](https://www.openstreetmap.org/way/313291642))
+- **`triangulation` (Slot 3):** Plaza O'Higgins ([OSM way 313290496](https://www.openstreetmap.org/way/313290496))
 
-### Подтверждённость и допущения
-- **OSM identity verified**: Подлинность объектов, типы и OSM IDs подтверждены через живой запрос к OSM API.
-- **NOT YET VERIFIED (Provisional Assumptions)**: Пешеходная безопасность, фактическая ширина тротуаров, точная пешеходная длина маршрута, времена прибытия к POI и тип покрытия остаются непроверенными гипотезами до выполнения дневного обхода основателем.
-- **Параметры расстояния и высоты**: `measured_loop_length_meters`, `measured_elevation_gain_meters`, `poi_leg_distances_meters` и `expected_poi_arrival_cue_sec` в `current.binding.json` сохранены в значении **`null`**.
-- **Статус аппрува**: все `human_approved`, `human_route_approved` и `workout_approved` **остаются `false`** до пешего прохождения основателем.
+Локальные данные находятся в `research/r02/local/valparaiso_central/` и не попадают в Git. Проверка идентичности выполняется общей командой:
 
-Файл snapshot зафиксирован: `research/r02/local/santiago_cumming/osm_snapshot.json`.
+```bash
+python3 tools/r02_verify_geo.py
+```
+
+### Подтверждённость и ограничения
+
+- OpenStreetMap подтверждает только существование, тип, ID и имя каждого объекта.
+- Порядок улиц между объектами пока не является утверждённым маршрутом.
+- Тротуары, переходы, трафик, ремонт, освещение, доступность, покрытие и лестницы не проверены.
+- Дистанция, набор высоты, длины отрезков и фактические времена прибытия к POI остаются `null`.
+- Все `human_approved`, `human_route_approved` и `workout_approved` остаются `false`.
+- Вальпараисский рельеф нельзя оценивать по расстоянию по прямой; решение принимается только после дневного пешего обхода.
 
 ---
 
-## 2. Спецификация 30-минутного Master Audio (`1800.0s`)
+## 2. Master Audio
 
-Скомпилирован один единый непрерывный master-файл с чистой озвучкой реплик (без проговаривания дикторских меток `NAV:`, `ЛЕА:`, `АТЛАС:` и сценических указаний в скобках `[...]`), цифровой тишиной между cues и 27 голосовыми NAV-сигналами.
+Сценарий и 30-минутная timing-сетка не зависят от города. Condition A подставляет в реплики локальные названия «Арко Британико», «Парк Италия» и «Пласа О’Хиггинс».
 
-- **Master Audio Files**:
-  - `research/r02/local/santiago_cumming/audio/m01_solo_founder_30min.aiff` (151 MB, длительность: **1800.00s**, SHA-256: `051b613003e7c382ceef786def51503944b4d6c6a1000345e51b86157345886d`)
-  - `research/r02/local/santiago_cumming/audio/m01_solo_founder_30min.m4a` (4.8 MB, длительность: **1800.00s**, SHA-256: `732c1db66000954f317f5f696a1fc7743ebed835c5136963821cb46b205041c1`)
-- **Manifest File**: `research/r02/local/santiago_cumming/audio/m01_solo_founder_30min.manifest.json`.
+```bash
+python3 tools/r02_build_master.py
+python3 tools/r02_verify_field.py
+```
 
-### Тайминг-сетка Master Audio:
-- `0s`: NAV Старт тренировки + `c001` (8s)
+Сборка и проверка выполнены 7 августа 2026 года:
+
+- `m01_solo_founder_30min.aiff` — `1800.00s`, 151 MB, SHA-256 `7adbbbf05cb71fab1feefa055a8310b1386c2664d16f93b8bcd533987ca94e0e`
+- `m01_solo_founder_30min.m4a` — `1800.00s`, 4.9 MB, SHA-256 `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+- `m01_solo_founder_30min.manifest.json` — 27 NAV-сигналов, 10 narrative cues, финальный NAV в `1792.0s`
+
+Все файлы находятся в `research/r02/local/valparaiso_central/audio/` и игнорируются Git. Прежние Santiago-хэши не считаются evidence активной фикстуры.
+
+### Тайминг-сетка
+
+- `0s`: NAV старт тренировки + `c001`
 - `240s`: `c002`
-- `270s`: NAV Предупреждение о беге 1
-- `300s`: NAV Бег 1 (60s)
-- `360s`: NAV Переход на ходьбу (90s)
-- `365s`: `c003` (Centro Comunitario Palacio Álamos)
-- `660s`: NAV Переход на ходьбу 3
-- `665s`: `c004` (Basílica del Salvador)
-- `810s`: NAV Переход на ходьбу 4
-- `815s`: `c005` (фиксация concealed)
-- `960s`: NAV Переход на ходьбу 5
-- `965s`: `c006a` (реакция concealed)
-- `1110s`: NAV Переход на ходьбу 6
-- `1115s`: `c007` (Plaza Brasil)
-- `1410s`: NAV Переход на ходьбу 8
-- `1415s`: `c008` (замыкание контура, восстановлена сильная реплика: «Я появилась не там, где меня забыли, а там, где ты прошёл»)
-- `1500s`: NAV Заминка (5 мин)
-- `1510s`: `c009` (фрагменты)
-- `1650s`: `c010` (финал Леа, без фразы завершения NAV)
-- `1792s`: NAV Финальное завершение тренировки (завершается до 1800.0s)
+- `300–360s`: бег 1; `365s`: `c003` (`threshold`)
+- `600–660s`: бег 3; `665s`: `c004` (`witness`)
+- `815s`: `c005`; `965s`: `c006a`
+- `1050–1110s`: бег 6; `1115s`: `c007` (`triangulation`)
+- `1415s`: `c008` (замыкание контура)
+- `1500s`: заминка; `1510s`: `c009`; `1650s`: `c010`
+- `1792s`: финальный NAV-сигнал до окончания в `1800.0s`
 
 ---
 
-## 3. Последовательность следующих шагов
+## 3. Следующие шаги
 
-1. **A. Дневной пеший проход маршрута возле Metro Cumming (Walk-Through):**
-   - Основатель днём выходит к публичной стартовой точке возле Metro Cumming с открытой картой (без аудиотрека), проходит контур пешком, замеряет время прибытия к Palacio Álamos, Basílica del Salvador, Plaza Brasil, проверяет тротуары, переходы и освещение.
-2. **B. Корректировка таймингов по результатам замера / GPX:**
-   - Рассчитываются пешеходная длина, набор высоты и фактические времена прибытия в `current.binding.json`.
-   - При необходимости изменяются параметры точек или выбираются более близкие POI.
-   - Устанавливаются флаги `human_route_approved = true`, `workout_approved = true`, `human_approved = true`.
-3. **C. Финальная пересборка Master Audio:**
-   - Перезапуск `python3 tools/r02_build_master.py --beats research/r02/mission_01_beats.v0.1.json --binding research/r02/local/santiago_cumming/current.binding.json --output-dir research/r02/local/santiago_cumming/audio`.
-4. **D. Домашняя проверка Master Audio:**
-   - Проверка воспроизведения `m01_solo_founder_30min.m4a` дома с заблокированным экраном телефона через `python3 tools/r02_verify_field.py --audio-dir research/r02/local/santiago_cumming/audio`.
-5. **E. Физическая пробежка Основателя (Solo Founder Run):**
-   - Пробежка M1-A ➔ дебрифинг в `founder_m01_run.json` ➔ 24-часовой опрос.
+Founder test теперь выполняется через локальный SwiftUI build `ios/RunGameFounder/RunGameFounder.xcodeproj`. Приложение включает route preview, отдельный walk-through с GPX, master-аудио, lock-screen controls, safety gate и дебриф. Подробная инструкция: `docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md`.
+
+1. **Установка на физический iPhone.** Выбрать Personal Team, собрать и запустить founder build; подтвердить реальный background audio/location behavior.
+2. **Дневной walk-through без аудио.** Открыть карту на Plaza de la Victoria, проверить фактический безопасный контур через три POI и записать GPX. Не ускоряться ради совпадения с cue.
+3. **Замеры и корректировка.** Заполнить дистанцию, набор высоты, длины отрезков, переходы, покрытие и времена прибытия в `current.binding.json`. При необходимости заменить любой POI.
+4. **Human approval.** Только после обхода установить маршрутные и workout-флаги в `true`; OSM-проверка сама по себе этого не разрешает.
+5. **Домашняя проверка.** Полностью прослушать master с заблокированным экраном; approval привязан к SHA-256 и автоматически сбрасывается после смены аудио.
+6. **Solo founder run.** Выполнить M1-A, сразу экспортировать GPX/JSON-дебриф, затем добавить 24-часовой recall.
+
+R02 не отмечается `COMPLETE` до фактической пробежки и заполнения evidence form.

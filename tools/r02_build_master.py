@@ -10,6 +10,7 @@ and generates the audio manifest with SHA-256 checksums.
 from __future__ import annotations
 
 import argparse
+from array import array
 import hashlib
 import json
 from pathlib import Path
@@ -21,9 +22,10 @@ import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BEATS = ROOT / "research/r02/mission_01_beats.v0.1.json"
-DEFAULT_BINDING = ROOT / "research/r02/local/current.binding.json"
+DEFAULT_LOCAL_DIR = ROOT / "research/r02/local/valparaiso_central"
+DEFAULT_BINDING = DEFAULT_LOCAL_DIR / "current.binding.json"
 DEFAULT_FIXTURE_BINDING = ROOT / "research/r02/fixtures/field_binding.example.json"
-DEFAULT_OUTPUT_DIR = ROOT / "research/r02/local/audio"
+DEFAULT_OUTPUT_DIR = DEFAULT_LOCAL_DIR / "audio"
 
 SAMPLE_RATE = 44100
 TARGET_DURATION_SEC = 1800.0
@@ -185,7 +187,10 @@ def build_master_audio(beats_path: Path, binding_path: Path, output_dir: Path) -
     master_m4a = output_dir / "m01_solo_founder_30min.m4a"
     manifest_path = output_dir / "m01_solo_founder_30min.manifest.json"
 
-    pcm_buffer = [0] * TOTAL_SAMPLES
+    # A Python list of 79M integer objects consumes multiple gigabytes. A signed
+    # 16-bit array matches the output format and keeps the 30-minute buffer near
+    # its actual PCM size (~159 MB).
+    pcm_buffer = array("h", [0]) * TOTAL_SAMPLES
     cues_manifest = []
 
     # 1. Workout NAV Events
@@ -243,7 +248,9 @@ def build_master_audio(beats_path: Path, binding_path: Path, output_dir: Path) -
         wf.setnchannels(1)
         wf.setsampwidth(2)
         wf.setframerate(SAMPLE_RATE)
-        wf.writeframes(struct.pack(f"<{TOTAL_SAMPLES}h", *pcm_buffer))
+        if sys.byteorder != "little":
+            pcm_buffer.byteswap()
+        wf.writeframes(pcm_buffer.tobytes())
 
     # 4. Convert master WAV to AIFF and M4A
     cmd_aiff = ["afconvert", "-f", "AIFF", "-c", "1", "-d", "BEI16@44100", str(master_wav), str(master_aiff)]
