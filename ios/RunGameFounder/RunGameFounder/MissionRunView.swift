@@ -27,6 +27,26 @@ struct MissionRunView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
+                if appModel.evidenceCaptureLocked {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Evidence Capture Locked", systemImage: "lock.fill")
+                            .font(.headline)
+                            .foregroundStyle(RunGameTheme.warning)
+                        if !appModel.pendingDebriefs.isEmpty {
+                            Text("Присутствует незавершённый immediate-дебриф. Завершите его перед новым запуском.")
+                                .font(.footnote)
+                        } else if !appModel.pendingRecalls.isEmpty {
+                            Text("Присутствует ожидающий 24-часовой recall. Новая миссия заблокирована.")
+                                .font(.footnote)
+                        } else if appModel.loadError != nil {
+                            Text("Состояние приложения или bundle повреждено.")
+                                .font(.footnote)
+                        }
+                    }
+                    .runGamePanel()
+                    .accessibilityIdentifier("evidenceLockBanner")
+                }
+
                 statusHeader
                 timelineCard
                 if state == .ready { preRunChecklist }
@@ -173,7 +193,7 @@ struct MissionRunView: View {
             .buttonStyle(.borderedProminent)
             .tint(RunGameTheme.electric)
             .foregroundStyle(RunGameTheme.ink)
-            .disabled(!preflightComplete || !audio.isPrepared || !appModel.canBeginMission)
+            .disabled(!preflightComplete || !audio.isPrepared || !appModel.canBeginMission || appModel.evidenceCaptureLocked)
         case .acquiringGPS:
             VStack(spacing: 12) {
                 HStack {
@@ -272,7 +292,7 @@ struct MissionRunView: View {
     }
 
     private func beginStart() {
-        guard preflightComplete, audio.isPrepared, appModel.canBeginMission else { return }
+        guard preflightComplete, audio.isPrepared, appModel.canBeginMission, !appModel.evidenceCaptureLocked else { return }
         startMessage = nil
         context = nil
         runID = UUID().uuidString.lowercased()
@@ -359,6 +379,9 @@ struct MissionRunView: View {
         )
         context = finishedContext
         appModel.scheduleDebrief(for: finishedContext)
+        if successful {
+            appModel.scheduleRecall(for: finishedContext)
+        }
         state = successful ? .completed : .aborted
         appModel.refreshRecoveredTracks()
     }

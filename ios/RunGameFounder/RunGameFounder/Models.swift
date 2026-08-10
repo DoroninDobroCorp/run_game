@@ -497,6 +497,8 @@ struct DebriefRecord: Codable {
     let participantRole: String
     let startedAtLocal: Date
     let endedAtLocal: Date
+    let recordedAtLocal: Date
+    let recordingDelaySeconds: Double
     let precommittedNextWorkoutAtLocal: Date
     let audioSHA256: String
     let routeWorkoutFingerprint: String

@@ -187,6 +187,14 @@ struct DebriefView: View {
                         .foregroundStyle(RunGameTheme.warning)
                 }
 
+                VStack(alignment: .leading, spacing: 6) {
+                    Label("Blind Export Guidance", systemImage: "eye.slash.fill")
+                        .font(.subheadline.bold())
+                    Text("Для сохранения объективности заполняйте текстовые поля без подглядывания в ранее записанный immediate JSON или аудиоматериалы.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+
                 Button("Сохранить immediate JSON", action: saveFinal)
                     .disabled(!canSaveFinal)
                 if !canSaveFinal {
@@ -256,8 +264,10 @@ struct DebriefView: View {
     }
 
     private func makeRecord(status: String) -> DebriefRecord {
-        DebriefRecord(
-            schemaVersion: "0.2",
+        let recordedAt = Date()
+        let delay = recordedAt.timeIntervalSince(context.endedAt)
+        return DebriefRecord(
+            schemaVersion: "0.3",
             recordStatus: status,
             runID: context.runID,
             bindingID: context.bindingID,
@@ -266,6 +276,8 @@ struct DebriefView: View {
             participantRole: "founder",
             startedAtLocal: context.startedAt,
             endedAtLocal: context.endedAt,
+            recordedAtLocal: recordedAt,
+            recordingDelaySeconds: delay,
             precommittedNextWorkoutAtLocal: context.precommittedNextWorkoutAt,
             audioSHA256: context.audioSHA256,
             routeWorkoutFingerprint: context.routeWorkoutFingerprint,
@@ -439,7 +451,7 @@ struct DebriefView: View {
         let url = evidenceURL(missionID: missionID, runID: runID, suffix: suffix)
         guard let data = try? Data(contentsOf: url),
               let record = try? JSONDecoder.evidence.decode(DebriefRecord.self, from: data),
-              record.schemaVersion == "0.2",
+              record.schemaVersion == "0.3" || record.schemaVersion == "0.2",
               record.recordStatus == expectedStatus,
               record.runID == context.runID,
               record.missionID == context.missionID,

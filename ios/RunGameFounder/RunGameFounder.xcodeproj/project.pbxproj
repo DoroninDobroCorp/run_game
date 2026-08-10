@@ -10,6 +10,7 @@
 		01B6E77445873F003707DCD7 /* RoutePlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 337E66D755532973B3A8DA0A /* RoutePlanner.swift */; };
 		06A8103DA2EE2968CAA19C63 /* GPXDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A8C7063DFC49A7A61B07F23 /* GPXDocument.swift */; };
 		075A24393512229627D84788 /* m01_solo_founder_30min.manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = CE11331EB861B3D077FD37FA /* m01_solo_founder_30min.manifest.json */; };
+		1D659A8A0293492BBEE20265 /* AppModelLockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */; };
 		40D500F7C1144903F0E97184 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FE56E81349CEC597EB33888 /* Theme.swift */; };
 		556079C225D38890A333B726 /* mission.json in Resources */ = {isa = PBXBuildFile; fileRef = A97A43B1644B6B462EA0D042 /* mission.json */; };
 		57C1CF06F3C2ADCC1E5A3B4E /* RunGameFounderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBE75860C0E2A0131E89A6B2 /* RunGameFounderApp.swift */; };
@@ -64,6 +65,7 @@
 		ADC82137D136B5D1C6487D28 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BEC8831608197C23BF178D26 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CE11331EB861B3D077FD37FA /* m01_solo_founder_30min.manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = m01_solo_founder_30min.manifest.json; sourceTree = "<group>"; };
+		D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelLockTests.swift; sourceTree = "<group>"; };
 		DBE75860C0E2A0131E89A6B2 /* RunGameFounderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunGameFounderApp.swift; sourceTree = "<group>"; };
 		EB8626F3BE56AFF577A3F680 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
 		EFF5E06FCB336F9328F3142B /* m01_solo_founder_30min.m4a */ = {isa = PBXFileReference; path = m01_solo_founder_30min.m4a; sourceTree = "<group>"; };
@@ -75,6 +77,7 @@
 		1DEACA23A8EEAC85161F0359 /* RunGameFounderTests */ = {
 			isa = PBXGroup;
 			children = (
+				D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */,
 				12C6E461B2912CA6428E40A5 /* FounderAppTests.swift */,
 			);
 			path = RunGameFounderTests;
@@ -298,6 +301,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1D659A8A0293492BBEE20265 /* AppModelLockTests.swift in Sources */,
 				C3E4FA5EB88DA488675C74B7 /* FounderAppTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

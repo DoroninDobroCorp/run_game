@@ -49,6 +49,10 @@ final class AppModel: ObservableObject {
         )
     }
 
+    var evidenceCaptureLocked: Bool {
+        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil
+    }
+
     nonisolated static func canBeginMission(
         readinessComplete: Bool,
         hasPendingDebrief: Bool,

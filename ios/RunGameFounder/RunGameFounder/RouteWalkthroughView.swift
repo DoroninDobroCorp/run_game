@@ -19,6 +19,18 @@ struct RouteWalkthroughView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
+                if appModel.evidenceCaptureLocked {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Evidence Capture Locked", systemImage: "lock.fill")
+                            .font(.headline)
+                            .foregroundStyle(RunGameTheme.warning)
+                        Text("Запись дневного обхода заблокирована до очистки pending-очередей.")
+                            .font(.footnote)
+                    }
+                    .runGamePanel()
+                    .accessibilityIdentifier("walkthroughLockBanner")
+                }
+
                 map
                 routeSummary
                 points
@@ -148,7 +160,7 @@ struct RouteWalkthroughView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.electric)
-                .disabled(!planner.isComplete || appModel.routeApproved)
+                .disabled(!planner.isComplete || appModel.routeApproved || appModel.evidenceCaptureLocked)
             }
             if let url = recorder.exportedURL {
                 ShareLink(item: url) {
