@@ -1,4 +1,6 @@
 import copy
+from pathlib import Path
+import tempfile
 import unittest
 
 from tools import r02_story
@@ -55,6 +57,25 @@ class R02StoryTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertEqual(first["checksum"], second["checksum"])
 
+    def test_linearization_rejects_missing_choice(self):
+        missing = dict(self.choices)
+        missing.pop("atlas_disclosure")
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.linearize_graph(self.graph, missing)
+        self.assertIn("missing required choices: atlas_disclosure", str(raised.exception))
+
+    def test_linearization_rejects_unknown_choice(self):
+        extra = dict(self.choices, unknown_choice="value")
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.linearize_graph(self.graph, extra)
+        self.assertIn("unknown choices: unknown_choice", str(raised.exception))
+
+    def test_linearization_rejects_invalid_choice_value(self):
+        invalid = dict(self.choices, atlas_disclosure="NOT_ALLOWED")
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.linearize_graph(self.graph, invalid)
+        self.assertIn("is not allowed for 'atlas_disclosure'", str(raised.exception))
+
     def test_dangling_edge_is_rejected(self):
         broken = copy.deepcopy(self.graph)
         broken["edges"][0]["to"] = "missing_node"
@@ -74,6 +95,24 @@ class R02StoryTests(unittest.TestCase):
             }
         )
         self.assert_validation_mentions(broken, "cycle detected")
+
+    def test_duplicate_back_edges_report_cycle_once(self):
+        broken = copy.deepcopy(self.graph)
+        for index in range(2):
+            broken["edges"].append(
+                {
+                    "id": f"duplicate_cycle_edge_{index}",
+                    "from": "m03_end_core",
+                    "to": "m01_start",
+                    "fallback": False,
+                    "requires": {},
+                    "effects": {},
+                    "because": "test",
+                }
+            )
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.validate_graph(broken)
+        self.assertEqual(1, str(raised.exception).count("cycle detected at node 'm01_start'"))
 
     def test_choice_without_fallback_is_rejected(self):
         broken = copy.deepcopy(self.graph)
@@ -115,6 +154,26 @@ class R02StoryTests(unittest.TestCase):
                 participant=True,
             )
 
+    def test_binding_requires_exact_m1_slot_set(self):
+        missing = copy.deepcopy(self.binding)
+        missing["slots"].pop("threshold")
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.validate_binding(missing, graph=self.graph)
+        self.assertIn("missing required M1 slots: threshold", str(raised.exception))
+
+        extra = copy.deepcopy(self.binding)
+        extra["slots"]["unexpected"] = copy.deepcopy(extra["slots"]["threshold"])
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.validate_binding(extra, graph=self.graph)
+        self.assertIn("unexpected M1 slots: unexpected", str(raised.exception))
+
+    def test_binding_archetype_must_match_graph_contract(self):
+        broken = copy.deepcopy(self.binding)
+        broken["slots"]["threshold"]["archetype"] = "gate_or_path_transition"
+        with self.assertRaises(r02_story.ValidationError) as raised:
+            r02_story.validate_binding(broken, graph=self.graph)
+        self.assertIn("archetype 'gate_or_path_transition' is not allowed", str(raised.exception))
+
     def test_approved_binding_resolves_condition_a(self):
         approved = copy.deepcopy(self.binding)
         approved["human_route_approved"] = True
@@ -123,7 +182,6 @@ class R02StoryTests(unittest.TestCase):
         for index, slot in enumerate(approved["slots"].values(), start=1):
             slot["human_approved"] = True
             slot["name"] = f"Публичный ориентир {index}"
-            slot["archetype"] = "verified_public_landmark"
             slot["operator_trigger"] = f"relative_progress_window_{index}"
             slot["visible_attributes"] = ["visually_distinct"]
             slot["source_refs"] = [f"manual_review_{index}"]
@@ -148,6 +206,17 @@ class R02StoryTests(unittest.TestCase):
         with self.assertRaises(r02_story.ValidationError) as raised:
             r02_story.validate_binding(fake_approved, participant=True)
         self.assertIn("requires a real name", str(raised.exception))
+
+    def test_json_loader_rejects_duplicate_keys_and_nonfinite_numbers(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.json"
+            path.write_text('{"value": 1, "value": 2}', encoding="utf-8")
+            with self.assertRaisesRegex(r02_story.ValidationError, "duplicate JSON key"):
+                r02_story.load_json(path)
+
+            path.write_text('{"value": Infinity}', encoding="utf-8")
+            with self.assertRaisesRegex(r02_story.ValidationError, "non-finite JSON number"):
+                r02_story.load_json(path)
 
 
 if __name__ == "__main__":

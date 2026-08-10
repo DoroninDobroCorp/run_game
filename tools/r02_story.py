@@ -9,7 +9,6 @@ compiled into one deterministic Wizard-of-Oz path.
 from __future__ import annotations
 
 import argparse
-import copy
 import hashlib
 import json
 import re
@@ -48,9 +47,26 @@ class ValidationError(ValueError):
         super().__init__("\n".join(self.errors))
 
 
+def _json_constant_error(value: str) -> None:
+    raise ValidationError([f"non-finite JSON number {value!r} is not allowed"])
+
+
+def _json_object_without_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result: dict[str, Any] = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValidationError([f"duplicate JSON key {key!r} is not allowed"])
+        result[key] = value
+    return result
+
+
 def load_json(path: Path | str) -> dict[str, Any]:
     with Path(path).open("r", encoding="utf-8") as handle:
-        value = json.load(handle)
+        value = json.load(
+            handle,
+            parse_constant=_json_constant_error,
+            object_pairs_hook=_json_object_without_duplicates,
+        )
     if not isinstance(value, dict):
         raise ValidationError([f"{path}: top-level JSON value must be an object"])
     return value
@@ -58,7 +74,11 @@ def load_json(path: Path | str) -> dict[str, Any]:
 
 def canonical_json(value: Any) -> bytes:
     return json.dumps(
-        value, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        value,
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+        allow_nan=False,
     ).encode("utf-8")
 
 
@@ -181,14 +201,29 @@ def validate_graph(graph: dict[str, Any]) -> dict[str, Any]:
 
         if kind == "choice":
             choice_id = node.get("choice_id")
-            options = node.get("options", [])
+            raw_options = node.get("options", [])
+            if not isinstance(raw_options, list) or any(
+                not isinstance(option, str) for option in raw_options
+            ):
+                errors.append(f"node '{node_id}': options must be an array of strings")
+                options: list[str] = []
+            else:
+                options = raw_options
             if choice_id not in state_schema:
                 errors.append(f"node '{node_id}': choice_id is not declared state")
             explicit = [edge for edge in edges if not edge.get("fallback")]
             fallback = [edge for edge in edges if edge.get("fallback")]
             if len(fallback) != 1:
                 errors.append(f"node '{node_id}': choice requires exactly one fallback edge")
-            edge_options = [edge.get("option") for edge in explicit]
+            edge_options: list[str] = []
+            for edge in explicit:
+                option = edge.get("option")
+                if not isinstance(option, str):
+                    errors.append(
+                        f"edge '{edge.get('id')}': explicit choice option must be a string"
+                    )
+                else:
+                    edge_options.append(option)
             if sorted(edge_options) != sorted(options):
                 errors.append(
                     f"node '{node_id}': explicit edge options do not match authored options"
@@ -254,10 +289,13 @@ def validate_graph(graph: dict[str, Any]) -> dict[str, Any]:
 
             visiting: set[str] = set()
             visited: set[str] = set()
+            reported_cycle_nodes: set[str] = set()
 
             def visit(node_id: str) -> None:
                 if node_id in visiting:
-                    errors.append(f"graph: cycle detected at node '{node_id}'")
+                    if node_id not in reported_cycle_nodes:
+                        errors.append(f"graph: cycle detected at node '{node_id}'")
+                        reported_cycle_nodes.add(node_id)
                     return
                 if node_id in visited:
                     return
@@ -432,6 +470,7 @@ def linearize_graph(
     decisions: dict[str, str],
     stop_mission: str | None = None,
 ) -> dict[str, Any]:
+    validate_decisions(graph, decisions)
     nodes, outgoing = _node_maps(graph)
     node_id = graph["missions"][0]["entry_node"]
     state = _initial_state(graph)
@@ -496,6 +535,48 @@ def linearize_graph(
     }
     result["checksum"] = checksum(result)
     return result
+
+
+def validate_decisions(
+    graph: dict[str, Any], decisions: dict[str, Any]
+) -> dict[str, str]:
+    """Validate an explicit authored path selection.
+
+    Choice fallbacks model missing participant input at runtime. Tooling callers
+    provide an explicit choices object, so typos and omissions must fail instead
+    of silently compiling the fallback branch.
+    """
+    if not isinstance(decisions, dict):
+        raise ValidationError(["choices: top-level value must be an object"])
+
+    choice_nodes = [
+        node for node in graph.get("nodes", []) if node.get("kind") == "choice"
+    ]
+    expected = {node.get("choice_id") for node in choice_nodes if node.get("choice_id")}
+    actual = set(decisions)
+    errors: list[str] = []
+
+    missing = sorted(expected - actual)
+    extra = sorted(actual - expected)
+    if missing:
+        errors.append("choices: missing required choices: " + ", ".join(missing))
+    if extra:
+        errors.append("choices: unknown choices: " + ", ".join(extra))
+
+    nodes_by_choice = {
+        node["choice_id"]: node for node in choice_nodes if node.get("choice_id")
+    }
+    for choice_id in sorted(expected & actual):
+        value = decisions[choice_id]
+        options = nodes_by_choice[choice_id].get("options", [])
+        if value not in options:
+            errors.append(
+                f"choices: value {value!r} is not allowed for '{choice_id}'"
+            )
+
+    if errors:
+        raise ValidationError(errors)
+    return {key: decisions[key] for key in sorted(expected)}
 
 
 def _word_count(text: str) -> int:
@@ -605,7 +686,7 @@ def validate_scorecard(scorecard: dict[str, Any]) -> dict[str, Any]:
                 f"scorecard: stored total for {candidate.get('concept_id')} is {candidate.get('total')}, computed {total}"
             )
     if totals:
-        actual_winner = max(totals, key=totals.get)
+        actual_winner = max(totals, key=lambda concept_id: totals[concept_id])
         if scorecard.get("winner") != actual_winner:
             errors.append(
                 f"scorecard: declared winner {scorecard.get('winner')!r} != {actual_winner!r}"
@@ -628,8 +709,46 @@ def _find_private_fields(value: Any, path: str = "binding") -> list[str]:
     return findings
 
 
-def validate_binding(binding: dict[str, Any], participant: bool = False) -> dict[str, Any]:
+def _m1_geo_slot_contract(graph: dict[str, Any]) -> dict[str, set[str]]:
     errors: list[str] = []
+    contract: dict[str, set[str]] = {}
+    for node in graph.get("nodes", []):
+        if node.get("mission_id") != "m01":
+            continue
+        geo_slot = node.get("geo_slot")
+        if not geo_slot:
+            continue
+        slot_id = geo_slot.get("slot_id")
+        allowed = geo_slot.get("allowed_archetypes")
+        if (
+            not isinstance(slot_id, str)
+            or not slot_id
+            or not isinstance(allowed, list)
+            or not allowed
+            or any(not isinstance(value, str) or not value for value in allowed)
+            or len(allowed) != len(set(allowed))
+        ):
+            errors.append(
+                f"graph: M1 geo node '{node.get('id', '<missing>')}' has an invalid slot contract"
+            )
+            continue
+        if slot_id in contract:
+            errors.append(f"graph: duplicate M1 geo slot '{slot_id}'")
+            continue
+        contract[slot_id] = set(allowed)
+    if errors:
+        raise ValidationError(errors)
+    return contract
+
+
+def validate_binding(
+    binding: dict[str, Any],
+    participant: bool = False,
+    graph: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    errors: list[str] = []
+    active_graph = graph if graph is not None else load_json(DEFAULT_GRAPH)
+    slot_contract = _m1_geo_slot_contract(active_graph)
     if binding.get("research_mode") != "traveler_fixture":
         errors.append("binding: research_mode must be traveler_fixture")
     if binding.get("product_model") != "home_territory":
@@ -640,13 +759,43 @@ def validate_binding(binding: dict[str, Any], participant: bool = False) -> dict
             "binding: committed fixture contains private coordinate/trace fields: "
             + ", ".join(private_fields)
         )
+
+    slots = binding.get("slots")
+    if not isinstance(slots, dict):
+        errors.append("binding: slots must be an object")
+        slots = {}
+    expected_slots = set(slot_contract)
+    actual_slots = set(slots)
+    missing_slots = sorted(expected_slots - actual_slots)
+    extra_slots = sorted(actual_slots - expected_slots)
+    if missing_slots:
+        errors.append("binding: missing required M1 slots: " + ", ".join(missing_slots))
+    if extra_slots:
+        errors.append("binding: unexpected M1 slots: " + ", ".join(extra_slots))
+
+    for slot_id in sorted(expected_slots & actual_slots):
+        slot = slots[slot_id]
+        if not isinstance(slot, dict):
+            errors.append(f"binding: slot '{slot_id}' must be an object")
+            continue
+        archetype = slot.get("archetype")
+        if not isinstance(archetype, str) or archetype not in slot_contract[slot_id]:
+            allowed = ", ".join(sorted(slot_contract[slot_id]))
+            errors.append(
+                f"binding: slot '{slot_id}' archetype {archetype!r} is not allowed; "
+                f"expected one of: {allowed}"
+            )
+
     if participant:
         if binding.get("public_start") is not True:
             errors.append("binding: participant export requires public_start=true")
         for field in ("human_route_approved", "workout_approved", "human_approved"):
             if binding.get(field) is not True:
                 errors.append(f"binding: participant export requires {field}=true")
-        for slot_id, slot in binding.get("slots", {}).items():
+        for slot_id in sorted(expected_slots & actual_slots):
+            slot = slots[slot_id]
+            if not isinstance(slot, dict):
+                continue
             if slot.get("human_approved") is not True:
                 errors.append(
                     f"binding: participant export requires slot '{slot_id}' approval"
@@ -665,7 +814,7 @@ def validate_binding(binding: dict[str, Any], participant: bool = False) -> dict
                 errors.append(f"binding: slot '{slot_id}' requires source_refs")
     if errors:
         raise ValidationError(errors)
-    return {"slots": len(binding.get("slots", {})), "participant_ready": participant}
+    return {"slots": len(slots), "participant_ready": participant}
 
 
 PLACEHOLDER_RE = re.compile(r"\{([a-zA-Z0-9_]+)\.name\}")
@@ -698,9 +847,9 @@ def render_mission(
     if participant:
         if binding is None:
             raise ValidationError(["render: participant export requires field binding"])
-        validate_binding(binding, participant=True)
+        validate_binding(binding, participant=True, graph=graph)
     elif binding is not None:
-        validate_binding(binding, participant=False)
+        validate_binding(binding, participant=False, graph=graph)
 
     linear = linearize_graph(graph, decisions, stop_mission=beats["mission_id"])
     cue_by_node = {cue["node_id"]: cue for cue in beats["cues"]}
@@ -758,7 +907,7 @@ def command_validate(args: argparse.Namespace) -> int:
         "graph": validate_graph(graph),
         "beats": validate_beats(beats, graph),
         "scorecard": validate_scorecard(scorecard),
-        "binding_draft": validate_binding(binding, participant=False),
+        "binding_draft": validate_binding(binding, participant=False, graph=graph),
     }
     _print_json(result)
     return 0

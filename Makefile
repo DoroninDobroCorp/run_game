@@ -1,10 +1,12 @@
-.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test verify
+.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test r02-preflight r02-analyze-gpx verify
 
 IOS_DIR := ios/RunGameFounder
-SIMULATOR := platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5
+SIMULATOR ?= platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5
+R02_FIXTURE ?= research/r02/local/valparaiso_central
+R02_IOS_RESOURCES ?= $(IOS_DIR)/Resources/Local
+R02_AUDIO_MANIFEST := $(R02_IOS_RESOURCES)/m01_solo_founder_30min.manifest.json
 
-ios-prepare:
-	python3 tools/r02_prepare_ios.py
+ios-prepare: r02-preflight
 	cd $(IOS_DIR) && xcodegen generate
 
 ios-open: ios-prepare
@@ -21,7 +23,15 @@ ios-ui-test: ios-prepare
 
 ios-test: ios-unit-test ios-ui-test
 
-verify:
+r02-preflight:
+	python3 tools/r02_prepare_ios.py --fixture-dir $(R02_FIXTURE) --output-dir $(R02_IOS_RESOURCES)
+	python3 tools/r02_preflight.py --fixture-dir $(R02_FIXTURE) --ios-resources-dir $(R02_IOS_RESOURCES)
+
+r02-analyze-gpx:
+	@test -n "$(GPX)" || (echo 'Usage: make r02-analyze-gpx GPX=/absolute/local/path/to/track.gpx' >&2; exit 2)
+	python3 tools/r02_analyze_gpx.py --gpx "$(GPX)" --mission $(R02_IOS_RESOURCES)/mission.json --manifest $(R02_AUDIO_MANIFEST)
+
+verify: r02-preflight
 	python3 tools/r02_story.py validate
-	python3 tools/r02_verify_field.py
+	python3 tools/r02_verify_field.py --audio-dir $(R02_FIXTURE)/audio
 	python3 -m unittest discover -s tests -p 'test_*.py' -v

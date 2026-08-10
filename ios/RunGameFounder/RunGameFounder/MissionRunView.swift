@@ -1,7 +1,8 @@
+import CoreLocation
 import SwiftUI
 
 struct MissionRunView: View {
-    private enum RunState { case ready, running, completed, aborted }
+    private enum RunState { case ready, acquiringGPS, running, completed, aborted }
 
     @EnvironmentObject private var appModel: AppModel
     let mission: MissionConfig
@@ -10,12 +11,25 @@ struct MissionRunView: View {
     @State private var state: RunState = .ready
     @State private var showAbortConfirmation = false
     @State private var showDebrief = false
+    @State private var context: RunSessionContext?
+    @State private var runID = UUID().uuidString.lowercased()
+    @State private var runStartedAt: Date?
+    @State private var qualifyingStartFixes = 0
+    @State private var startMessage: String?
+    @State private var firstFixTimeout: Task<Void, Never>?
+
+    @State private var familiarRouteConfirmed = false
+    @State private var conditionsConfirmed = false
+    @State private var surroundingsAudibleConfirmed = false
+    @State private var readinessToStopConfirmed = false
+    @State private var precommittedNextWorkout = Calendar.current.date(byAdding: .day, value: 2, to: Date()) ?? Date()
 
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
                 statusHeader
                 timelineCard
+                if state == .ready { preRunChecklist }
                 primaryControls
                 safetyCard
                 if let url = recorder.exportedURL {
@@ -24,8 +38,14 @@ struct MissionRunView: View {
                     }
                     .runGamePanel()
                 }
-                if let error = audio.errorMessage ?? recorder.lastError {
-                    Text(error).foregroundStyle(RunGameTheme.warning).runGamePanel()
+                if let startMessage {
+                    Text(startMessage).foregroundStyle(RunGameTheme.warning).runGamePanel()
+                }
+                if let error = audio.errorMessage {
+                    Text("Audio: \(error)").foregroundStyle(RunGameTheme.warning).runGamePanel()
+                }
+                if let error = recorder.lastError {
+                    Text("GPS: \(error)").foregroundStyle(RunGameTheme.warning).runGamePanel()
                 }
             }
             .padding(22)
@@ -33,22 +53,46 @@ struct MissionRunView: View {
         .background(RunGameTheme.ink.ignoresSafeArea())
         .navigationTitle("M1-A")
         .navigationBarTitleDisplayMode(.inline)
-        .interactiveDismissDisabled(state == .running)
+        .navigationBarBackButtonHidden(state == .running || state == .acquiringGPS)
+        .interactiveDismissDisabled(state == .running || state == .acquiringGPS)
         .confirmationDialog("Остановить миссию?", isPresented: $showAbortConfirmation) {
-            Button("Остановить и сохранить GPX", role: .destructive) { abort() }
+            Button("Остановить и сохранить partial GPX", role: .destructive) {
+                abort(reason: "Founder emergency stop from app UI")
+            }
             Button("Продолжить", role: .cancel) {}
         } message: {
             Text("Не компенсируй пропущенное ускорением. Остановка — корректный исход теста.")
         }
         .navigationDestination(isPresented: $showDebrief) {
-            DebriefView(mission: mission, aborted: state == .aborted)
+            if let context {
+                DebriefView(mission: mission, context: context)
+            }
         }
-        .onAppear {
-            audio.prepare(fileName: mission.audioFile, title: mission.title)
-            audio.onFinished = { finish() }
-        }
+        .onAppear(perform: prepareSession)
         .onDisappear {
-            if state != .running { audio.pause() }
+            if state == .running || state == .acquiringGPS {
+                abort(reason: "Mission screen was dismissed before evidence completion")
+            } else {
+                audio.stop()
+            }
+            firstFixTimeout?.cancel()
+        }
+        .onChange(of: recorder.latestSample?.id) { _, _ in evaluateFirstFix() }
+        .onChange(of: recorder.lastError) { _, newValue in
+            if state == .acquiringGPS, let newValue {
+                rollbackStart(reason: newValue)
+            } else if state == .running, let newValue {
+                abort(reason: "GPS session failed: \(newValue)")
+            }
+        }
+        .onChange(of: audio.incidents.count) { _, _ in
+            guard state == .running, let incident = audio.incidents.last else { return }
+            switch incident.kind {
+            case .interruptionBegan, .outputRouteDisconnected:
+                abort(reason: "Audio session interrupted: \(incident.message)")
+            default:
+                break
+            }
         }
     }
 
@@ -74,7 +118,7 @@ struct MissionRunView: View {
                 }
             }
             .frame(width: 270, height: 270)
-            Text("Телефон можно заблокировать после старта. Аудио и GPS продолжат работу в фоне.")
+            Text("Телефон можно заблокировать только после подтверждённого старта аудио и GPS.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -97,12 +141,31 @@ struct MissionRunView: View {
         .runGamePanel()
     }
 
+    private var preRunChecklist: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Preflight этой попытки").font(.headline)
+            Toggle("Маршрут знаком после дневного обхода", isOn: $familiarRouteConfirmed)
+            Toggle("Свет, погода, трафик и самочувствие подходят", isOn: $conditionsConfirmed)
+            Toggle("Громкость позволяет слышать окружение", isOn: $surroundingsAudibleConfirmed)
+            Toggle("Я остановлю движение перед pause/экраном", isOn: $readinessToStopConfirmed)
+            DatePicker(
+                "Следующая тренировка заранее назначена",
+                selection: $precommittedNextWorkout,
+                displayedComponents: [.date, .hourAndMinute]
+            )
+            Text("GPS дополнительно проверит свежую точную позицию не дальше 100 м от публичного старта.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+        }
+        .runGamePanel()
+    }
+
     @ViewBuilder
     private var primaryControls: some View {
         switch state {
         case .ready:
-            Button(action: start) {
-                Label("Начать миссию", systemImage: "play.fill")
+            Button(action: beginStart) {
+                Label("Проверить GPS и начать", systemImage: "play.fill")
                     .font(.title3.bold())
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
@@ -110,10 +173,27 @@ struct MissionRunView: View {
             .buttonStyle(.borderedProminent)
             .tint(RunGameTheme.electric)
             .foregroundStyle(RunGameTheme.ink)
+            .disabled(!preflightComplete || !audio.isPrepared || !appModel.canBeginMission)
+        case .acquiringGPS:
+            VStack(spacing: 12) {
+                HStack {
+                    ProgressView()
+                    Text("Ищем свежую точную GPS-точку у старта…")
+                }
+                Button("Отменить запуск", role: .destructive) {
+                    rollbackStart(reason: "Запуск отменён до начала аудио.")
+                }
+            }
+            .runGamePanel()
         case .running:
             VStack(spacing: 12) {
                 Button {
-                    audio.isPlaying ? audio.pause() : audio.play()
+                    if audio.isPlaying {
+                        audio.pause()
+                    } else {
+                        let started: Bool = audio.play()
+                        if !started { abort(reason: "Audio could not resume") }
+                    }
                 } label: {
                     Label(audio.isPlaying ? "Пауза" : "Продолжить", systemImage: audio.isPlaying ? "pause.fill" : "play.fill")
                         .frame(maxWidth: .infinity)
@@ -132,6 +212,7 @@ struct MissionRunView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(RunGameTheme.violet)
+            .disabled(context == nil)
         }
     }
 
@@ -140,8 +221,11 @@ struct MissionRunView: View {
             Label("При конфликте с дорогой история всегда проигрывает", systemImage: "shield.fill")
                 .font(.headline)
                 .foregroundStyle(RunGameTheme.warning)
-            Text("Не ускоряйся ради cue, не возвращайся к пропущенной точке и останови тест при боли, небезопасном переходе или необходимости смотреть в экран на ходу.")
+            Text("Не ускоряйся ради cue, не возвращайся к пропущенной точке. При боли, головокружении, небезопасном переходе или необходимости смотреть на экран сначала останови движение, затем приложение.")
                 .font(.footnote)
+                .foregroundStyle(.secondary)
+            Text("Эта fitness-сетка — личный research fixture и ещё не прошла профильный review; она не является медицинской или тренировочной рекомендацией.")
+                .font(.caption)
                 .foregroundStyle(.secondary)
         }
         .runGamePanel()
@@ -152,29 +236,200 @@ struct MissionRunView: View {
         return min(1, audio.elapsed / mission.durationSeconds)
     }
 
+    private var preflightComplete: Bool {
+        familiarRouteConfirmed
+            && conditionsConfirmed
+            && surroundingsAudibleConfirmed
+            && readinessToStopConfirmed
+            && precommittedNextWorkout > Date()
+    }
+
     private var stateLabel: String {
         switch state {
-        case .ready: return "Готово к старту"
+        case .ready: return "Готово к проверке"
+        case .acquiringGPS: return "Проверка GPS"
         case .running: return audio.isPlaying ? "Миссия идёт" : "Пауза"
         case .completed: return "Завершено"
         case .aborted: return "Остановлено"
         }
     }
 
-    private func start() {
-        recorder.start()
-        audio.play()
+    private func prepareSession() {
+        audio.onFinished = { finish() }
+        audio.onStopRequested = { abort(reason: "Remote stop from lock-screen controls") }
+        audio.onFatalError = { message in
+            if state == .running || state == .acquiringGPS {
+                abort(reason: "Fatal audio error: \(message)")
+            } else {
+                startMessage = message
+            }
+        }
+        audio.prepare(
+            fileName: mission.audioFile,
+            title: mission.title,
+            expectedDuration: mission.durationSeconds
+        )
+    }
+
+    private func beginStart() {
+        guard preflightComplete, audio.isPrepared, appModel.canBeginMission else { return }
+        startMessage = nil
+        context = nil
+        runID = UUID().uuidString.lowercased()
+        runStartedAt = nil
+        qualifyingStartFixes = 0
+        state = .acquiringGPS
+        let result = recorder.start(prefix: "\(mission.gpxPrefix)-run-\(runID)")
+        if case .unavailable(let message) = result {
+            rollbackStart(reason: message)
+            return
+        }
+        firstFixTimeout?.cancel()
+        firstFixTimeout = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(30))
+            guard !Task.isCancelled, state == .acquiringGPS else { return }
+            rollbackStart(reason: "За 30 секунд не получена точная GPS-точка у публичного старта.")
+        }
+    }
+
+    private func evaluateFirstFix() {
+        guard state == .acquiringGPS, let sample = recorder.latestSample,
+              let start = mission.routePoints.first else { return }
+        guard sample.horizontalAccuracy <= 35 else {
+            qualifyingStartFixes = 0
+            startMessage = "GPS accuracy пока ±\(Int(sample.horizontalAccuracy)) м; ждём значение ≤35 м."
+            return
+        }
+        let distance = sample.location.distance(from: start.location)
+        guard distance <= 100 else {
+            qualifyingStartFixes = 0
+            startMessage = "Текущая позиция примерно в \(Int(distance)) м от публичного старта. Подойди к старту; аудио ещё не запущено."
+            return
+        }
+
+        qualifyingStartFixes += 1
+        guard qualifyingStartFixes >= 2 else {
+            startMessage = "Получена 1 из 2 последовательных точных GPS-точек у старта…"
+            return
+        }
+
+        firstFixTimeout?.cancel()
+        runStartedAt = Date()
+        let started: Bool = audio.play()
+        guard started else {
+            rollbackStart(reason: audio.errorMessage ?? "Master-аудио не запустилось.")
+            return
+        }
+        startMessage = nil
         state = .running
     }
 
     private func finish() {
-        recorder.stop(prefix: "m01-founder-run")
-        state = .completed
+        guard state == .running else { return }
+        firstFixTimeout?.cancel()
+        let summary = recorder.stop(completed: true)
+        let routeTraversal = summary.map {
+            WalkthroughEvidence.make(
+                mission: mission,
+                summary: $0,
+                samples: recorder.samples,
+                locationIncidents: recorder.incidents
+            )
+        }
+        let successful = summary?.isSufficientMissionEvidence(for: mission) == true
+            && routeTraversal?.isSufficient(for: mission) == true
+            && audio.incidents.isEmpty
+            && recorder.incidents.isEmpty
+        var failureReasons: [String] = []
+        if summary?.isSufficientMissionEvidence(for: mission) != true {
+            failureReasons.append("GPX is missing or too short for the full mission")
+        }
+        if routeTraversal?.isSufficient(for: mission) != true {
+            failureReasons.append("ordered route traversal or public start/finish evidence is incomplete")
+        }
+        if !audio.incidents.isEmpty { failureReasons.append("audio incident recorded") }
+        if !recorder.incidents.isEmpty { failureReasons.append("location incident recorded") }
+        let finishedContext = makeContext(
+            completed: successful,
+            aborted: !successful,
+            abortReason: successful ? "" : failureReasons.joined(separator: "; "),
+            elapsed: audio.elapsed,
+            track: summary,
+            routeTraversalEvidence: routeTraversal
+        )
+        context = finishedContext
+        appModel.scheduleDebrief(for: finishedContext)
+        state = successful ? .completed : .aborted
+        appModel.refreshRecoveredTracks()
     }
 
-    private func abort() {
+    private func abort(reason: String) {
+        guard state == .running || state == .acquiringGPS else { return }
+        firstFixTimeout?.cancel()
+        let elapsed = audio.elapsed
         audio.stop()
-        recorder.stop(prefix: "m01-founder-aborted")
+        let summary = recorder.stop(completed: false)
+        let routeTraversal = summary.map {
+            WalkthroughEvidence.make(
+                mission: mission,
+                summary: $0,
+                samples: recorder.samples,
+                locationIncidents: recorder.incidents
+            )
+        }
+        let abortedContext = makeContext(
+            completed: false,
+            aborted: true,
+            abortReason: reason,
+            elapsed: elapsed,
+            track: summary,
+            routeTraversalEvidence: routeTraversal
+        )
+        context = abortedContext
+        appModel.scheduleDebrief(for: abortedContext)
         state = .aborted
+        startMessage = reason
+        appModel.refreshRecoveredTracks()
+    }
+
+    private func rollbackStart(reason: String) {
+        guard state == .acquiringGPS else { return }
+        firstFixTimeout?.cancel()
+        recorder.cancelPendingStart()
+        if recorder.isRecording { _ = recorder.stop(completed: false) }
+        if audio.isPlaying { audio.stop() }
+        state = .ready
+        startMessage = reason
+        appModel.refreshRecoveredTracks()
+    }
+
+    private func makeContext(
+        completed: Bool,
+        aborted: Bool,
+        abortReason: String,
+        elapsed: TimeInterval,
+        track: TrackSummary?,
+        routeTraversalEvidence: WalkthroughEvidence?
+    ) -> RunSessionContext {
+        RunSessionContext(
+            runID: runID,
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            condition: "A",
+            startedAt: runStartedAt ?? Date(),
+            endedAt: Date(),
+            precommittedNextWorkoutAt: precommittedNextWorkout,
+            completed: completed,
+            aborted: aborted,
+            abortReason: abortReason,
+            audioElapsedSeconds: elapsed,
+            pauseCount: audio.pauseCount,
+            track: track,
+            routeTraversalEvidence: routeTraversalEvidence,
+            audioIncidents: audio.incidents.map { "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)" },
+            locationIncidents: recorder.incidents
+        )
     }
 }

@@ -116,6 +116,21 @@ R02C: исправления → parity lock → participant package для R03
 NAV maneuver > workout transition > safety > story > ambience
 ```
 
+### Ограничение текущего founder master
+
+Нативный R02 slice пока проигрывает один заранее собранный **fixed-time
+master**. Его 27 `NAV`-сигналов — это старт/финиш и run/walk transitions, а не
+turn-by-turn команды по улицам. Три geo-сцены звучат в заранее заданные секунды;
+приложение не запускает их по live geofence и не выбирает authored fallback по
+фактическому местоположению. Наличие fallback в authoring contract остаётся
+структурным доказательством, но не доказательством runtime-triggering.
+
+Поэтому первый дневной walk-through проходит без сюжета и без бега. Его GPX
+нужен, чтобы локально вычислить фактические arrivals и cue deltas, после чего
+решить, можно ли заморозить master или его нужно пересобрать с новым timing.
+Основатель не ускоряется и не меняет путь ради совпадения с cue. До этого fixed
+timestamps являются гипотезой, а не полевым evidence.
+
 ## Трёхмиссионный граф
 
 ```mermaid
@@ -239,17 +254,64 @@ operability. Он не проверяет неожиданность повор�
 
 По founder decision от 7 августа 2026 года первый тест проводится не через россыпь Wizard-of-Oz файлов, а через локальное нативное iPhone-приложение. Это изменение оптимизирует повторяемые итерации сюжета и маршрута; оно не является разрешением строить production backend или публичный iOS-продукт.
 
-Подготовить и пройти **M1-A в текущем городе основателя**:
+Активная фикстура — `research/r02/local/valparaiso_central/`. Santiago не
+активен и не подменяет её при простом копировании папки. Подготовить и пройти
+**M1-A в Вальпараисо**:
 
-1. подготовить локальный Valparaíso binding, snapshot и master audio;
-2. собрать и установить `RunGameFounder` на iPhone;
-3. в режиме «Дневной обход» пройти безопасный loop без сюжета и записать GPX;
-4. подтвердить видимость, подход, покрытие, манёвры, рельеф и screen-free прохождение;
-5. установить route approval в приложении только после проверки;
-6. дома полностью прослушать master с заблокированным экраном;
-7. запустить M1-A только при готовности 3/3;
-8. пройти founder run без импровизации оператора;
-9. сразу экспортировать GPX/дебриф и повторить recall через 24 часа.
+1. подготовить iOS resources из явной Valparaíso fixture и выполнить offline
+   `r02_preflight`; максимум — `READY_FOR_DEVICE_SMOKE`, не field approval;
+2. установить `RunGameFounder` на физический iPhone и дома проверить сам запуск,
+   целостность bundle, разрешение точной геопозиции и создание тестового GPX;
+3. в режиме «Дневной обход» пройти loop без сюжета, без бега и без наушников,
+   записать полный GPX через все контрольные точки;
+4. локально получить privacy-safe derived report через
+   `tools/r02_analyze_gpx.py`; raw GPX по умолчанию не передавать LLM;
+5. сверить distance/legs/arrivals/cue deltas, вручную проверить видимость,
+   покрытие, переходы, рельеф и screen-free знакомость; изменение route/binding
+   требует нового preflight и walk-through, а audio-only retiming — нового
+   preflight и полного домашнего прослушивания нового SHA;
+6. только после достаточного GPX evidence и checklist сохранить device route
+   approval, привязанный к route/workout fingerprint; перенести
+   `binding_field_values`, ручные notes/дату и честные approvals в локальный
+   binding, повторить preflight до пустого `human_blockers_to_m1_a`, затем
+   выполнить обычный Xcode Build & Run поверх установленного приложения и
+   убедиться, что Mac field-review gate в новом bundle закрыт;
+7. дома полностью прослушать тот же SHA master без seeking, с заблокированным
+   экраном; отдельно подтвердить lock-screen controls и отсутствие инцидентов;
+8. запустить M1-A только при готовности 3/3, свежей GPS-точке с accuracy ≤35 м
+   не дальше 100 м от публичного старта и заранее назначенной следующей
+   тренировке;
+9. пройти founder run по знакомому маршруту без операторской импровизации;
+10. сразу сохранить unique-run GPX и immediate JSON-дебриф; убедиться, что app
+    поставил тот же run ID в локальную 24-hour recall queue, и не раньше `dueAt`
+    экспортировать отдельный unaided recall JSON без просмотра immediate.
+
+На 10 августа 2026 года шаги physical device/audio/walk-through/run выше не
+считаются выполненными. Наличие кода, simulator build или offline preflight не
+заменяет human evidence.
+
+Offline preparation:
+
+```bash
+python3 tools/r02_prepare_ios.py \
+  --fixture-dir research/r02/local/valparaiso_central \
+  --output-dir ios/RunGameFounder/Resources/Local
+python3 tools/r02_preflight.py \
+  --fixture-dir research/r02/local/valparaiso_central \
+  --ios-resources-dir ios/RunGameFounder/Resources/Local
+```
+
+После реального walk-through, только локально:
+
+```bash
+python3 tools/r02_analyze_gpx.py \
+  --gpx /absolute/local/path/to/walkthrough.gpx \
+  --mission ios/RunGameFounder/Resources/Local/mission.json \
+  --manifest ios/RunGameFounder/Resources/Local/m01_solo_founder_30min.manifest.json
+```
+
+Derived report не содержит координат, place names, абсолютного времени старта
+или пути к GPX и сам по себе не одобряет маршрут/нагрузку.
 
 Команда после реального approval:
 
@@ -257,10 +319,12 @@ operability. Он не проверяет неожиданность повор�
 python3 tools/r02_story.py linearize \
   --mission m01 \
   --condition A \
-  --binding research/r02/local/current.binding.json \
+  --binding research/r02/local/valparaiso_central/current.binding.json \
   --participant
 ```
 
 Полная инструкция: `docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md`.
 
-До route binding, audio, physical-device проверки и dry run этап R02 не может быть `COMPLETE`.
+До human-approved route binding, подтверждённого полного audio check,
+physical-device проверки, founder dry run и R02C parity lock этап R02 не может
+быть `COMPLETE`.

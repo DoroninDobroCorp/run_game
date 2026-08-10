@@ -1,6 +1,6 @@
 # Журнал выполнения Run Game (EXECUTION_STATUS)
 
-**Последнее обновление:** 7 августа 2026 года
+**Последнее обновление:** 10 августа 2026 года
 **Текущая фаза:** Research Phase (`R02` — `IN_PROGRESS`, narrative foundation реализована)
 
 ---
@@ -11,17 +11,28 @@
 Основные правила:
 * Никакой живой генерации LLM во время бега. Вся миссия компилируется до старта в офлайн-бандл (`RouteBundle`).
 * Тренировочная сетка (beginner Couch to 5K) имеет абсолютный приоритет и не меняется под сценарий. Сюжет адаптируется под структуру тренировки.
-* Приватность: точный дом и GPS-треки не передаются на сервер и не светятся в LLM.
+* Приватность: у founder slice нет project backend или analytics; raw GPX по
+  умолчанию остаётся локально и не передаётся LLM. Apple Maps routing использует
+  онлайн-сервис Apple и отправляет необходимые ему map/route requests.
 
 ---
 
 ## 2. Founder Decisions
 * **География продукта:** Home-territory-based. Один пользователь развивает одну активную домашнюю территорию; travel и cross-city continuity не являются фичами MVP.
-* **География founder research:** Traveler-based. Текущий город основателя — сменный полевой fixture без попадания города в канон/story state. Бар — только frozen R01 fixture и не ограничивает R02–R03.
+* **География founder research:** Traveler-based. Текущий город основателя —
+  сменный полевой fixture без попадания города в канон/story state. Активная R02
+  fixture — центральный Вальпараисо; Santiago неактивен, а Бар остаётся frozen
+  R01 fixture.
 * **Стартовый канон:** Выбрана оригинальная вселенная «Нулевой слой», Напарник Леа и центральный поворот «маршруты игрока не спасали, а создавали её». До production engine используется минимальный трёхмиссионный authoring graph; полностью производится пока только M1.
 * **Stop-loss:** Проект развивается в режиме хобби для личного использования. Бюджет — личные ИИ-подписки (до $200/мес), бесплатные/дешевые лимиты API.
 * **Разрешенные провайдеры:** GraphHopper (маршруты, бесплатный тариф), Overpass API (OSM, бесплатно), Wikipedia API (бесплатно), персональные API-ключи LLM (OpenAI/Anthropic/Gemini) через `.env`.
-* **Контроль безопасности:** Двухуровневый. Автоматический ИИ-фильтр (Smart AI Safety Validator) + ручной аппрув основателя перед каждым выходом.
+* **Контроль безопасности:** production-намерение остаётся двухуровневым:
+  автоматическая проверка плюс ручной аппрув. Текущий founder shell реализует
+  только offline integrity checks и ручные route/audio/pre-run gates; ни один
+  автоматический статус не является safety или workout approval.
+* **Native research exception:** локальный SwiftUI founder-only slice разрешён
+  как инструмент R02. Он не открывает production gates и не разрешает
+  TestFlight, внешних участников, backend или расширение product scope.
 
 ---
 
@@ -44,7 +55,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft и stdlib validator. Активная founder-фикстура перенесена в центральный Вальпараисо: Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins (OSM `way/313292626`, `way/479821102`, `way/313291642`, `way/313290496`). Live OSM: 4/4; новый 1800.0s master с 27 NAV-сигналами прошёл SHA/duration verification. По founder decision собран локальный SwiftUI iPhone vertical slice: Apple Maps pedestrian preview, отдельный walk-through, binding/audio-versioned safety gates, background master audio, lock-screen controls, локальный GPS→GPX, emergency stop и JSON-дебриф. Simulator build успешен; 19 Python + 5 Swift unit + 2 UI tests проходят. Human approvals остаются `false`. | 07.08.2026 | Установить build на физический iPhone ➔ дневной обход с GPX ➔ при необходимости исправить маршрут/тайминги ➔ route approval ➔ полный lock-screen аудиотест ➔ solo founder run. |
+| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft и stdlib validator. Активная founder fixture — центральный Вальпараисо: Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins. Есть fixed-time 1800s master, offline bundle/preflight tooling, privacy-safe GPX analyzer и локальный founder-only SwiftUI research slice. 27 `NAV` cues являются workout transitions, не turn-by-turn; geo/fallback не запускаются по runtime location. Текущий local binding сохраняет route/workout/human approvals `false`. Консолидированные automated counts для текущего shared worktree будут записаны только после отдельного фактического прогона; physical-device/audio/walk/run evidence отсутствует. | 10.08.2026 | Offline preflight ➔ physical-device smoke ➔ дневной walk-through/derived report ➔ human route approval ➔ полный lock-screen audio check ➔ GPS-gated solo founder run ➔ immediate JSON/queued 24h recall ➔ R02C parity. |
 | **R03** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02. |
 | **R04** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02 (может идти параллельно с R03). |
 
@@ -53,24 +64,37 @@
 ---
 
 ## 5. Command Evidence
-Ниже фиксируются запущенные в процессе разработки команды проверки:
-1. `git status` — чистый статус репозитория перед добавлением документов.
-2. `git clone https://github.com/DoroninDobroCorp/TerraIncognita.git` — успешный импорт и аудит существующего кода карт/маршрутов основателя.
-3. `python3 scratch/r01_feasibility_bar.py` — успешный запуск скрипта гео-аудита и сбор кэша Overpass по г. Бар, Черногория.
-4. `python3 tools/r02_story.py validate` — graph, M1 beats, scorecard и draft binding прошли semantic validation; graph содержит 8 путей.
-5. `python3 -m unittest discover -s tests -p 'test_*.py' -v` — 19/19 passing unit tests прошли.
-6. `python3 tools/r02_verify_geo.py` — PASSED, 4/4 объекта активной Valparaíso-фикстуры подтверждены через live OSM API.
-7. `python3 tools/r02_build_master.py` — PASSED, собран 1800.0s master с активным Valparaíso binding.
-8. `python3 tools/r02_verify_field.py` — PASSED, оба master-файла имеют длительность 1800.00s и совпадающие SHA-256.
-9. `python3 tools/r02_prepare_ios.py` — PASSED, локальный iPhone bundle содержит mission config, manifest и verified M4A.
-10. `xcodebuild ... build` — PASSED на iPhone 16 Pro simulator (iOS 18.5).
-11. `xcodebuild ... -only-testing:RunGameFounderTests test` — PASSED, 5/5 Swift unit tests.
-12. `xcodebuild ... -only-testing:RunGameFounderUITests test` — PASSED, 2/2 UI smoke tests, включая запуск bundled master audio.
+
+Исторические engineering checkpoints до текущего hardening включали story
+validation, Valparaíso OSM identity check, master SHA/duration verification,
+iOS resource preparation и simulator build/tests. Эти записи не являются
+physical field evidence и не доказывают текущий shared worktree после новых
+изменений.
+
+Финальные команды и counts текущего consolidated run будут внесены сюда только
+после их фактического запуска. Entry point его offline-части — `make verify`;
+simulator build/tests фиксируются отдельно. Отдельный bundle gate —
+`make r02-preflight`. После реального walk-through raw GPX анализируется локально через
+`make r02-analyze-gpx GPX=/absolute/local/path/to/walkthrough.gpx`; в LLM по
+умолчанию передаётся только privacy-safe derived JSON.
 
 ---
 
 ## 6. Open Blockers
-Нет критических блокеров для продолжения R02. Для завершения этапа отсутствуют physical-device background audio/GPS evidence, реальный human-approved route binding, founder dry run и A/B parity evidence. Точная fitness-сетка остаётся narrative fixture до review профильного специалиста.
+После успешного offline preflight нет известного инженерного блокера для начала
+device smoke. Для завершения R02 всё ещё отсутствуют:
+
+- physical-device install/background audio/GPS/partial-recovery evidence;
+- дневной walk-through, derived route/timing analysis и ручной route/workout
+  approval;
+- полное lock-screen прослушивание фактического audio SHA;
+- GPS-gated founder run, immediate debrief и отдельный queued 24-hour unaided
+  recall JSON;
+- R02C A/B parity evidence и закрытие критичных defects.
+
+Точная fitness-сетка остаётся личной narrative fixture до review профильного
+специалиста. Неудачный preflight, плохой маршрут, непригодные cue deltas или
+device/audio incident являются stop condition, а не поводом выдать approval.
 
 ---
 
@@ -81,3 +105,11 @@
 * **16.07.2026 (R02):** Разделены `home-territory product behavior` и `traveler-based founder research`. Бар перестал быть обязательной географией R02–R03; смена города не стала продуктовой или сюжетной механикой.
 * **16.07.2026 (R02):** Принято story-first решение: authoring graph обязателен сейчас, production runtime graph engine откладывается. Сравнены Dracula-inspired, future-frequency и erased-trace concepts; provisional winner — оригинальный «Нулевой слой» (93/100). Это редакционная гипотеза, не field evidence.
 * **16.07.2026 (R02):** Зафиксированы Леа, M1–M3 micro-arc, три enum-state, четыре setup clues и reveal «игрок своими маршрутами создал Леа». Реализованы детерминированная линеаризация, A/B contract и запрет participant export до human approval.
+* **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как
+  research exception для повторяемых M1 device/audio/GPS итераций. Production
+  investment gates и запрет внешних участников не изменены.
+* **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный
+  Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time
+  master не считается geo-triggered runtime: первый walk-through и retiming
+  review обязательны до founder run. Raw GPX по умолчанию остаётся локально;
+  для разбора используется derived report без координат и точного старта.

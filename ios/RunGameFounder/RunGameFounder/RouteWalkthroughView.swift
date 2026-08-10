@@ -1,5 +1,6 @@
 import MapKit
 import SwiftUI
+import UIKit
 
 struct RouteWalkthroughView: View {
     @EnvironmentObject private var appModel: AppModel
@@ -7,6 +8,8 @@ struct RouteWalkthroughView: View {
     @StateObject private var planner = RoutePlanner()
     @StateObject private var recorder = LocationRecorder()
     @State private var cameraPosition: MapCameraPosition
+    @State private var walkthroughEvidence: WalkthroughEvidence?
+    @State private var showStopConfirmation = false
 
     init(mission: MissionConfig) {
         self.mission = mission
@@ -27,7 +30,25 @@ struct RouteWalkthroughView: View {
         .background(RunGameTheme.ink.ignoresSafeArea())
         .navigationTitle("Дневной обход")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(recorder.isRecording || recorder.isAwaitingAuthorization)
+        .confirmationDialog("Остановить дневной обход?", isPresented: $showStopConfirmation) {
+            Button("Остановить и сохранить GPX", role: .destructive) { finishWalkthrough() }
+            Button("Продолжить", role: .cancel) {}
+        }
         .task { await planner.load(points: mission.routePoints) }
+        .onAppear {
+            if walkthroughEvidence == nil && !appModel.routeApproved {
+                walkthroughEvidence = appModel.pendingWalkthroughEvidence
+            }
+        }
+        .onDisappear {
+            if recorder.isRecording {
+                _ = recorder.stop(completed: false)
+                appModel.refreshRecoveredTracks()
+            } else if recorder.isAwaitingAuthorization {
+                recorder.cancelPendingStart()
+            }
+        }
     }
 
     private var map: some View {
@@ -60,8 +81,8 @@ struct RouteWalkthroughView: View {
                 Label(error, systemImage: "wifi.exclamationmark")
                     .font(.footnote)
                     .foregroundStyle(RunGameTheme.warning)
-            } else if planner.distanceMeters > 0 {
-                Text("≈ \(planner.distanceMeters / 1000, specifier: "%.1f") км · обычная ходьба ≈ \(Int(planner.expectedTravelTime / 60)) мин")
+            } else if planner.isComplete {
+                Text("Все \(planner.completedLegs) сегмента · ≈ \(planner.distanceMeters / 1000, specifier: "%.1f") км · обычная ходьба ≈ \(Int(planner.expectedTravelTime / 60)) мин")
                     .foregroundStyle(.secondary)
             } else {
                 Text("Маршрут рассчитывается. Это preview, а не safety approval.")
@@ -103,32 +124,56 @@ struct RouteWalkthroughView: View {
             if recorder.isRecording {
                 HStack {
                     ProgressView().tint(RunGameTheme.danger)
-                    Text("Запись · \(recorder.samples.count) точек")
+                    Text(recorder.samples.isEmpty ? "Ищем точный GPS…" : "Запись · \(recorder.samples.count) точек")
                         .font(.subheadline.monospacedDigit())
                 }
                 Button("Завершить обход и сохранить GPX", role: .destructive) {
-                    recorder.stop(prefix: "valparaiso-walkthrough")
+                    showStopConfirmation = true
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.danger)
+            } else if recorder.isAwaitingAuthorization {
+                HStack {
+                    ProgressView()
+                    Text("Ожидаем разрешение точной геопозиции…")
+                }
+                Button("Отменить") { recorder.cancelPendingStart() }
             } else {
                 Button {
-                    recorder.requestPermission()
-                    recorder.start()
+                    walkthroughEvidence = nil
+                    _ = recorder.start(prefix: "\(mission.gpxPrefix)-walkthrough")
                 } label: {
                     Label("Начать дневной обход", systemImage: "location.fill")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.electric)
+                .disabled(!planner.isComplete || appModel.routeApproved)
             }
             if let url = recorder.exportedURL {
                 ShareLink(item: url) {
                     Label("Экспортировать GPX", systemImage: "square.and.arrow.up")
                 }
             }
+            if let evidence = walkthroughEvidence {
+                let expected = mission.routePoints.count
+                VStack(alignment: .leading, spacing: 5) {
+                    Text("Evidence: \(evidence.track.sampleCount) GPS · \(evidence.track.distanceMeters / 1000, specifier: "%.2f") км · \(Int(evidence.track.durationSeconds / 60)) мин")
+                    Text("Максимальный разрыв GPS: \(Int(evidence.track.maximumSampleGapSeconds)) с (нужно ≤\(Int(TrackSummary.maximumEvidenceSampleGapSeconds)) с)")
+                    Text("Контрольные точки: \(evidence.reachedRoutePointIDs.count)/\(expected) · ≥\(WalkthroughEvidence.minimumSamplesPerRoutePoint) GPS в радиусе \(Int(WalkthroughEvidence.routePointRadiusMeters)) м")
+                    Text("Замыкание start→finish: \(Int(evidence.startFinishClosureMeters)) м (нужно ≤150 м)")
+                    Text("До public start: старт \(Int(evidence.startDistanceToPublicStartMeters)) м · финиш \(Int(evidence.finishDistanceToPublicStartMeters)) м")
+                }
+                .font(.caption.monospacedDigit())
+                .foregroundStyle(evidence.isSufficient(for: mission) ? RunGameTheme.electric : RunGameTheme.warning)
+            }
             if let error = recorder.lastError {
                 Text(error).font(.footnote).foregroundStyle(RunGameTheme.warning)
+                Button("Открыть Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
             }
         }
         .runGamePanel()
@@ -142,7 +187,8 @@ struct RouteWalkthroughView: View {
             Toggle("Рельеф подходит для этой нагрузки", isOn: $appModel.elevationChecked)
             Toggle("Маршрут проходится без взгляда на экран", isOn: $appModel.screenFreeChecked)
             Button {
-                appModel.approveRoute()
+                guard let walkthroughEvidence else { return }
+                appModel.approveRoute(evidence: walkthroughEvidence)
             } label: {
                 Label(
                     appModel.routeApproved ? "Маршрут одобрен на устройстве" : "Одобрить маршрут",
@@ -152,23 +198,60 @@ struct RouteWalkthroughView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(appModel.routeApproved ? RunGameTheme.electric : RunGameTheme.violet)
-            .disabled(!appModel.checklistComplete || appModel.routeApproved)
+            .accessibilityIdentifier("routeApprovalButton")
+            .disabled(
+                !appModel.checklistComplete
+                    || appModel.routeApproved
+                    || !(walkthroughEvidence?.isSufficient(for: mission) ?? false)
+                    || !planner.isComplete
+            )
+            if walkthroughEvidence == nil && !appModel.routeApproved {
+                Text("Approval станет доступен только после полного сохранённого GPX, прохождения всех контрольных точек и ручного checklist.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            Text("Остановка ради дороги всегда допустима: не двигайся ради GPS. Большой разрыв означает только неполное техническое evidence и необходимость безопасно повторить запись.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .runGamePanel()
+    }
+
+    private func finishWalkthrough() {
+        if let summary = recorder.stop(completed: true) {
+            let evidence = WalkthroughEvidence.make(
+                mission: mission,
+                summary: summary,
+                samples: recorder.samples,
+                locationIncidents: recorder.incidents
+            )
+            walkthroughEvidence = evidence
+            if evidence.isSufficient(for: mission) {
+                appModel.recordPendingWalkthrough(evidence: evidence)
+            }
+        }
+        appModel.refreshRecoveredTracks()
     }
 
     private static func region(for points: [RoutePoint]) -> MKCoordinateRegion {
         let latitudes = points.map(\.latitude)
         let longitudes = points.map(\.longitude)
+        guard let minLatitude = latitudes.min(), let maxLatitude = latitudes.max(),
+              let minLongitude = longitudes.min(), let maxLongitude = longitudes.max() else {
+            return MKCoordinateRegion(
+                center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+                span: MKCoordinateSpan(latitudeDelta: 0.05, longitudeDelta: 0.05)
+            )
+        }
         let center = CLLocationCoordinate2D(
-            latitude: (latitudes.min()! + latitudes.max()!) / 2,
-            longitude: (longitudes.min()! + longitudes.max()!) / 2
+            latitude: (minLatitude + maxLatitude) / 2,
+            longitude: (minLongitude + maxLongitude) / 2
         )
         return MKCoordinateRegion(
             center: center,
             span: MKCoordinateSpan(
-                latitudeDelta: max(0.012, (latitudes.max()! - latitudes.min()!) * 1.8),
-                longitudeDelta: max(0.012, (longitudes.max()! - longitudes.min()!) * 1.8)
+                latitudeDelta: max(0.012, (maxLatitude - minLatitude) * 1.8),
+                longitudeDelta: max(0.012, (maxLongitude - minLongitude) * 1.8)
             )
         )
     }

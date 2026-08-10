@@ -493,6 +493,26 @@ Geo-story proof обязан проверить не наличие MapKit/MapLi
 
 ## Новый порядок инвестиций
 
+### Research exception — локальный founder-only native slice
+
+По отдельному founder decision от 7 августа 2026 года внутри R02 разрешён один
+локальный SwiftUI shell для личных повторяемых итераций M1: заранее собранный
+master, Apple Maps preview, дневной walk-through, локальный GPX, ручные gates и
+дебриф. Это **research instrument**, а не досрочное прохождение Gate 4. В нём
+нет production backend, аккаунтов, аналитики, TestFlight, внешней когорты или
+обещания автоматического runtime для произвольного маршрута.
+
+Активная полевая фикстура этого исключения — центральный Вальпараисо. Santiago
+остаётся неактивным локальным архивом и не является fallback fixture.
+
+Исключение не меняет инвестиционную последовательность ниже. До реального
+geo-story и demand signal нельзя превращать founder shell в production
+архитектуру. Offline bundle preflight подтверждает только целостность и
+готовность к device smoke; маршрут, нагрузку, аудио и M1-A одобряет человек
+отдельными реальными проверками. На 10 августа physical-device smoke, полный
+lock-screen audio test, дневной walk-through и founder run ещё не являются
+полученным evidence.
+
 ### Gate 0 — test market и preregistration
 
 Выбрать доступный для полевого QA географический рынок, описать русскоязычную iPhone-когорту и заранее зафиксировать метрики, пороги, stop-loss и способ проверки оплаты.
@@ -511,7 +531,10 @@ Geo-story proof обязан проверить не наличие MapKit/MapLi
 
 ### Gate 4 — iPhone vertical slice
 
-Только после первых трёх ворот собирать background GPS, audio, navigation и offline runtime. До retention-теста доказать надёжность locked-screen сессии, звука, критичных подсказок и восстановления.
+Только после первых трёх ворот собирать **production** background GPS, audio,
+navigation и offline runtime для пользователей. Локальное R02-исключение выше
+не засчитывает эти ворота. До retention-теста доказать надёжность locked-screen
+сессии, звука, критичных подсказок и восстановления.
 
 ### Gate 5 — шестимиссионная behavioral alpha
 

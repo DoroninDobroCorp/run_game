@@ -8,26 +8,29 @@ final class AppModel: ObservableObject {
     @Published var crossingsChecked = false
     @Published var elevationChecked = false
     @Published var screenFreeChecked = false
-    @Published private(set) var routeApproved: Bool
-    @Published private(set) var homeAudioCompleted: Bool
+    @Published private(set) var routeApproved = false
+    @Published private(set) var homeAudioCompleted = false
+    @Published private(set) var routeApprovalEvidence: WalkthroughEvidence?
+    @Published private(set) var pendingWalkthroughEvidence: WalkthroughEvidence?
+    @Published private(set) var audioApprovalEvidence: AudioApprovalRecord?
+    @Published private(set) var recoveredTrackURLs: [URL] = []
+    @Published private(set) var localEvidenceURLs: [URL] = []
+    @Published private(set) var pendingDebriefs: [RunSessionContext] = []
+    @Published private(set) var pendingRecalls: [PendingRecall] = []
 
     private let defaults: UserDefaults
+    private let documentsDirectory: URL
+    private let encoder = JSONEncoder()
+    private let decoder = JSONDecoder()
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .standard, documentsDirectory: URL? = nil) {
         self.defaults = defaults
-        do {
-            let loadedMission = try MissionConfig.loadFromBundle()
-            mission = loadedMission
-            loadError = nil
-            routeApproved = defaults.bool(forKey: Self.routeApprovalKey(for: loadedMission))
-                || (loadedMission.routeInitiallyApproved && loadedMission.workoutInitiallyApproved)
-            homeAudioCompleted = defaults.bool(forKey: Self.audioApprovalKey(for: loadedMission))
-        } catch {
-            mission = nil
-            loadError = error.localizedDescription
-            routeApproved = false
-            homeAudioCompleted = false
-        }
+        self.documentsDirectory = documentsDirectory
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        loadMission()
+        restorePendingDebriefs()
+        restorePendingRecalls()
+        refreshRecoveredTracks()
     }
 
     var checklistComplete: Bool {
@@ -35,7 +38,23 @@ final class AppModel: ObservableObject {
     }
 
     var canStartMission: Bool {
-        routeApproved && homeAudioCompleted
+        mission?.m1HumanApprovalComplete == true && routeApproved && homeAudioCompleted
+    }
+
+    var canBeginMission: Bool {
+        Self.canBeginMission(
+            readinessComplete: canStartMission,
+            hasPendingDebrief: !pendingDebriefs.isEmpty,
+            hasPendingRecall: !pendingRecalls.isEmpty
+        )
+    }
+
+    nonisolated static func canBeginMission(
+        readinessComplete: Bool,
+        hasPendingDebrief: Bool,
+        hasPendingRecall: Bool
+    ) -> Bool {
+        readinessComplete && !hasPendingDebrief && !hasPendingRecall
     }
 
     var readinessCompletedSteps: Int {
@@ -44,49 +63,220 @@ final class AppModel: ObservableObject {
 
     func loadMission() {
         do {
-            mission = try MissionConfig.loadFromBundle()
-            guard let mission else { return }
-            routeApproved = defaults.bool(forKey: Self.routeApprovalKey(for: mission))
-                || (mission.routeInitiallyApproved && mission.workoutInitiallyApproved)
-            homeAudioCompleted = defaults.bool(forKey: Self.audioApprovalKey(for: mission))
+            let loaded = try MissionConfig.loadFromBundle()
+            mission = loaded
+            loadError = nil
+            restoreApprovals(for: loaded)
         } catch {
+            mission = nil
             loadError = error.localizedDescription
+            routeApproved = false
+            homeAudioCompleted = false
+            routeApprovalEvidence = nil
+            pendingWalkthroughEvidence = nil
+            audioApprovalEvidence = nil
         }
     }
 
-    func approveRoute() {
-        guard checklistComplete else { return }
+    func approveRoute(evidence: WalkthroughEvidence) {
+        guard let mission,
+              checklistComplete,
+              evidence.isSufficient(for: mission),
+              trackFileIsIntact(evidence.track) else { return }
+        routeApprovalEvidence = evidence
         routeApproved = true
-        if let mission { defaults.set(true, forKey: Self.routeApprovalKey(for: mission)) }
+        pendingWalkthroughEvidence = nil
+        defaults.removeObject(forKey: Self.pendingWalkthroughKey(for: mission))
+        if let data = try? encoder.encode(evidence) {
+            defaults.set(data, forKey: Self.routeApprovalKey(for: mission))
+        }
     }
 
-    func markHomeAudioCompleted() {
+    func recordPendingWalkthrough(evidence: WalkthroughEvidence) {
+        guard let mission,
+              evidence.isSufficient(for: mission),
+              trackFileIsIntact(evidence.track) else { return }
+        pendingWalkthroughEvidence = evidence
+        if let data = try? encoder.encode(evidence) {
+            defaults.set(data, forKey: Self.pendingWalkthroughKey(for: mission))
+        }
+    }
+
+    func markHomeAudioCompleted(record: AudioApprovalRecord) {
+        guard let mission, record.isValid(for: mission) else { return }
+        audioApprovalEvidence = record
         homeAudioCompleted = true
-        if let mission { defaults.set(true, forKey: Self.audioApprovalKey(for: mission)) }
+        if let data = try? encoder.encode(record) {
+            defaults.set(data, forKey: Self.audioApprovalKey(for: mission))
+        }
     }
 
     func resetLocalApprovals() {
+        let prefixes = [
+            Self.routeApprovalPrefix,
+            Self.audioApprovalPrefix,
+            Self.pendingWalkthroughPrefix,
+        ]
+        for key in defaults.dictionaryRepresentation().keys
+            where prefixes.contains(where: key.hasPrefix) {
+            defaults.removeObject(forKey: key)
+        }
         routeApproved = false
         homeAudioCompleted = false
+        routeApprovalEvidence = nil
+        pendingWalkthroughEvidence = nil
+        audioApprovalEvidence = nil
         sidewalksChecked = false
         crossingsChecked = false
         elevationChecked = false
         screenFreeChecked = false
-        if let mission {
-            defaults.removeObject(forKey: Self.routeApprovalKey(for: mission))
-            defaults.removeObject(forKey: Self.audioApprovalKey(for: mission))
-        }
     }
 
     func timelineBlock(at elapsed: TimeInterval) -> TimelineBlock? {
         mission?.timeline.last(where: { elapsed >= $0.start && elapsed < $0.end })
     }
 
+    func refreshRecoveredTracks() {
+        let urls = (try? FileManager.default.contentsOfDirectory(
+            at: documentsDirectory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        recoveredTrackURLs = urls
+            .filter { $0.lastPathComponent.hasSuffix(".partial.gpx") }
+            .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        localEvidenceURLs = urls
+            .filter {
+                !$0.lastPathComponent.hasSuffix(".partial.gpx")
+                    && ["gpx", "json"].contains($0.pathExtension.lowercased())
+            }
+            .sorted {
+                let left = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                let right = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                return (left ?? .distantPast) > (right ?? .distantPast)
+            }
+    }
+
+    func scheduleRecall(for context: RunSessionContext) {
+        let pending = PendingRecall.make(context: context)
+        pendingRecalls.removeAll { $0.runID == pending.runID }
+        pendingRecalls.append(pending)
+        pendingRecalls.sort { $0.dueAt < $1.dueAt }
+        persistPendingRecalls()
+    }
+
+    func scheduleDebrief(for context: RunSessionContext) {
+        pendingDebriefs.removeAll { $0.runID == context.runID }
+        pendingDebriefs.append(context)
+        pendingDebriefs.sort { $0.endedAt < $1.endedAt }
+        persistPendingDebriefs()
+    }
+
+    func completeDebrief(runID: String) {
+        pendingDebriefs.removeAll { $0.runID == runID }
+        persistPendingDebriefs()
+    }
+
+    func completeRecall(runID: String) {
+        pendingRecalls.removeAll { $0.runID == runID }
+        persistPendingRecalls()
+    }
+
+    private func restorePendingRecalls() {
+        guard let data = defaults.data(forKey: Self.pendingRecallsKey),
+              let records = try? decoder.decode([PendingRecall].self, from: data) else {
+            pendingRecalls = []
+            return
+        }
+        pendingRecalls = Dictionary(grouping: records, by: \.runID)
+            .compactMap { $0.value.last }
+            .sorted { $0.dueAt < $1.dueAt }
+    }
+
+    private func restorePendingDebriefs() {
+        guard let data = defaults.data(forKey: Self.pendingDebriefsKey),
+              let records = try? decoder.decode([RunSessionContext].self, from: data) else {
+            pendingDebriefs = []
+            return
+        }
+        pendingDebriefs = Dictionary(grouping: records, by: \.runID)
+            .compactMap { $0.value.last }
+            .sorted { $0.endedAt < $1.endedAt }
+    }
+
+    private func persistPendingDebriefs() {
+        if let data = try? encoder.encode(pendingDebriefs) {
+            defaults.set(data, forKey: Self.pendingDebriefsKey)
+        }
+    }
+
+    private func persistPendingRecalls() {
+        if let data = try? encoder.encode(pendingRecalls) {
+            defaults.set(data, forKey: Self.pendingRecallsKey)
+        }
+    }
+
+    private func restoreApprovals(for mission: MissionConfig) {
+        routeApprovalEvidence = nil
+        pendingWalkthroughEvidence = nil
+        audioApprovalEvidence = nil
+
+        if let data = defaults.data(forKey: Self.routeApprovalKey(for: mission)),
+            let evidence = try? decoder.decode(WalkthroughEvidence.self, from: data),
+            evidence.isSufficient(for: mission),
+            trackFileIsIntact(evidence.track)
+        {
+            routeApprovalEvidence = evidence
+            routeApproved = true
+        } else {
+            routeApproved = false
+        }
+
+        if !routeApproved,
+           let data = defaults.data(forKey: Self.pendingWalkthroughKey(for: mission)),
+           let evidence = try? decoder.decode(WalkthroughEvidence.self, from: data),
+           evidence.isSufficient(for: mission),
+           trackFileIsIntact(evidence.track) {
+            pendingWalkthroughEvidence = evidence
+        }
+
+        if
+            let data = defaults.data(forKey: Self.audioApprovalKey(for: mission)),
+            let record = try? decoder.decode(AudioApprovalRecord.self, from: data),
+            record.isValid(for: mission)
+        {
+            audioApprovalEvidence = record
+            homeAudioCompleted = true
+        } else {
+            homeAudioCompleted = false
+        }
+    }
+
     private static func routeApprovalKey(for mission: MissionConfig) -> String {
-        "founder.routeApproved.\(mission.bindingID)"
+        routeApprovalPrefix + mission.routeWorkoutFingerprint
     }
 
     private static func audioApprovalKey(for mission: MissionConfig) -> String {
-        "founder.homeAudioCompleted.\(mission.audioSHA256)"
+        audioApprovalPrefix + mission.audioSHA256.lowercased()
     }
+
+    private static func pendingWalkthroughKey(for mission: MissionConfig) -> String {
+        pendingWalkthroughPrefix + mission.routeWorkoutFingerprint
+    }
+
+    private func trackFileIsIntact(_ track: TrackSummary) -> Bool {
+        let fileName = track.fileName
+        guard URL(fileURLWithPath: fileName).lastPathComponent == fileName,
+              !fileName.contains("/"),
+              !fileName.contains("\\") else { return false }
+        let url = documentsDirectory.appendingPathComponent(fileName)
+        guard let actualSHA = try? BundleIntegrity.sha256(of: url) else { return false }
+        return actualSHA.caseInsensitiveCompare(track.fileSHA256) == .orderedSame
+    }
+
+    private static let routeApprovalPrefix = "founder.v2.routeApproved."
+    private static let audioApprovalPrefix = "founder.v2.homeAudioCompleted."
+    private static let pendingWalkthroughPrefix = "founder.v2.pendingWalkthrough."
+    private static let pendingRecallsKey = "founder.v2.pendingRecalls"
+    private static let pendingDebriefsKey = "founder.v2.pendingDebriefs"
 }

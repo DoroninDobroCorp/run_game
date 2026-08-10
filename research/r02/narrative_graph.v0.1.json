@@ -172,7 +172,7 @@
       "geo_slot": {
         "slot_id": "witness",
         "role": "shared_witness_with_incompatible_memories",
-        "allowed_archetypes": ["public_building", "monument", "waterfront", "open_square", "tower", "distinct_structure"],
+        "allowed_archetypes": ["public_building", "monument", "waterfront", "open_square", "park", "tower", "distinct_structure"],
         "requires_named_poi": false,
         "fallback_summary": "Леа узнаёт только обезличенный маршрутный паттерн и прямо признаёт, что внешний свидетель не подтверждён"
       },
