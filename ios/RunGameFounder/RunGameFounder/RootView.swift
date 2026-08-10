@@ -30,6 +30,7 @@ private struct DashboardView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
+                recoveryErrorBanner
                 hero
                 readiness
                 debriefQueue
@@ -50,6 +51,21 @@ private struct DashboardView: View {
             Button("Сбросить", role: .destructive) { appModel.resetLocalApprovals() }
         } message: {
             Text("Маршрут и домашнее прослушивание снова будут отмечены как непроверенные.")
+        }
+    }
+
+    @ViewBuilder
+    private var recoveryErrorBanner: some View {
+        if appModel.journalCorrupted || appModel.queueCorrupted {
+            VStack(alignment: .leading, spacing: 6) {
+                Label("Recovery Error / Evidence Locked", systemImage: "exclamationmark.triangle.fill")
+                    .font(.headline)
+                    .foregroundStyle(RunGameTheme.warning)
+                Text(appModel.journalErrorBanner ?? "Очередь сессий или журнал активности повреждены. Захват evidence заблокирован.")
+                    .font(.footnote)
+            }
+            .runGamePanel()
+            .accessibilityIdentifier("recoveryErrorBanner")
         }
     }
 

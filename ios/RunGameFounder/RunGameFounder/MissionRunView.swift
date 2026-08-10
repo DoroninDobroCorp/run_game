@@ -32,7 +32,13 @@ struct MissionRunView: View {
                         Label("Evidence Capture Locked", systemImage: "lock.fill")
                             .font(.headline)
                             .foregroundStyle(RunGameTheme.warning)
-                        if !appModel.pendingDebriefs.isEmpty {
+                        if let errorBanner = appModel.journalErrorBanner {
+                            Text(errorBanner)
+                                .font(.footnote)
+                        } else if appModel.queueCorrupted {
+                            Text("Очередь сессий повреждена. Захват evidence заблокирован.")
+                                .font(.footnote)
+                        } else if !appModel.pendingDebriefs.isEmpty {
                             Text("Присутствует незавершённый immediate-дебриф. Завершите его перед новым запуском.")
                                 .font(.footnote)
                         } else if !appModel.pendingRecalls.isEmpty {
@@ -299,6 +305,22 @@ struct MissionRunView: View {
         runStartedAt = nil
         qualifyingStartFixes = 0
         state = .acquiringGPS
+        appModel.saveActiveAttempt(
+            ActiveRunAttempt(
+                runID: runID,
+                missionID: mission.missionID,
+                bindingID: mission.bindingID,
+                audioSHA256: mission.audioSHA256,
+                routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                condition: "A",
+                phase: .acquiringGPS,
+                startedAt: Date(),
+                precommittedNextWorkoutAt: precommittedNextWorkout,
+                pauseCount: 0,
+                audioIncidents: [],
+                locationIncidents: []
+            )
+        )
         let result = recorder.start(prefix: "\(mission.gpxPrefix)-run-\(runID)")
         if case .unavailable(let message) = result {
             rollbackStart(reason: message)
@@ -342,6 +364,22 @@ struct MissionRunView: View {
         }
         startMessage = nil
         state = .running
+        appModel.saveActiveAttempt(
+            ActiveRunAttempt(
+                runID: runID,
+                missionID: mission.missionID,
+                bindingID: mission.bindingID,
+                audioSHA256: mission.audioSHA256,
+                routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                condition: "A",
+                phase: .running,
+                startedAt: runStartedAt ?? Date(),
+                precommittedNextWorkoutAt: precommittedNextWorkout,
+                pauseCount: audio.pauseCount,
+                audioIncidents: audio.incidents.map { "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)" },
+                locationIncidents: recorder.incidents
+            )
+        )
     }
 
     private func finish() {
@@ -379,6 +417,7 @@ struct MissionRunView: View {
         )
         context = finishedContext
         appModel.scheduleDebrief(for: finishedContext)
+        appModel.clearActiveJournal()
         if successful {
             appModel.scheduleRecall(for: finishedContext)
         }
@@ -410,6 +449,7 @@ struct MissionRunView: View {
         )
         context = abortedContext
         appModel.scheduleDebrief(for: abortedContext)
+        appModel.clearActiveJournal()
         state = .aborted
         startMessage = reason
         appModel.refreshRecoveredTracks()
@@ -421,6 +461,7 @@ struct MissionRunView: View {
         recorder.cancelPendingStart()
         if recorder.isRecording { _ = recorder.stop(completed: false) }
         if audio.isPlaying { audio.stop() }
+        appModel.clearActiveJournal()
         state = .ready
         startMessage = reason
         appModel.refreshRecoveredTracks()

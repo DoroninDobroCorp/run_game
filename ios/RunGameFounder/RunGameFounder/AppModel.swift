@@ -17,6 +17,9 @@ final class AppModel: ObservableObject {
     @Published private(set) var localEvidenceURLs: [URL] = []
     @Published private(set) var pendingDebriefs: [RunSessionContext] = []
     @Published private(set) var pendingRecalls: [PendingRecall] = []
+    @Published private(set) var journalCorrupted = false
+    @Published private(set) var queueCorrupted = false
+    @Published private(set) var journalErrorBanner: String?
 
     private let defaults: UserDefaults
     private let documentsDirectory: URL
@@ -30,6 +33,7 @@ final class AppModel: ObservableObject {
         loadMission()
         restorePendingDebriefs()
         restorePendingRecalls()
+        recoverActiveJournal()
         refreshRecoveredTracks()
     }
 
@@ -50,7 +54,7 @@ final class AppModel: ObservableObject {
     }
 
     var evidenceCaptureLocked: Bool {
-        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil
+        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil || journalCorrupted || queueCorrupted
     }
 
     nonisolated static func canBeginMission(
@@ -186,26 +190,82 @@ final class AppModel: ObservableObject {
         persistPendingRecalls()
     }
 
+    func saveActiveAttempt(_ attempt: ActiveRunAttempt) {
+        ActiveRunJournal(defaults: defaults).save(attempt)
+    }
+
+    func clearActiveJournal() {
+        ActiveRunJournal(defaults: defaults).clear()
+    }
+
+    func recoverActiveJournal() {
+        let journal = ActiveRunJournal(defaults: defaults)
+        switch journal.loadJournal() {
+        case .attempt(let attempt):
+            let endedAt = Date()
+            let recoveredContext = RunSessionContext(
+                runID: attempt.runID,
+                missionID: attempt.missionID,
+                bindingID: attempt.bindingID,
+                audioSHA256: attempt.audioSHA256,
+                routeWorkoutFingerprint: attempt.routeWorkoutFingerprint,
+                condition: attempt.condition,
+                startedAt: attempt.startedAt,
+                endedAt: endedAt,
+                precommittedNextWorkoutAt: attempt.precommittedNextWorkoutAt,
+                completed: false,
+                aborted: true,
+                abortReason: "App relaunch recovery: session interrupted in \(attempt.phase.rawValue) phase",
+                audioElapsedSeconds: 0,
+                pauseCount: attempt.pauseCount,
+                track: nil,
+                routeTraversalEvidence: nil,
+                audioIncidents: attempt.audioIncidents + ["Interrupted by unexpected process termination"],
+                locationIncidents: attempt.locationIncidents
+            )
+            scheduleDebrief(for: recoveredContext)
+            journal.clear()
+            journalCorrupted = false
+            journalErrorBanner = nil
+        case .corrupted(let reason):
+            journalCorrupted = true
+            journalErrorBanner = "Corrupted active run journal: \(reason). Evidence capture is locked."
+        case .none:
+            journalCorrupted = false
+            journalErrorBanner = nil
+        }
+    }
+
     private func restorePendingRecalls() {
-        guard let data = defaults.data(forKey: Self.pendingRecallsKey),
-              let records = try? decoder.decode([PendingRecall].self, from: data) else {
+        guard let data = defaults.data(forKey: Self.pendingRecallsKey) else {
             pendingRecalls = []
             return
         }
-        pendingRecalls = Dictionary(grouping: records, by: \.runID)
-            .compactMap { $0.value.last }
-            .sorted { $0.dueAt < $1.dueAt }
+        do {
+            let records = try decoder.decode([PendingRecall].self, from: data)
+            pendingRecalls = Dictionary(grouping: records, by: \.runID)
+                .compactMap { $0.value.last }
+                .sorted { $0.dueAt < $1.dueAt }
+        } catch {
+            queueCorrupted = true
+            pendingRecalls = []
+        }
     }
 
     private func restorePendingDebriefs() {
-        guard let data = defaults.data(forKey: Self.pendingDebriefsKey),
-              let records = try? decoder.decode([RunSessionContext].self, from: data) else {
+        guard let data = defaults.data(forKey: Self.pendingDebriefsKey) else {
             pendingDebriefs = []
             return
         }
-        pendingDebriefs = Dictionary(grouping: records, by: \.runID)
-            .compactMap { $0.value.last }
-            .sorted { $0.endedAt < $1.endedAt }
+        do {
+            let records = try decoder.decode([RunSessionContext].self, from: data)
+            pendingDebriefs = Dictionary(grouping: records, by: \.runID)
+                .compactMap { $0.value.last }
+                .sorted { $0.endedAt < $1.endedAt }
+        } catch {
+            queueCorrupted = true
+            pendingDebriefs = []
+        }
     }
 
     private func persistPendingDebriefs() {
