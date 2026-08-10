@@ -1,4 +1,4 @@
-.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test r02-preflight r02-analyze-gpx verify
+.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test r02-preflight r02-validate-evidence r02-analyze-gpx verify
 
 IOS_DIR := ios/RunGameFounder
 SIMULATOR ?= platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5
@@ -27,6 +27,10 @@ r02-preflight:
 	python3 tools/r02_prepare_ios.py --fixture-dir $(R02_FIXTURE) --output-dir $(R02_IOS_RESOURCES)
 	python3 tools/r02_preflight.py --fixture-dir $(R02_FIXTURE) --ios-resources-dir $(R02_IOS_RESOURCES)
 
+r02-validate-evidence:
+	@test -n "$(EVIDENCE)" || (echo 'Usage: make r02-validate-evidence EVIDENCE=/absolute/local/path/to/evidence.json' >&2; exit 2)
+	python3 tools/r02_validate_evidence.py "$(EVIDENCE)"
+
 r02-analyze-gpx:
 	@test -n "$(GPX)" || (echo 'Usage: make r02-analyze-gpx GPX=/absolute/local/path/to/track.gpx' >&2; exit 2)
 	python3 tools/r02_analyze_gpx.py --gpx "$(GPX)" --mission $(R02_IOS_RESOURCES)/mission.json --manifest $(R02_AUDIO_MANIFEST)
@@ -34,4 +38,4 @@ r02-analyze-gpx:
 verify: r02-preflight
 	python3 tools/r02_story.py validate
 	python3 tools/r02_verify_field.py --audio-dir $(R02_FIXTURE)/audio
-	python3 -m unittest discover -s tests -p 'test_*.py' -v
+	/usr/bin/python3 -m unittest discover -s tests -p 'test_*.py' -v
