@@ -19,7 +19,9 @@
 		6BBDF1A611E888C390EBF9B9 /* RouteWalkthroughView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546758FEB6D7F4000F6B0E0 /* RouteWalkthroughView.swift */; };
 		6C3D9333487ADCE811FE424C /* MissionRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37709950D1014076E35929D /* MissionRunView.swift */; };
 		7845600CFE27FE3D016AA1B8 /* AudioController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8018990956E9A10DF11D7466 /* AudioController.swift */; };
+		8461DFDDAE6DB917C6CA7549 /* FileDurability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401EC833F6D211032D954DFF /* FileDurability.swift */; };
 		8C852343F358CF4FAC6B02FF /* HomeAudioCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B39282E2A4F9F336DE1B3E /* HomeAudioCheckView.swift */; };
+		906D7A21B9218FA8254B3507 /* FileDurabilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF15A068A42A395177D5F841 /* FileDurabilityTests.swift */; };
 		90A2BF700386927593FB5991 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = ADC82137D136B5D1C6487D28 /* Assets.xcassets */; };
 		936F1B20BC47A81802B0D232 /* ActiveRunJournalTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A4122E7A7C0F351C4538E8F /* ActiveRunJournalTests.swift */; };
 		9B5C94E2E23102383D380A76 /* ActiveRunJournal.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B69C01DBBB9C56D5D065018 /* ActiveRunJournal.swift */; };
@@ -54,6 +56,7 @@
 		12C6E461B2912CA6428E40A5 /* FounderAppTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FounderAppTests.swift; sourceTree = "<group>"; };
 		1C7925FC34E8BE7895F06885 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		337E66D755532973B3A8DA0A /* RoutePlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlanner.swift; sourceTree = "<group>"; };
+		401EC833F6D211032D954DFF /* FileDurability.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDurability.swift; sourceTree = "<group>"; };
 		4A4122E7A7C0F351C4538E8F /* ActiveRunJournalTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActiveRunJournalTests.swift; sourceTree = "<group>"; };
 		583271C5703A5FE69FB3BEA0 /* LocationRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationRecorder.swift; sourceTree = "<group>"; };
 		7D525F5458CB29A6E4BFCC8F /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
@@ -67,6 +70,7 @@
 		A37709950D1014076E35929D /* MissionRunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MissionRunView.swift; sourceTree = "<group>"; };
 		A97A43B1644B6B462EA0D042 /* mission.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = mission.json; sourceTree = "<group>"; };
 		ADC82137D136B5D1C6487D28 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AF15A068A42A395177D5F841 /* FileDurabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDurabilityTests.swift; sourceTree = "<group>"; };
 		BEC8831608197C23BF178D26 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		CE11331EB861B3D077FD37FA /* m01_solo_founder_30min.manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = m01_solo_founder_30min.manifest.json; sourceTree = "<group>"; };
 		D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelLockTests.swift; sourceTree = "<group>"; };
@@ -83,6 +87,7 @@
 			children = (
 				4A4122E7A7C0F351C4538E8F /* ActiveRunJournalTests.swift */,
 				D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */,
+				AF15A068A42A395177D5F841 /* FileDurabilityTests.swift */,
 				12C6E461B2912CA6428E40A5 /* FounderAppTests.swift */,
 			);
 			path = RunGameFounderTests;
@@ -125,6 +130,7 @@
 				ADC82137D136B5D1C6487D28 /* Assets.xcassets */,
 				8018990956E9A10DF11D7466 /* AudioController.swift */,
 				0C42B547CC119B18DD65EB72 /* DebriefView.swift */,
+				401EC833F6D211032D954DFF /* FileDurability.swift */,
 				9A8C7063DFC49A7A61B07F23 /* GPXDocument.swift */,
 				99B39282E2A4F9F336DE1B3E /* HomeAudioCheckView.swift */,
 				BEC8831608197C23BF178D26 /* Info.plist */,
@@ -291,6 +297,7 @@
 				F19410B0D96E223ACDD41F43 /* AppModel.swift in Sources */,
 				7845600CFE27FE3D016AA1B8 /* AudioController.swift in Sources */,
 				B7D76E5DFFAFAF421AB4F31B /* DebriefView.swift in Sources */,
+				8461DFDDAE6DB917C6CA7549 /* FileDurability.swift in Sources */,
 				06A8103DA2EE2968CAA19C63 /* GPXDocument.swift in Sources */,
 				8C852343F358CF4FAC6B02FF /* HomeAudioCheckView.swift in Sources */,
 				6910442984DA89673884A700 /* LocationRecorder.swift in Sources */,
@@ -310,6 +317,7 @@
 			files = (
 				936F1B20BC47A81802B0D232 /* ActiveRunJournalTests.swift in Sources */,
 				1D659A8A0293492BBEE20265 /* AppModelLockTests.swift in Sources */,
+				906D7A21B9218FA8254B3507 /* FileDurabilityTests.swift in Sources */,
 				C3E4FA5EB88DA488675C74B7 /* FounderAppTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

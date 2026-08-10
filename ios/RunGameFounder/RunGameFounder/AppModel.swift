@@ -150,6 +150,9 @@ final class AppModel: ObservableObject {
             includingPropertiesForKeys: nil,
             options: [.skipsHiddenFiles]
         )) ?? []
+        for url in urls {
+            FileDurability.markExcludedFromBackup(url: url)
+        }
         recoveredTrackURLs = urls
             .filter { $0.lastPathComponent.hasSuffix(".partial.gpx") }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
@@ -334,8 +337,9 @@ final class AppModel: ObservableObject {
               !fileName.contains("/"),
               !fileName.contains("\\") else { return false }
         let url = documentsDirectory.appendingPathComponent(fileName)
-        guard let actualSHA = try? BundleIntegrity.sha256(of: url) else { return false }
-        return actualSHA.caseInsensitiveCompare(track.fileSHA256) == .orderedSame
+        guard FileDurability.verifySHA256(of: url, expectedSHA: track.fileSHA256) else { return false }
+        FileDurability.markExcludedFromBackup(url: url)
+        return true
     }
 
     private static let routeApprovalPrefix = "founder.v2.routeApproved."

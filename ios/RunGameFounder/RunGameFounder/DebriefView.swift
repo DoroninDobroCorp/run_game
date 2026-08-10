@@ -359,10 +359,14 @@ struct DebriefView: View {
                     errorMessage = "Существующий immediate JSON не прошёл проверку; файл не перезаписан."
                     return
                 }
+                FileDurability.markExcludedFromBackup(url: url)
             } else {
-                try JSONEncoder.evidence
-                    .encode(makeRecord(status: "immediate_complete"))
-                    .write(to: url, options: [.atomic, .withoutOverwriting])
+                let data = try JSONEncoder.evidence.encode(makeRecord(status: "immediate_complete"))
+                try FileDurability.writeFinalEvidence(data: data, to: url)
+                guard FileDurability.verifySHA256(of: url, expectedSHA: BundleIntegrity.sha256(of: data)) else {
+                    errorMessage = "Записанный immediate JSON не прошёл проверку SHA-256."
+                    return
+                }
             }
             completeFinalSave(at: url)
         } catch {
@@ -386,7 +390,8 @@ struct DebriefView: View {
         ) == nil else { return }
         do {
             let url = evidenceURL(suffix: "draft")
-            try JSONEncoder.evidence.encode(makeRecord(status: "draft_incomplete")).write(to: url, options: .atomic)
+            let data = try JSONEncoder.evidence.encode(makeRecord(status: "draft_incomplete"))
+            try FileDurability.writeAtomicDraft(data: data, to: url)
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -434,10 +439,11 @@ struct DebriefView: View {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let url = directory.appendingPathComponent(fileName)
         guard FileManager.default.fileExists(atPath: url.path),
-              let actualSHA = try? BundleIntegrity.sha256(of: url),
-              actualSHA.caseInsensitiveCompare(context.track?.fileSHA256 ?? "") == .orderedSame else {
+              let expectedSHA = context.track?.fileSHA256,
+              FileDurability.verifySHA256(of: url, expectedSHA: expectedSHA) else {
             return nil
         }
+        FileDurability.markExcludedFromBackup(url: url)
         return url
     }
 
@@ -579,10 +585,14 @@ struct RecallView: View {
                     errorMessage = "Существующий 24h recall не прошёл проверку; файл не перезаписан."
                     return
                 }
+                FileDurability.markExcludedFromBackup(url: url)
             } else {
-                try JSONEncoder.evidence
-                    .encode(completion)
-                    .write(to: url, options: [.atomic, .withoutOverwriting])
+                let data = try JSONEncoder.evidence.encode(completion)
+                try FileDurability.writeFinalEvidence(data: data, to: url)
+                guard FileDurability.verifySHA256(of: url, expectedSHA: BundleIntegrity.sha256(of: data)) else {
+                    errorMessage = "Записанный 24h recall не прошёл проверку SHA-256."
+                    return
+                }
             }
             completeFinalSave(at: url)
         } catch {
@@ -622,9 +632,8 @@ struct RecallView: View {
                 expectedStatus: "recall_24h_complete"
               ) == nil else { return }
         do {
-            try JSONEncoder.evidence
-                .encode(makeRecord(status: "recall_24h_draft"))
-                .write(to: evidenceURL(suffix: "recall-24h-draft"), options: .atomic)
+            let data = try JSONEncoder.evidence.encode(makeRecord(status: "recall_24h_draft"))
+            try FileDurability.writeAtomicDraft(data: data, to: evidenceURL(suffix: "recall-24h-draft"))
         } catch {
             errorMessage = error.localizedDescription
         }

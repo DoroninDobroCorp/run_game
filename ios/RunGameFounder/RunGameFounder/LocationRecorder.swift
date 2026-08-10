@@ -91,6 +91,9 @@ final class LocationRecorder: NSObject, ObservableObject, @preconcurrency CLLoca
                 samples: samples,
                 fileSHA256: BundleIntegrity.sha256(of: url)
             )
+            guard FileDurability.verifySHA256(of: url, expectedSHA: summary.fileSHA256) else {
+                throw FounderAppError.invalidTrack("GPX SHA-256 не прошёл проверку на диске")
+            }
             exportedURL = url
             lastSummary = summary
             completedNormally = completed
@@ -205,7 +208,7 @@ final class LocationRecorder: NSObject, ObservableObject, @preconcurrency CLLoca
         guard !samples.isEmpty, let recoveryURL else { return }
         do {
             let data = try GPXDocument.data(samples: samples, name: "Run Game — незавершённый recovered track")
-            try data.write(to: recoveryURL, options: .atomic)
+            try FileDurability.writeAtomicDraft(data: data, to: recoveryURL)
         } catch {
             let message = "Не удалось сохранить recovery checkpoint: \(error.localizedDescription)"
             if incidents.last != message { incidents.append(message) }

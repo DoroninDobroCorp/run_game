@@ -47,7 +47,7 @@ enum GPXDocument {
         let directory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
         let suffix = UUID().uuidString.prefix(8).lowercased()
         let url = directory.appendingPathComponent("\(sanitized(prefix))-\(fileTimestamp())-\(suffix).gpx")
-        try data(samples: samples).write(to: url, options: .atomic)
+        try FileDurability.writeFinalEvidence(data: data(samples: samples), to: url)
         return url
     }
 
