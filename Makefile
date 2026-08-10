@@ -1,4 +1,4 @@
-.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test r02-doctor r02-preflight r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify
+.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test r02-doctor r02-audit-privacy r02-preflight r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify
 
 IOS_DIR := ios/RunGameFounder
 SIMULATOR ?= platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5
@@ -26,6 +26,9 @@ ios-test: ios-unit-test ios-ui-test
 r02-doctor:
 	python3 tools/r02_doctor.py
 
+r02-audit-privacy:
+	python3 tools/r02_audit_privacy.py
+
 r02-preflight:
 	python3 tools/r02_prepare_ios.py --fixture-dir $(R02_FIXTURE) --output-dir $(R02_IOS_RESOURCES)
 	python3 tools/r02_preflight.py --fixture-dir $(R02_FIXTURE) --ios-resources-dir $(R02_IOS_RESOURCES)
@@ -44,7 +47,7 @@ r02-analyze-gpx:
 verify-synthetic:
 	/usr/bin/python3 -m unittest discover -s tests -p 'test_*.py' -v
 
-verify-pretest: r02-doctor r02-preflight r02-audio-qa verify-synthetic ios-test
+verify-pretest: r02-doctor r02-audit-privacy r02-preflight r02-audio-qa verify-synthetic ios-test
 
 verify: r02-preflight
 	python3 tools/r02_story.py validate

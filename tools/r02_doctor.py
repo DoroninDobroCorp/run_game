@@ -254,11 +254,13 @@ def diagnose(
     fixture_dir: Path = DEFAULT_FIXTURE,
     ios_resources_dir: Path = DEFAULT_IOS_RESOURCES,
 ) -> dict[str, Any]:
+    from tools import r02_audit_privacy
     inspections = {
         "python": inspect_python(),
         "platform": inspect_platform(),
         "git": inspect_git(),
         "local_fixtures": inspect_local_fixtures(fixture_dir, ios_resources_dir),
+        "privacy": r02_audit_privacy.audit_all(),
         "audio_probes": inspect_audio_probes(),
         "xcode": inspect_xcode(),
         "xcodegen": inspect_xcodegen(),

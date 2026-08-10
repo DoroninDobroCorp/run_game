@@ -68,7 +68,7 @@ class TestR02Doctor(unittest.TestCase):
             self.assertEqual(report["tool"], "r02_doctor")
             self.assertIn(report["status"], ("PASS", "WARN", "BLOCKED"))
             self.assertIn("inspections", report)
-            for name in ("python", "platform", "git", "local_fixtures", "audio_probes", "xcode", "xcodegen", "simulators"):
+            for name in ("python", "platform", "git", "local_fixtures", "privacy", "audio_probes", "xcode", "xcodegen", "simulators"):
                 self.assertIn(name, report["inspections"])
 
     def test_main_cli_output(self) -> None:
