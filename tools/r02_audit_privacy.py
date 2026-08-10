@@ -195,12 +195,70 @@ def audit_secrets(root_dir: Path = ROOT) -> dict[str, Any]:
         return {"ok": False, "status": "FAIL", "detail": f"Secrets audit failed: {exc}"}
 
 
+def audit_json_files(root_dir: Path = ROOT) -> dict[str, Any]:
+    """Audit shareable and tracked R02/R03 JSON files for raw coordinate or local path leakage."""
+    try:
+        res = subprocess.run(
+            ["git", "ls-files", "*.json"],
+            capture_output=True,
+            text=True,
+            cwd=root_dir,
+            timeout=10,
+        )
+        if res.returncode != 0:
+            return {"ok": False, "status": "FAIL", "detail": f"git ls-files failed: {res.stderr}"}
+
+        json_files = [line.strip() for line in res.stdout.splitlines() if line.strip()]
+        json_violations = []
+        audited_count = 0
+
+        for rel_path in json_files:
+            # Skip historical R01 frozen research dataset which is documented in R01 memo
+            if rel_path.startswith("docs/r01_"):
+                continue
+
+            file_path = root_dir / rel_path
+            if not file_path.is_file():
+                continue
+
+            audited_count += 1
+            try:
+                data = json.loads(file_path.read_text(encoding="utf-8"))
+                violations = inspect_json_privacy(data)
+                if violations:
+                    json_violations.append({
+                        "file": rel_path,
+                        "violations": violations,
+                    })
+            except Exception as exc:
+                json_violations.append({
+                    "file": rel_path,
+                    "violations": [f"JSON parse error: {exc}"],
+                })
+
+        ok = len(json_violations) == 0
+        return {
+            "ok": ok,
+            "status": "PASS" if ok else "FAIL",
+            "detail": f"{audited_count} tracked shareable JSON files checked, zero privacy violations found" if ok else f"{len(json_violations)} JSON files failed privacy inspection",
+            "json_violations": json_violations,
+        }
+    except Exception as exc:
+        return {"ok": False, "status": "FAIL", "detail": f"JSON privacy audit failed: {exc}"}
+
+
 def audit_all(root_dir: Path = ROOT) -> dict[str, Any]:
     gitignore_report = audit_gitignore(root_dir)
     git_files_report = audit_git_tracked_files(root_dir)
+    json_report = audit_json_files(root_dir)
     secrets_report = audit_secrets(root_dir)
 
-    all_ok = gitignore_report["ok"] and git_files_report["ok"] and secrets_report["ok"]
+    all_ok = (
+        gitignore_report["ok"]
+        and git_files_report["ok"]
+        and json_report["ok"]
+        and secrets_report["ok"]
+    )
 
     return {
         "schema_version": "0.1",
@@ -210,6 +268,7 @@ def audit_all(root_dir: Path = ROOT) -> dict[str, Any]:
         "audits": {
             "gitignore": gitignore_report,
             "git_tracked_files": git_files_report,
+            "json_privacy": json_report,
             "secrets": secrets_report,
         },
     }
