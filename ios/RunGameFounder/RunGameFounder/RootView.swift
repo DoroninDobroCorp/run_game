@@ -231,10 +231,12 @@ private struct DashboardView: View {
                     title: "Проверить маршрут",
                     detail: "Карта, дневной обход и локальный GPX",
                     icon: "map.fill",
-                    complete: appModel.routeApproved
+                    complete: appModel.routeApproved,
+                    locked: appModel.evidenceCaptureLocked
                 )
             }
             .accessibilityIdentifier("routeWalkthroughLink")
+            .disabled(appModel.evidenceCaptureLocked)
             NavigationLink {
                 HomeAudioCheckView(mission: mission)
             } label: {
@@ -243,10 +245,12 @@ private struct DashboardView: View {
                     title: "Прослушать дома",
                     detail: "Проверка lock-screen master без движения",
                     icon: "headphones",
-                    complete: appModel.homeAudioCompleted
+                    complete: appModel.homeAudioCompleted,
+                    locked: appModel.evidenceCaptureLocked
                 )
             }
             .accessibilityIdentifier("homeAudioLink")
+            .disabled(appModel.evidenceCaptureLocked)
             NavigationLink {
                 MissionRunView(mission: mission, appModel: appModel)
             } label: {
@@ -256,11 +260,11 @@ private struct DashboardView: View {
                     detail: missionStartDetail,
                     icon: "figure.run.circle.fill",
                     complete: false,
-                    locked: !appModel.canBeginMission
+                    locked: !appModel.canBeginMission || appModel.evidenceCaptureLocked
                 )
             }
             .accessibilityIdentifier("missionRunLink")
-            .disabled(!appModel.canBeginMission)
+            .disabled(!appModel.canBeginMission || appModel.evidenceCaptureLocked)
         }
         .buttonStyle(.plain)
     }

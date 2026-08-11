@@ -102,4 +102,50 @@ final class FounderFlowUITests: XCTestCase {
         app.navigationBars["Проверка аудио"].buttons.element(boundBy: 0).tap()
         XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
     }
+
+    func testEvidenceLockNavigationalDestinationsDisabled_WhenPendingDebrief() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing-reset")
+        app.launchArguments.append("--ui-testing-pending-debrief")
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Незавершённый immediate-дебриф"].exists)
+
+        let walkthroughLink = app.buttons["routeWalkthroughLink"]
+        let homeAudioLink = app.buttons["homeAudioLink"]
+        let missionRunLink = app.buttons["missionRunLink"]
+
+        XCTAssertTrue(walkthroughLink.exists)
+        XCTAssertTrue(homeAudioLink.exists)
+        XCTAssertTrue(missionRunLink.exists)
+
+        XCTAssertFalse(walkthroughLink.isEnabled)
+        XCTAssertFalse(homeAudioLink.isEnabled)
+        XCTAssertFalse(missionRunLink.isEnabled)
+    }
+
+    func testPendingRecallNavigationalDestinationsDisabled_WhenPendingRecall() {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments.append("--ui-testing-reset")
+        app.launchArguments.append("--ui-testing-pending-recall")
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["24-часовой recall"].exists)
+
+        let walkthroughLink = app.buttons["routeWalkthroughLink"]
+        let homeAudioLink = app.buttons["homeAudioLink"]
+        let missionRunLink = app.buttons["missionRunLink"]
+
+        XCTAssertTrue(walkthroughLink.exists)
+        XCTAssertTrue(homeAudioLink.exists)
+        XCTAssertTrue(missionRunLink.exists)
+
+        XCTAssertFalse(walkthroughLink.isEnabled)
+        XCTAssertFalse(homeAudioLink.isEnabled)
+        XCTAssertFalse(missionRunLink.isEnabled)
+    }
 }

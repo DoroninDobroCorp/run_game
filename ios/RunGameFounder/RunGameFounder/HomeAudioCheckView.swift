@@ -12,30 +12,6 @@ struct HomeAudioCheckView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 26) {
-                Spacer(minLength: 24)
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.08), lineWidth: 18)
-                    Circle()
-                        .trim(from: 0, to: progress)
-                        .stroke(
-                            AngularGradient(colors: [RunGameTheme.violet, RunGameTheme.electric], center: .center),
-                            style: StrokeStyle(lineWidth: 18, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                    VStack(spacing: 8) {
-                        Image(systemName: "headphones")
-                            .font(.system(size: 34, weight: .semibold))
-                            .foregroundStyle(RunGameTheme.electric)
-                        Text(Formatters.clock(audio.elapsed))
-                            .font(.system(size: 42, weight: .black, design: .rounded).monospacedDigit())
-                        Text("из \(Formatters.clock(audio.duration))")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-                .frame(width: 250, height: 250)
-
                 if appModel.evidenceCaptureLocked {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Evidence Capture Locked", systemImage: "lock.fill")
@@ -48,70 +24,96 @@ struct HomeAudioCheckView: View {
                     .accessibilityIdentifier("homeAudioLockBanner")
                 }
 
-                Button {
-                    if audio.isPlaying {
-                        audio.pause()
-                    } else {
-                        let _: Bool = audio.play()
-                    }
-                } label: {
-                    Label(audio.isPlaying ? "Пауза" : "Воспроизвести", systemImage: audio.isPlaying ? "pause.fill" : "play.fill")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(RunGameTheme.violet)
-                .accessibilityIdentifier("homeAudioPlayPause")
-                .disabled(appModel.evidenceCaptureLocked)
-
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("После полного окончания").font(.headline)
-                    Toggle("Экран был заблокирован", isOn: $lockScreenConfirmed)
-                    Toggle("Pause/Play на lock screen работали", isOn: $controlsConfirmed)
-                    Toggle("Не было остановок, пропусков или конфликтов", isOn: $noCriticalIncidentsConfirmed)
-                    Button {
-                        let record = AudioApprovalRecord(
-                            schemaVersion: "0.2",
-                            audioSHA256: mission.audioSHA256,
-                            completedAt: Date(),
-                            playbackDurationSeconds: audio.elapsed,
-                            lockScreenConfirmed: lockScreenConfirmed,
-                            controlsConfirmed: controlsConfirmed,
-                            noCriticalIncidentsConfirmed: noCriticalIncidentsConfirmed
-                        )
-                        appModel.markHomeAudioCompleted(record: record)
-                    } label: {
-                        Label("Подтвердить домашнюю проверку", systemImage: "checkmark.shield")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(RunGameTheme.electric)
-                    .foregroundStyle(RunGameTheme.ink)
-                    .accessibilityIdentifier("homeAudioApprovalButton")
-                    .accessibilityLabel("Подтвердить домашнюю проверку аудио")
-                    .disabled(!canApprove)
-                }
-                .runGamePanel()
-
-                if appModel.homeAudioCompleted {
-                    Label("Домашняя проверка завершена", systemImage: "checkmark.seal.fill")
-                        .foregroundStyle(RunGameTheme.electric)
-                        .runGamePanel()
-                }
-                if let error = audio.errorMessage {
-                    Text(error).foregroundStyle(RunGameTheme.warning).runGamePanel()
-                }
-                if !audio.incidents.isEmpty {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Проверка не засчитана: начни новое полное прослушивание после устранения инцидента.")
-                            .font(.footnote.bold())
-                        ForEach(audio.incidents, id: \.occurredAt) { incident in
-                            Text("• \(incident.message)").font(.caption)
+                if !appModel.evidenceCaptureLocked {
+                    Spacer(minLength: 24)
+                    ZStack {
+                        Circle()
+                            .stroke(Color.white.opacity(0.08), lineWidth: 18)
+                        Circle()
+                            .trim(from: 0, to: progress)
+                            .stroke(
+                                AngularGradient(colors: [RunGameTheme.violet, RunGameTheme.electric], center: .center),
+                                style: StrokeStyle(lineWidth: 18, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                        VStack(spacing: 8) {
+                            Image(systemName: "headphones")
+                                .font(.system(size: 34, weight: .semibold))
+                                .foregroundStyle(RunGameTheme.electric)
+                            Text(Formatters.clock(audio.elapsed))
+                                .font(.system(size: 42, weight: .black, design: .rounded).monospacedDigit())
+                            Text("из \(Formatters.clock(audio.duration))")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
                     }
-                    .foregroundStyle(RunGameTheme.warning)
+                    .frame(width: 250, height: 250)
+
+                    Button {
+                        if audio.isPlaying {
+                            audio.pause()
+                        } else {
+                            let _: Bool = audio.play()
+                        }
+                    } label: {
+                        Label(audio.isPlaying ? "Пауза" : "Воспроизвести", systemImage: audio.isPlaying ? "pause.fill" : "play.fill")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(RunGameTheme.violet)
+                    .accessibilityIdentifier("homeAudioPlayPause")
+                    .disabled(appModel.evidenceCaptureLocked)
+
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("После полного окончания").font(.headline)
+                        Toggle("Экран был заблокирован", isOn: $lockScreenConfirmed)
+                        Toggle("Pause/Play на lock screen работали", isOn: $controlsConfirmed)
+                        Toggle("Не было остановок, пропусков или конфликтов", isOn: $noCriticalIncidentsConfirmed)
+                        Button {
+                            let record = AudioApprovalRecord(
+                                schemaVersion: "0.2",
+                                audioSHA256: mission.audioSHA256,
+                                completedAt: Date(),
+                                playbackDurationSeconds: audio.elapsed,
+                                lockScreenConfirmed: lockScreenConfirmed,
+                                controlsConfirmed: controlsConfirmed,
+                                noCriticalIncidentsConfirmed: noCriticalIncidentsConfirmed
+                            )
+                            appModel.markHomeAudioCompleted(record: record)
+                        } label: {
+                            Label("Подтвердить домашнюю проверку", systemImage: "checkmark.shield")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(RunGameTheme.electric)
+                        .foregroundStyle(RunGameTheme.ink)
+                        .accessibilityIdentifier("homeAudioApprovalButton")
+                        .accessibilityLabel("Подтвердить домашнюю проверку аудио")
+                        .disabled(!canApprove)
+                    }
                     .runGamePanel()
+
+                    if appModel.homeAudioCompleted {
+                        Label("Домашняя проверка завершена", systemImage: "checkmark.seal.fill")
+                            .foregroundStyle(RunGameTheme.electric)
+                            .runGamePanel()
+                    }
+                    if let error = audio.errorMessage {
+                        Text(error).foregroundStyle(RunGameTheme.warning).runGamePanel()
+                    }
+                    if !audio.incidents.isEmpty {
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Проверка не засчитана: начни новое полное прослушивание после устранения инцидента.")
+                                .font(.footnote.bold())
+                            ForEach(audio.incidents, id: \.occurredAt) { incident in
+                                Text("• \(incident.message)").font(.caption)
+                            }
+                        }
+                        .foregroundStyle(RunGameTheme.warning)
+                        .runGamePanel()
+                    }
                 }
             }
             .padding(22)

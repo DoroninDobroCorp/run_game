@@ -50,7 +50,7 @@ final class AppModel: ObservableObject {
             readinessComplete: canStartMission,
             hasPendingDebrief: !pendingDebriefs.isEmpty,
             hasPendingRecall: !pendingRecalls.isEmpty
-        )
+        ) && !journalCorrupted && !queueCorrupted && loadError == nil
     }
 
     var evidenceCaptureLocked: Bool {
@@ -156,11 +156,15 @@ final class AppModel: ObservableObject {
         recoveredTrackURLs = urls
             .filter { $0.lastPathComponent.hasSuffix(".partial.gpx") }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
+        let isRecallPending = !pendingRecalls.isEmpty
         localEvidenceURLs = urls
-            .filter {
-                !$0.lastPathComponent.hasSuffix(".partial.gpx")
-                    && !$0.lastPathComponent.hasSuffix("-draft.json")
-                    && ["gpx", "json"].contains($0.pathExtension.lowercased())
+            .filter { url in
+                let name = url.lastPathComponent
+                let ext = url.pathExtension.lowercased()
+                if name.hasSuffix(".partial.gpx") { return false }
+                if name.hasSuffix("-draft.json") { return false }
+                if isRecallPending && ext == "json" { return false }
+                return ["gpx", "json"].contains(ext)
             }
             .sorted {
                 let left = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
@@ -176,6 +180,7 @@ final class AppModel: ObservableObject {
         pendingRecalls.append(pending)
         pendingRecalls.sort { $0.dueAt < $1.dueAt }
         persistPendingRecalls()
+        refreshRecoveredTracks()
     }
 
     func scheduleDebrief(for context: RunSessionContext) {
@@ -183,16 +188,19 @@ final class AppModel: ObservableObject {
         pendingDebriefs.append(context)
         pendingDebriefs.sort { $0.endedAt < $1.endedAt }
         persistPendingDebriefs()
+        refreshRecoveredTracks()
     }
 
     func completeDebrief(runID: String) {
         pendingDebriefs.removeAll { $0.runID == runID }
         persistPendingDebriefs()
+        refreshRecoveredTracks()
     }
 
     func completeRecall(runID: String) {
         pendingRecalls.removeAll { $0.runID == runID }
         persistPendingRecalls()
+        refreshRecoveredTracks()
     }
 
     func saveActiveAttempt(_ attempt: ActiveRunAttempt) {

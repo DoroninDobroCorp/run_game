@@ -313,7 +313,7 @@ final class SessionStateMachineTests: XCTestCase {
     }
 
     // MARK: - 4. Natural Finish & Recall Tests
-    func testNaturalFinish_SuccessfulRun_SchedulesDebriefAndRecall() throws {
+    func testNaturalFinish_SuccessfulRun_SchedulesDebriefOnly() throws {
         var sm = SessionStateMachine()
         let startNow = Date()
         _ = sm.handle(event: .requestStart(runID: "natural-test", now: startNow), mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
@@ -352,7 +352,7 @@ final class SessionStateMachineTests: XCTestCase {
         let containsScheduleDebrief = actions.contains { if case .scheduleDebrief = $0 { return true }; return false }
         let containsScheduleRecall = actions.contains { if case .scheduleRecall = $0 { return true }; return false }
         XCTAssertTrue(containsScheduleDebrief)
-        XCTAssertTrue(containsScheduleRecall)
+        XCTAssertFalse(containsScheduleRecall)
     }
 
     func testNaturalFinish_InsufficientEvidence_AbortsRunWithoutRecall() throws {

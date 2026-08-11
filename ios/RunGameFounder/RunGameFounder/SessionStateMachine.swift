@@ -308,7 +308,6 @@ struct SessionStateMachine: Equatable, Sendable {
             actions.append(.scheduleDebrief(context))
             actions.append(.clearJournal)
             if successful {
-                actions.append(.scheduleRecall(context))
                 state = .completed(context: context)
             } else {
                 state = .aborted(context: context, reason: context.abortReason)

@@ -137,6 +137,108 @@ final class AppModelLockTests: XCTestCase {
     }
 
     @MainActor
+    func testLocalEvidenceIndexFiltering_SuppressesImmediateAndDraftJSONDuringPendingRecall() throws {
+        let suiteName = "AppModelLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try Data("partial".utf8).write(to: directory.appendingPathComponent("run.partial.gpx"))
+        try Data("walkthrough".utf8).write(to: directory.appendingPathComponent("m01-walkthrough.gpx"))
+        try Data("draft".utf8).write(to: directory.appendingPathComponent("m01-run1-draft.json"))
+        try Data("immediate".utf8).write(to: directory.appendingPathComponent("m01-run1-immediate.json"))
+
+        let model = AppModel(defaults: defaults, documentsDirectory: directory)
+        let mission = try XCTUnwrap(model.mission)
+
+        // Before recall pending: localEvidenceURLs contains immediate.json and walkthrough.gpx
+        XCTAssertEqual(model.localEvidenceURLs.map(\.lastPathComponent), ["m01-run1-immediate.json", "m01-walkthrough.gpx"])
+        XCTAssertEqual(model.recoveredTrackURLs.map(\.lastPathComponent), ["run.partial.gpx"])
+
+        let endedAt = Date()
+        let context = RunSessionContext(
+            runID: "m01-run1",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            condition: "A",
+            startedAt: endedAt.addingTimeInterval(-1800),
+            endedAt: endedAt,
+            precommittedNextWorkoutAt: endedAt.addingTimeInterval(86400),
+            completed: true,
+            aborted: false,
+            abortReason: "",
+            audioElapsedSeconds: 1800,
+            pauseCount: 0,
+            track: nil,
+            routeTraversalEvidence: nil,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+
+        // Schedule recall -> recall becomes pending
+        model.scheduleRecall(for: context)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        // During pending recall: localEvidenceURLs suppresses immediate & draft JSON, exposing only raw GPX files
+        XCTAssertEqual(model.localEvidenceURLs.map(\.lastPathComponent), ["m01-walkthrough.gpx"])
+        XCTAssertEqual(model.recoveredTrackURLs.map(\.lastPathComponent), ["run.partial.gpx"])
+
+        // Complete recall -> localEvidenceURLs shows immediate.json again
+        model.completeRecall(runID: context.runID)
+        XCTAssertFalse(model.evidenceCaptureLocked)
+        XCTAssertEqual(model.localEvidenceURLs.map(\.lastPathComponent), ["m01-run1-immediate.json", "m01-walkthrough.gpx"])
+    }
+
+    @MainActor
+    func testSinglePointRecallScheduling_OnlyScheduledOnImmediateDebriefSave() throws {
+        let suiteName = "AppModelLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let model = AppModel(defaults: defaults)
+        let mission = try XCTUnwrap(model.mission)
+
+        let endedAt = Date()
+        let context = RunSessionContext(
+            runID: "test-run-single-point",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            condition: "A",
+            startedAt: endedAt.addingTimeInterval(-1800),
+            endedAt: endedAt,
+            precommittedNextWorkoutAt: endedAt.addingTimeInterval(86400),
+            completed: true,
+            aborted: false,
+            abortReason: "",
+            audioElapsedSeconds: 1800,
+            pauseCount: 0,
+            track: nil,
+            routeTraversalEvidence: nil,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+
+        // 1. Session finishes -> only scheduleDebrief is called
+        model.scheduleDebrief(for: context)
+        XCTAssertEqual(model.pendingDebriefs.count, 1)
+        XCTAssertTrue(model.pendingRecalls.isEmpty)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        // 2. Immediate debrief saved durably -> scheduleRecall is called and debrief completed
+        model.scheduleRecall(for: context)
+        model.completeDebrief(runID: context.runID)
+        XCTAssertTrue(model.pendingDebriefs.isEmpty)
+        XCTAssertEqual(model.pendingRecalls.count, 1)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+    }
+
+    @MainActor
     func testDebriefRecordSchema03AndUnclampedRecordingDelay() throws {
         let endedAt = Date(timeIntervalSince1970: 1_000_000)
         let recordedAt = endedAt.addingTimeInterval(-5.25)

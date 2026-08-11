@@ -33,11 +33,11 @@ struct RouteWalkthroughView: View {
 
                 if !appModel.evidenceCaptureLocked {
                     map
+                    routeSummary
                     points
+                    recording
+                    approvalChecklist
                 }
-                routeSummary
-                recording
-                approvalChecklist
             }
             .padding(18)
         }

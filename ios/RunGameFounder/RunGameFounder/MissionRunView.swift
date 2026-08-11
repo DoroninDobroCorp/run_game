@@ -57,10 +57,10 @@ struct MissionRunView: View {
                 if !appModel.evidenceCaptureLocked {
                     statusHeader
                     timelineCard
+                    if coordinator.isReady { preRunChecklist }
+                    primaryControls
+                    safetyCard
                 }
-                if coordinator.isReady { preRunChecklist }
-                primaryControls
-                safetyCard
                 if let url = coordinator.recorder.exportedURL {
                     ShareLink(item: url) {
                         Label("Экспортировать GPX этой сессии", systemImage: "square.and.arrow.up")
