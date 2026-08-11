@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Fail-closed validator for schema 0.3 immediate debrief and 24h recall JSON evidence files.
 
-Fulfills assertion VAL-VALIDATOR-001.
+Fulfills assertions VAL-VALIDATOR-001 and VAL-VALIDATOR-002.
 
 Validates:
 - Duplicate JSON keys rejection
@@ -13,6 +13,10 @@ Validates:
 - Timestamp ordering and delay calculations (recordingDelaySeconds, completedAtLocal >= dueAtLocal)
 - Detection and flagging of delayed debriefs (> 3600 seconds) as confounds
 - Raw coordinate / location leakage checks
+- Pair mode (--immediate and --recall): exact identity equality (run_id, binding_id, mission_id, condition),
+  timestamp sequence ordering (recall.completedAtLocal >= immediate.recordedAtLocal),
+  dueAt calculation verification (dueAtLocal == run_ended_at_local + 86400s within 1s tolerance),
+  and flagging of delayed debriefs (> 3600 seconds) as confounds.
 """
 
 from __future__ import annotations
@@ -105,8 +109,6 @@ def _validate_likert_score(value: Any, label: str) -> int:
 def _parse_iso_timestamp(value: Any, label: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValidationError(f"missing or empty timestamp for {label}")
-    # Verify ISO-8601 format basic validation
-    # Standard library datetime fromisoformat handles ISO-8601
     from datetime import datetime
     iso_str = value.replace("Z", "+00:00")
     try:
@@ -231,6 +233,7 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
         "run_id": data.get("run_id"),
         "recording_delay_seconds": rec_delay,
         "confound_delayed_debrief": confound_flagged,
+        "raw_data": data,
     }
 
 
@@ -294,6 +297,7 @@ def validate_recall_record(data: dict[str, Any]) -> dict[str, Any]:
         "run_id": data.get("run_id"),
         "due_at_local": due_at,
         "completed_at_local": completed_at,
+        "raw_data": data,
     }
 
 
@@ -316,24 +320,110 @@ def validate_evidence_file(path: Path) -> dict[str, Any]:
         raise ValidationError(f"unrecognized evidence schemaVersion {schema_version!r} and recordStatus {record_status!r}")
 
 
+def validate_evidence_pair(immediate_path: Path, recall_path: Path) -> dict[str, Any]:
+    """Validate paired immediate debrief and 24h recall evidence files (VAL-VALIDATOR-002)."""
+    imm_res = validate_evidence_file(immediate_path)
+    if imm_res["type"] != "immediate_debrief":
+        raise ValidationError(f"immediate evidence file {immediate_path.name} is not an immediate debrief (got {imm_res['type']})")
+
+    rec_res = validate_evidence_file(recall_path)
+    if rec_res["type"] != "recall_24h":
+        raise ValidationError(f"recall evidence file {recall_path.name} is not a 24h recall record (got {rec_res['type']})")
+
+    imm_data = imm_res["raw_data"]
+    rec_data = rec_res["raw_data"]
+
+    # 1. Identity equality checks
+    for key in ["run_id", "binding_id", "mission_id", "condition"]:
+        imm_val = imm_data.get(key)
+        rec_val = rec_data.get(key)
+        if imm_val != rec_val:
+            raise ValidationError(f"pair identity mismatch for {key}: immediate={imm_val!r}, recall={rec_val!r}")
+
+    # Audio SHA256 & Fingerprint equality
+    if imm_data.get("audio_sha256", "").lower() != rec_data.get("audio_sha256", "").lower():
+        raise ValidationError(
+            f"pair identity mismatch for audio_sha256: immediate={imm_data.get('audio_sha256')!r}, recall={rec_data.get('audio_sha256')!r}"
+        )
+    if imm_data.get("route_workout_fingerprint") != rec_data.get("route_workout_fingerprint"):
+        raise ValidationError(
+            f"pair identity mismatch for route_workout_fingerprint: immediate={imm_data.get('route_workout_fingerprint')!r}, recall={rec_data.get('route_workout_fingerprint')!r}"
+        )
+
+    # 2. Timestamp ordering checks
+    imm_ended = _timestamp_to_seconds(imm_data["ended_at_local"])
+    imm_recorded = _timestamp_to_seconds(imm_data["recorded_at_local"])
+    rec_ended = _timestamp_to_seconds(rec_data["run_ended_at_local"])
+    rec_due = _timestamp_to_seconds(rec_data["due_at_local"])
+    rec_completed = _timestamp_to_seconds(rec_data["completed_at_local"])
+
+    # Verify run_ended_at matching between immediate and recall
+    if abs(imm_ended - rec_ended) > 1.0:
+        raise ValidationError(
+            f"timestamp mismatch for run ended time: immediate ended_at_local={imm_data['ended_at_local']}, recall run_ended_at_local={rec_data['run_ended_at_local']}"
+        )
+
+    # Sequence ordering: recall.completedAtLocal >= immediate.recordedAtLocal
+    if rec_completed < imm_recorded:
+        raise ValidationError(
+            f"timestamp sequence violation: recall completedAtLocal ({rec_data['completed_at_local']}) is before immediate recordedAtLocal ({imm_data['recorded_at_local']})"
+        )
+
+    # 3. dueAt 24h calculation verification: dueAtLocal == run_ended_at_local + 86400s (within 1s tolerance)
+    expected_due = imm_ended + 86400.0
+    if abs(rec_due - expected_due) > 1.0:
+        raise ValidationError(
+            f"dueAt 24h calculation error: due_at_local={rec_data['due_at_local']} (diff from endedAt + 24h is {rec_due - expected_due:.2f}s)"
+        )
+
+    # 4. Delayed debrief confound check
+    rec_delay = imm_res["recording_delay_seconds"]
+    confound_flagged = rec_res.get("confound_delayed_debrief", False) or imm_res.get("confound_delayed_debrief", False)
+
+    return {
+        "valid": True,
+        "type": "evidence_pair",
+        "run_id": imm_data["run_id"],
+        "immediate_file": str(immediate_path),
+        "recall_file": str(recall_path),
+        "recording_delay_seconds": rec_delay,
+        "confound_delayed_debrief": confound_flagged,
+    }
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("files", nargs="+", type=Path, help="Evidence JSON files to validate")
+    parser.add_argument("files", nargs="*", type=Path, help="Evidence JSON files to validate")
+    parser.add_argument("--immediate", type=Path, help="Immediate debrief JSON file for pair validation")
+    parser.add_argument("--recall", type=Path, help="24h recall JSON file for pair validation")
     args = parser.parse_args(argv)
 
+    if (args.immediate is not None) != (args.recall is not None):
+        parser.error("pair mode requires BOTH --immediate and --recall flags")
+
     failures = 0
-    results = []
-    for file_path in args.files:
+    if args.immediate and args.recall:
         try:
-            res = validate_evidence_file(file_path)
-            results.append({"file": str(file_path), "status": "PASS", "details": res})
-            print(f"[PASS] {file_path.name}: {res['type']} ({res['record_status']})")
+            res = validate_evidence_pair(args.immediate, args.recall)
+            print(f"[PASS] Pair mode: {args.immediate.name} + {args.recall.name} (run_id={res['run_id']})")
             if res.get("confound_delayed_debrief"):
                 print(f"       WARNING: Debrief delayed > 1 hour ({res['recording_delay_seconds']:.1f}s); flagged as confound.")
         except ValidationError as exc:
             failures += 1
-            results.append({"file": str(file_path), "status": "FAIL", "error": str(exc)})
-            print(f"[FAIL] {file_path.name}: {exc}", file=sys.stderr)
+            print(f"[FAIL] Pair mode ({args.immediate.name} + {args.recall.name}): {exc}", file=sys.stderr)
+    elif args.files:
+        for file_path in args.files:
+            try:
+                res = validate_evidence_file(file_path)
+                print(f"[PASS] {file_path.name}: {res['type']} ({res['record_status']})")
+                if res.get("confound_delayed_debrief"):
+                    print(f"       WARNING: Debrief delayed > 1 hour ({res['recording_delay_seconds']:.1f}s); flagged as confound.")
+            except ValidationError as exc:
+                failures += 1
+                print(f"[FAIL] {file_path.name}: {exc}", file=sys.stderr)
+    else:
+        parser.print_help()
+        return 2
 
     return 0 if failures == 0 else 1
 

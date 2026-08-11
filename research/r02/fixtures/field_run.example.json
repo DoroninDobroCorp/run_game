@@ -1,55 +1,81 @@
 {
-  "schema_version": "0.1",
-  "run_id": "replace_after_dry_run",
-  "binding_id": "replace_with_approved_binding",
+  "schema_version": "0.3",
+  "record_status": "immediate_complete",
+  "run_id": "run_example_001",
+  "binding_id": "valparaiso_central",
   "mission_id": "m01",
   "condition": "A",
   "participant_role": "founder",
-  "started_at_local": "REPLACE",
-  "precommitted_next_workout_at_local": "REPLACE_BEFORE_START",
+  "started_at_local": "2026-08-11T10:00:00Z",
+  "ended_at_local": "2026-08-11T10:30:00Z",
+  "recorded_at_local": "2026-08-11T10:35:00Z",
+  "recording_delay_seconds": 300.0,
+  "precommitted_next_workout_at_local": "2026-08-12T10:30:00Z",
+  "audio_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "route_workout_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "track": {
+    "file_name": "run_example_001.gpx",
+    "file_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sample_count": 50,
+    "started_at": "2026-08-11T10:00:00Z",
+    "ended_at": "2026-08-11T10:30:00Z",
+    "duration_seconds": 1800.0,
+    "distance_meters": 2500.0,
+    "mean_horizontal_accuracy_meters": 5.0,
+    "maximum_sample_gap_seconds": 10.0
+  },
   "safety": {
-    "route_manually_checked": false,
+    "route_manually_checked": true,
     "abort": false,
-    "abort_reason": null,
-    "needed_screen_while_moving": null,
+    "abort_reason": "",
+    "needed_screen_while_moving": false,
     "nav_conflicts": []
   },
   "runtime": {
-    "completed": null,
-    "geo_slots_reached": [],
+    "completed": true,
+    "geo_slots_reached": ["slot1", "slot2"],
     "geo_fallbacks_used": [],
     "missed_or_late_cues": [],
     "operator_improvisation_used": false,
     "audio_incidents": [],
-    "off_route_incidents": []
+    "additional_audio_notes": "",
+    "off_route_incidents": [],
+    "pause_count": 0,
+    "location_incidents": []
   },
   "immediate_debrief_before_edits": {
-    "mission_goal_in_one_sentence": null,
-    "moment_companion_became_important": null,
-    "unaided_memorable_scene": null,
-    "attention_drop_moment": null,
-    "what_physical_movement_changed": null,
-    "desire_for_m02_1_to_7": null,
-    "place_necessity_1_to_7": null,
-    "predicted_next_twist": null,
-    "next_workout_still_scheduled": null
+    "mission_goal_in_one_sentence": "Investigate anomalous baseline energy readings across Valparaíso square.",
+    "moment_companion_became_important": "When companion alerted to structural frequency shifts near the arch.",
+    "unaided_memorable_scene": "The arrival at Arco Británico under morning light.",
+    "attention_drop_moment": "Brief distraction at traffic crossing near Parque Italia.",
+    "what_physical_movement_changed": "Increased cadence during tempo section.",
+    "desire_for_m02_1_to_7": 6,
+    "place_necessity_1_to_7": 7,
+    "predicted_next_twist": "Signal source is located beneath the lower port district.",
+    "next_workout_still_scheduled": true
   },
   "recall_after_24h": {
-    "completed_at_local": null,
-    "unaided_story_recall": null,
-    "unaided_place_recall": [],
-    "desire_for_m02_1_to_7": null
+    "pending": true,
+    "instructions": "Complete 24h recall debrief at 2026-08-12T10:30:00Z"
   },
   "confounds": {
-    "unfamiliar_city_novelty": null,
-    "fatigue": null,
-    "noise": null,
-    "weather": null,
-    "route_quality": null,
-    "audio_quality": null
+    "unfamiliar_city_novelty": "None",
+    "fatigue": "Low",
+    "noise": "Moderate street traffic",
+    "weather": "Clear, 16C",
+    "route_quality": "High",
+    "audio_quality": "Nominal",
+    "elevation_or_stairs": "Flat coastal pavement"
+  },
+  "device": {
+    "model": "iPhone 16 Pro",
+    "system_name": "iOS",
+    "system_version": "18.5",
+    "headphones": "AirPods Pro",
+    "lock_screen_used": true,
+    "lock_screen_answer_recorded": true
   },
   "evidence_limits": [
-    "Founder knows the graph, so this run cannot validate twist surprise.",
-    "A traveler fixture does not validate six-session reuse of one home territory."
+    "Founder knows narrative graph, so twist surprise is unvalidated."
   ]
 }

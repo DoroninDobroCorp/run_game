@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Unit tests for tools/r02_validate_evidence.py evidence validator script.
 
-Fulfills assertion VAL-VALIDATOR-001.
+Fulfills assertions VAL-VALIDATOR-001 and VAL-VALIDATOR-002.
 """
 
 from __future__ import annotations
@@ -15,6 +15,7 @@ from tools.r02_validate_evidence import (
     ValidationError,
     load_json_strict,
     validate_evidence_file,
+    validate_evidence_pair,
     validate_immediate_debrief,
     validate_recall_record,
 )
@@ -234,6 +235,111 @@ class TestR02ValidateEvidence(unittest.TestCase):
             self.assertEqual(res["type"], "immediate_debrief")
         finally:
             f_path.unlink()
+
+    def test_pair_mode_success(self) -> None:
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(self.valid_immediate_dict, f_imm)
+            json.dump(self.valid_recall_dict, f_rec)
+            path_imm = Path(f_imm.name)
+            path_rec = Path(f_rec.name)
+
+        try:
+            res = validate_evidence_pair(path_imm, path_rec)
+            self.assertTrue(res["valid"])
+            self.assertEqual(res["type"], "evidence_pair")
+            self.assertEqual(res["run_id"], "run-12345")
+            self.assertFalse(res["confound_delayed_debrief"])
+        finally:
+            path_imm.unlink()
+            path_rec.unlink()
+
+    def test_pair_mode_rejects_identity_mismatch(self) -> None:
+        rec_data = dict(self.valid_recall_dict)
+        rec_data["run_id"] = "run-different"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(self.valid_immediate_dict, f_imm)
+            json.dump(rec_data, f_rec)
+            path_imm = Path(f_imm.name)
+            path_rec = Path(f_rec.name)
+
+        try:
+            with self.assertRaises(ValidationError) as ctx:
+                validate_evidence_pair(path_imm, path_rec)
+            self.assertIn("pair identity mismatch for run_id", str(ctx.exception))
+        finally:
+            path_imm.unlink()
+            path_rec.unlink()
+
+    def test_pair_mode_rejects_timestamp_sequence_ordering_violation(self) -> None:
+        imm_data = dict(self.valid_immediate_dict)
+        # Immediate ended at 2026-08-11T10:30:00Z, but recorded late at 2026-08-12T12:00:00Z
+        imm_data["recorded_at_local"] = "2026-08-12T12:00:00Z"
+        imm_data["recording_delay_seconds"] = 91800.0
+
+        rec_data = dict(self.valid_recall_dict)
+        # Recall due at 2026-08-12T10:30:00Z and completed at 2026-08-12T11:00:00Z (before immediate recorded_at_local)
+        rec_data["due_at_local"] = "2026-08-12T10:30:00Z"
+        rec_data["completed_at_local"] = "2026-08-12T11:00:00Z"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(imm_data, f_imm)
+            json.dump(rec_data, f_rec)
+            path_imm = Path(f_imm.name)
+            path_rec = Path(f_rec.name)
+
+        try:
+            with self.assertRaises(ValidationError) as ctx:
+                validate_evidence_pair(path_imm, path_rec)
+            self.assertIn("timestamp sequence violation", str(ctx.exception))
+        finally:
+            path_imm.unlink()
+            path_rec.unlink()
+
+    def test_pair_mode_rejects_due_at_24h_calculation_mismatch(self) -> None:
+        rec_data = dict(self.valid_recall_dict)
+        # ended at 10:30, expected dueAt is 10:30 next day (86400s later). Set dueAt to 15:00 next day.
+        rec_data["due_at_local"] = "2026-08-12T15:00:00Z"
+        rec_data["completed_at_local"] = "2026-08-12T16:00:00Z"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(self.valid_immediate_dict, f_imm)
+            json.dump(rec_data, f_rec)
+            path_imm = Path(f_imm.name)
+            path_rec = Path(f_rec.name)
+
+        try:
+            with self.assertRaises(ValidationError) as ctx:
+                validate_evidence_pair(path_imm, path_rec)
+            self.assertIn("dueAt 24h calculation error", str(ctx.exception))
+        finally:
+            path_imm.unlink()
+            path_rec.unlink()
+
+    def test_pair_mode_flags_delayed_debrief_confound(self) -> None:
+        imm_data = dict(self.valid_immediate_dict)
+        imm_data["ended_at_local"] = "2026-08-11T10:30:00Z"
+        imm_data["recorded_at_local"] = "2026-08-11T12:00:00Z"
+        imm_data["recording_delay_seconds"] = 5400.0
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(imm_data, f_imm)
+            json.dump(self.valid_recall_dict, f_rec)
+            path_imm = Path(f_imm.name)
+            path_rec = Path(f_rec.name)
+
+        try:
+            res = validate_evidence_pair(path_imm, path_rec)
+            self.assertTrue(res["valid"])
+            self.assertTrue(res["confound_delayed_debrief"])
+        finally:
+            path_imm.unlink()
+            path_rec.unlink()
 
 
 if __name__ == "__main__":

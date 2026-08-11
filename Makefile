@@ -37,8 +37,14 @@ r02-audio-qa:
 	python3 tools/r02_audio_qa.py --m4a $(R02_IOS_RESOURCES)/m01_solo_founder_30min.m4a --manifest $(R02_AUDIO_MANIFEST)
 
 r02-validate-evidence:
-	@test -n "$(EVIDENCE)" || (echo 'Usage: make r02-validate-evidence EVIDENCE=/absolute/local/path/to/evidence.json' >&2; exit 2)
-	python3 tools/r02_validate_evidence.py "$(EVIDENCE)"
+	@if [ -n "$(EVIDENCE)" ]; then \
+		python3 tools/r02_validate_evidence.py "$(EVIDENCE)"; \
+	elif [ -n "$(IMMEDIATE)" ] && [ -n "$(RECALL)" ]; then \
+		python3 tools/r02_validate_evidence.py --immediate "$(IMMEDIATE)" --recall "$(RECALL)"; \
+	else \
+		echo 'Usage: make r02-validate-evidence EVIDENCE=/path/to/evidence.json OR make r02-validate-evidence IMMEDIATE=/path/to/imm.json RECALL=/path/to/rec.json' >&2; \
+		exit 2; \
+	fi
 
 r02-analyze-gpx:
 	@test -n "$(GPX)" || (echo 'Usage: make r02-analyze-gpx GPX=/absolute/local/path/to/track.gpx' >&2; exit 2)

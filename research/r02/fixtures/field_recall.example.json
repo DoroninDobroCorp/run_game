@@ -1,0 +1,23 @@
+{
+  "schema_version": "0.2",
+  "record_status": "recall_24h_complete",
+  "run_id": "run_example_001",
+  "binding_id": "valparaiso_central",
+  "mission_id": "m01",
+  "condition": "A",
+  "audio_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "route_workout_fingerprint": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "run_ended_at_local": "2026-08-11T10:30:00Z",
+  "due_at_local": "2026-08-12T10:30:00Z",
+  "completed_at_local": "2026-08-12T10:35:00Z",
+  "unaided_story_recall": "Companion warned about subterranean resonance; key scene occurred at the British Arch.",
+  "unaided_place_recall": [
+    "Plaza de la Victoria",
+    "Arco Británico",
+    "Parque Italia"
+  ],
+  "desire_for_m02_1_to_7": 6,
+  "evidence_limits": [
+    "Recall completed by founder 24 hours post-run."
+  ]
+}
