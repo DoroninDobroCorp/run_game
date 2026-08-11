@@ -25,35 +25,35 @@ Phase R04 specifies the demand evaluation gate (`G0_DEMAND`) for Run Game. Prior
 *All parameters in this section must be explicitly specified by the founder before landing page publication or marketing expenditure.*
 
 ### 2.1 Target Audience & Scope
-- **Target Audience Profile:** [e.g., Urban runners (5k-10k) interested in narrative immersion / audio fiction]
-- **Geographic Focus:** [e.g., English-speaking metro areas / Specific test city]
-- **Traffic Channels:** [e.g., Meta Ads (Instagram/Facebook), Reddit niche running communities, direct organic]
+- **Target Audience Profile:** `UNSET`
+- **Geographic Focus:** `UNSET`
+- **Traffic Channels:** `UNSET`
 
 ### 2.2 Price Offer & Deposit Rules
-- **Offer Structure:** [e.g., $5 Refundable Deposit for Early Access / $19 Preorder Bundle]
-- **Price Point:** `$ [Founder Choice: e.g. 5.00 USD]`
-- **Deposit Escrow / Handling Method:** [e.g., Stripe Auth-Only / Dedicated Refundable Holding Account]
-- **Guaranteed Fulfillment Window:** [e.g., 90 Days from deposit date or mandatory refund]
+- **Offer Structure:** `UNSET`
+- **Price Point:** `UNSET`
+- **Deposit Escrow / Handling Method:** `UNSET`
+- **Guaranteed Fulfillment Window:** `UNSET`
 
 ### 2.3 Refund & Cancellation Policy
-- **Refund Policy:** 100% no-questions-asked refund policy executable by user at any time prior to product release.
-- **Refund Processing SLA:** Within 3 business days of request or upon reaching campaign stop-loss/expiration.
-- **Fees Covered:** 100% of payment processing fees absorbed by founder (user receives full refund amount).
+- **Refund Policy:** `UNSET`
+- **Refund Processing SLA:** `UNSET`
+- **Fees Covered:** `UNSET`
 
 ### 2.4 Qualified Visitor Definition
 A landing page visitor is classified as a **Qualified Visitor** iff:
-1. Unique session from target geographic region.
-2. Non-bot user agent with minimum session duration ≥ 15 seconds or scroll depth ≥ 50%.
-3. Reached via verified campaign tracking parameters (UTM parameters).
+1. Unique session from target geographic region (`UNSET`).
+2. Non-bot user agent with minimum session duration ≥ `UNSET` seconds or scroll depth ≥ `UNSET`%.
+3. Reached via verified campaign tracking parameters (UTM parameters: `UNSET`).
 
 ### 2.5 Ad Spend Stop-Loss Limit
-- **Maximum Campaign Budget:** `$ [Founder Choice: e.g. 250.00 USD]`
-- **Hard Stop Trigger:** Automatic ad campaign termination when ad spend reaches 100% of maximum budget or after 14 calendar days, whichever occurs first.
-- **Cost-Per-Qualified-Visitor Threshold:** Maximum allowed `$ [Founder Choice: e.g. 2.50 USD]` per qualified visitor before early campaign pausing.
+- **Maximum Campaign Budget:** `UNSET`
+- **Hard Stop Trigger:** Automatic ad campaign termination when ad spend reaches 100% of maximum budget or after `UNSET` calendar days, whichever occurs first.
+- **Cost-Per-Qualified-Visitor Threshold:** Maximum allowed `UNSET` per qualified visitor before early campaign pausing.
 
 ### 2.6 Primary Conversion Metric
-- **Primary KPI:** **Preorder Deposit Conversion Rate (PDCR)** = `(Completed Refundable Deposits / Qualified Visitors) * 100%`
-- **Secondary KPI:** **Email Intent Conversion Rate (EICR)** = `(Qualified Email Submissions / Qualified Visitors) * 100%`
+- **Primary KPI:** **Preorder Deposit Conversion Rate (PDCR)** = `(Completed Refundable Deposits / Qualified Visitors) * 100%` (Target: `UNSET`)
+- **Secondary KPI:** **Email Intent Conversion Rate (EICR)** = `(Qualified Email Submissions / Qualified Visitors) * 100%` (Target: `UNSET`)
 
 ---
 
@@ -63,10 +63,10 @@ Upon completion of the R04 smoke test (or reaching ad spend stop-loss limit), th
 
 | Outcome Metric | Criteria | Status | Action |
 |---|---|---|---|
-| **PDCR (Preorder Conversion)** | ≥ 3.0% qualified visitors | **GO (`G0_DEMAND = GO`)** | Proceed to Phase P01 (Production Domain Contracts). |
-| **PDCR (Preorder Conversion)** | 1.5% – 2.9% qualified visitors | **CONDITIONAL PIVOT** | Iterate landing copy/offer; max 1 re-test before final decision. |
-| **PDCR (Preorder Conversion)** | < 1.5% qualified visitors | **NO-GO (`G0_DEMAND = NO_GO`)** | Halt product development; issue 100% refunds to all depositors. |
-| **Ad Spend Stop-Loss** | Reached budget limit ($) | **CAMPAIGN COMPLETE** | Immediately pause all traffic generation and tally final metrics. |
+| **PDCR (Preorder Conversion)** | ≥ `go_threshold_pdcr_percent` (`UNSET`) | **GO (`G0_DEMAND = GO`)** | Proceed to Phase P01 (Production Domain Contracts). |
+| **PDCR (Preorder Conversion)** | `conditional_pivot_min_pdcr_percent` (`UNSET`) – < `go_threshold_pdcr_percent` (`UNSET`) | **CONDITIONAL PIVOT** | Iterate landing copy/offer; max 1 re-test before final decision. |
+| **PDCR (Preorder Conversion)** | < `no_go_threshold_pdcr_percent` (`UNSET`) | **NO-GO (`G0_DEMAND = NO_GO`)** | Halt product development; issue 100% refunds to all depositors. |
+| **Ad Spend Stop-Loss** | Reached budget limit (`UNSET`) | **CAMPAIGN COMPLETE** | Immediately pause all traffic generation and tally final metrics. |
 
 ---
 

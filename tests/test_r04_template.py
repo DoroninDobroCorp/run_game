@@ -11,37 +11,24 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def evaluate_r04_decision_template(template_data: dict) -> str:
-    """Evaluates R04 decision parameters.
+"""Unit test suite for R04 Decision Template and Guardrails Verification.
 
-    Fails closed (raises ValueError) if any founder parameter value is UNSET or unpopulated.
-    Returns decision outcome string ("GO", "CONDITIONAL_PIVOT", or "NO_GO") if fully populated and valid.
-    """
-    params = template_data.get("founder_parameters", {})
-    if not params:
-        raise ValueError("Missing founder_parameters in decision template")
+Fulfills assertions VAL-R04-001 and VAL-R04-002.
+"""
 
-    unpopulated_keys = []
-    for key, val in params.items():
-        if val == "UNSET" or val is None or (isinstance(val, str) and len(val.strip()) == 0):
-            unpopulated_keys.append(key)
+import json
+import tempfile
+import unittest
+from pathlib import Path
 
-    if unpopulated_keys:
-        raise ValueError(
-            f"Cannot evaluate R04 decision template: founder parameter(s) unpopulated/UNSET: {unpopulated_keys}"
-        )
+ROOT = Path(__file__).resolve().parents[1]
 
-    # If populated, evaluate rules
-    pdcr = float(params.get("pdcr_actual_percent", 0.0))
-    go_thresh = float(params.get("go_threshold_pdcr_percent", 3.0))
-    pivot_thresh = float(params.get("conditional_pivot_min_pdcr_percent", 1.5))
-
-    if pdcr >= go_thresh:
-        return "GO"
-    elif pdcr >= pivot_thresh:
-        return "CONDITIONAL_PIVOT"
-    else:
-        return "NO_GO"
+from tools.r04_validate_decision import (
+    R04DecisionValidationError,
+    evaluate_r04_decision_template,
+    load_decision_template,
+    main as r04_validator_main,
+)
 
 
 class TestR04DecisionTemplate(unittest.TestCase):
@@ -51,11 +38,13 @@ class TestR04DecisionTemplate(unittest.TestCase):
         self.r04_dir = ROOT / "research" / "r04"
         self.template_path = self.r04_dir / "decision_template.md"
         self.json_template_path = self.r04_dir / "decision_template.json"
+        self.validator_path = ROOT / "tools" / "r04_validate_decision.py"
 
     def test_r04_directory_and_template_exist(self):
         self.assertTrue(self.r04_dir.is_dir(), "research/r04/ directory must exist")
         self.assertTrue(self.template_path.is_file(), "research/r04/decision_template.md must exist")
         self.assertTrue(self.json_template_path.is_file(), "research/r04/decision_template.json must exist")
+        self.assertTrue(self.validator_path.is_file(), "tools/r04_validate_decision.py must exist")
 
     def test_template_contains_required_founder_parameters(self):
         content = self.template_path.read_text(encoding="utf-8")
@@ -83,7 +72,7 @@ class TestR04DecisionTemplate(unittest.TestCase):
         self.assertIn("no payments accepted", content.lower())
 
     def test_json_template_initializes_all_parameters_to_unset(self):
-        """VAL-R04-002: Verifies decision_template.json sets all founder parameter values to UNSET."""
+        """VAL-R04-001: Verifies decision_template.json sets all founder parameter values to UNSET."""
         with open(self.json_template_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
@@ -94,7 +83,7 @@ class TestR04DecisionTemplate(unittest.TestCase):
             self.assertEqual(value, "UNSET", f"Founder parameter '{key}' must be initialized to 'UNSET'")
 
     def test_evaluation_fails_closed_when_unpopulated(self):
-        """VAL-R04-002: Verifies unpopulated/UNSET evaluations fail closed with ValueError."""
+        """VAL-R04-002: Verifies unpopulated/UNSET evaluations fail closed with ValueError / R04DecisionValidationError."""
         with open(self.json_template_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
@@ -102,6 +91,11 @@ class TestR04DecisionTemplate(unittest.TestCase):
             evaluate_r04_decision_template(data)
 
         self.assertIn("UNSET", str(ctx.exception))
+
+    def test_production_validator_cli_fails_closed_on_unpopulated_template(self):
+        """VAL-R04-002: Verifies tools/r04_validate_decision.py fails closed with exit code 1 on unpopulated template."""
+        exit_code = r04_validator_main(["--template", str(self.json_template_path)])
+        self.assertEqual(exit_code, 1, "Validator must return non-zero exit code on UNSET template")
 
     def test_evaluation_succeeds_when_fully_populated(self):
         """Verifies evaluation succeeds with valid outcome when all parameters are populated."""
@@ -117,6 +111,28 @@ class TestR04DecisionTemplate(unittest.TestCase):
         data["founder_parameters"] = populated_params
         result = evaluate_r04_decision_template(data)
         self.assertEqual(result, "GO")
+
+    def test_production_validator_cli_succeeds_on_populated_template(self):
+        """Verifies tools/r04_validate_decision.py returns exit code 0 when template is fully populated."""
+        with open(self.json_template_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        populated_params = {key: "configured_val" for key in data["founder_parameters"]}
+        populated_params["pdcr_actual_percent"] = 4.0
+        populated_params["go_threshold_pdcr_percent"] = 3.0
+        populated_params["conditional_pivot_min_pdcr_percent"] = 1.5
+        data["founder_parameters"] = populated_params
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            json.dump(data, tmp)
+
+        try:
+            exit_code = r04_validator_main(["--template", str(tmp_path)])
+            self.assertEqual(exit_code, 0, "Validator must return exit code 0 on valid populated template")
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
 
     def test_execution_status_unaltered(self):
         """Verifies R04 status remains NOT_STARTED in docs/EXECUTION_STATUS.md."""
