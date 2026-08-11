@@ -50,7 +50,7 @@ test-tsan:
 	fi
 
 r02-doctor:
-	$(PYTHON) tools/r02_doctor.py
+	$(PYTHON) tools/r02_doctor.py --strict
 
 r02-audit-privacy:
 	$(PYTHON) tools/r02_audit_privacy.py

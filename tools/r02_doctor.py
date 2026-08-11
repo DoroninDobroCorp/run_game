@@ -21,6 +21,7 @@ import shutil
 
 ROOT = Path(__file__).resolve().parents[1]
 
+EXPECTED_MASTER_SHA256 = "17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22"
 DEFAULT_FIXTURE = ROOT / "research/r02/local/valparaiso_central"
 DEFAULT_IOS_RESOURCES = ROOT / "ios/RunGameFounder/Resources/Local"
 DEFAULT_PROJECT_YML = ROOT / "ios/RunGameFounder/project.yml"
@@ -35,6 +36,8 @@ def inspect_python() -> dict[str, Any]:
     pyexpat_error = None
     try:
         import pyexpat
+        parser = pyexpat.ParserCreate()
+        parser.Parse(b"<xml/>", True)
         pyexpat_ok = True
     except Exception as exc:
         pyexpat_ok = False
@@ -45,7 +48,7 @@ def inspect_python() -> dict[str, Any]:
 
     detail = f"Python {version} ({executable})"
     if not pyexpat_ok:
-        detail += f" - pyexpat import failed: {pyexpat_error}"
+        detail += f" - pyexpat XML parsing failed: {pyexpat_error}"
 
     return {
         "status": status,
@@ -139,16 +142,37 @@ def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[s
             "detail": f"Missing optional local fixtures: {', '.join(missing)}",
             "fixture_dir_exists": fixture_exists,
             "ios_resources_dir_exists": ios_resources_exist,
+            "m4a_exists": False,
+            "manifest_exists": False,
+            "mission_exists": False,
+            "master_audio_sha": None,
+            "master_audio_sha_matches": False,
         }
 
     # Check for expected resources
     m4a_path = ios_resources_dir / "m01_solo_founder_30min.m4a"
+    if not m4a_path.is_file():
+        alt_m4a = fixture_dir / "audio/m01_solo_founder_30min.m4a"
+        if alt_m4a.is_file():
+            m4a_path = alt_m4a
+
     manifest_path = ios_resources_dir / "m01_solo_founder_30min.manifest.json"
     mission_path = ios_resources_dir / "mission.json"
 
-    files_ok = m4a_path.is_file() and manifest_path.is_file() and mission_path.is_file()
+    import hashlib
+    m4a_sha = None
+    master_sha_matches = False
+    if m4a_path.is_file():
+        digest = hashlib.sha256()
+        with m4a_path.open("rb") as f:
+            while chunk := f.read(65536):
+                digest.update(chunk)
+        m4a_sha = digest.hexdigest()
+        master_sha_matches = (m4a_sha == EXPECTED_MASTER_SHA256)
+
+    files_ok = m4a_path.is_file() and manifest_path.is_file() and mission_path.is_file() and master_sha_matches
     status = "PASS" if files_ok else "WARN"
-    detail = "All iOS local resources present" if files_ok else "Some iOS local resource files missing"
+    detail = "All iOS local resources present and master audio SHA verified" if files_ok else "Some iOS local resource files missing or master audio SHA mismatch"
 
     return {
         "status": status,
@@ -158,6 +182,8 @@ def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[s
         "m4a_exists": m4a_path.is_file(),
         "manifest_exists": manifest_path.is_file(),
         "mission_exists": mission_path.is_file(),
+        "master_audio_sha": m4a_sha,
+        "master_audio_sha_matches": master_sha_matches,
     }
 
 
@@ -332,6 +358,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fixture-dir", type=Path, default=DEFAULT_FIXTURE, help="Path to local fixture directory")
     parser.add_argument("--ios-resources-dir", type=Path, default=DEFAULT_IOS_RESOURCES, help="Path to iOS resources directory")
     parser.add_argument("--out", type=Path, help="Optional output JSON report path")
+    parser.add_argument("--strict", action="store_true", help="Return non-zero exit code if status is WARN or BLOCKED")
     args = parser.parse_args(argv)
 
     report = diagnose(args.fixture_dir, args.ios_resources_dir)
@@ -341,6 +368,8 @@ def main(argv: list[str] | None = None) -> int:
         args.out.write_text(report_json + "\n", encoding="utf-8")
 
     print(report_json)
+    if args.strict:
+        return 0 if report["status"] == "PASS" else 1
     return 0 if report["status"] != "BLOCKED" else 1
 
 

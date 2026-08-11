@@ -71,13 +71,41 @@ class TestR02Doctor(unittest.TestCase):
             (ios_dir / "m01_solo_founder_30min.manifest.json").write_text("{}", encoding="utf-8")
             (ios_dir / "mission.json").write_text("{}", encoding="utf-8")
 
-            result = r02_doctor.inspect_local_fixtures(fixture_dir, ios_dir)
-            self.assertEqual(result["status"], "PASS")
-            self.assertTrue(result["fixture_dir_exists"])
-            self.assertTrue(result["ios_resources_dir_exists"])
-            self.assertTrue(result["m4a_exists"])
-            self.assertTrue(result["manifest_exists"])
-            self.assertTrue(result["mission_exists"])
+            import hashlib
+            dummy_sha = hashlib.sha256(b"dummy").hexdigest()
+            with patch("tools.r02_doctor.EXPECTED_MASTER_SHA256", dummy_sha):
+                result = r02_doctor.inspect_local_fixtures(fixture_dir, ios_dir)
+                self.assertEqual(result["status"], "PASS")
+                self.assertTrue(result["fixture_dir_exists"])
+                self.assertTrue(result["ios_resources_dir_exists"])
+                self.assertTrue(result["m4a_exists"])
+                self.assertTrue(result["manifest_exists"])
+                self.assertTrue(result["mission_exists"])
+                self.assertTrue(result["master_audio_sha_matches"])
+
+    def test_pyexpat_xml_parser_failure_blocks(self) -> None:
+        with patch("pyexpat.ParserCreate", side_effect=Exception("Parser error")):
+            result = r02_doctor.inspect_python()
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertFalse(result["pyexpat_ok"])
+            self.assertIn("Parser error", result["detail"])
+
+    def test_strict_flag_behavior(self) -> None:
+        mock_report_pass = {"status": "PASS", "tool": "r02_doctor"}
+        mock_report_warn = {"status": "WARN", "tool": "r02_doctor"}
+        mock_report_blocked = {"status": "BLOCKED", "tool": "r02_doctor"}
+
+        with patch("tools.r02_doctor.diagnose", return_value=mock_report_pass):
+            self.assertEqual(r02_doctor.main(["--strict"]), 0)
+            self.assertEqual(r02_doctor.main([]), 0)
+
+        with patch("tools.r02_doctor.diagnose", return_value=mock_report_warn):
+            self.assertEqual(r02_doctor.main(["--strict"]), 1)
+            self.assertEqual(r02_doctor.main([]), 0)
+
+        with patch("tools.r02_doctor.diagnose", return_value=mock_report_blocked):
+            self.assertEqual(r02_doctor.main(["--strict"]), 1)
+            self.assertEqual(r02_doctor.main([]), 1)
 
     def test_diagnose_structure(self) -> None:
         with tempfile.TemporaryDirectory() as tmp_dir:

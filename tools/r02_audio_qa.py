@@ -28,6 +28,9 @@ DURATION_TOLERANCE_SEC = 0.5
 EXPECTED_SAMPLE_RATE_HZ = 44100
 EXPECTED_CHANNELS = 1
 EXPECTED_CODEC = "aac"
+EXPECTED_MASTER_SHA256 = "17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22"
+EXPECTED_PEAK_VOLUME_DB = -1.6
+PEAK_VOLUME_TOLERANCE_DB = 0.1
 PROBE_TIMEOUT_SEC = 30
 
 
@@ -169,6 +172,7 @@ def probe_signal_volumedetect(m4a_path: Path) -> dict[str, Any]:
                 "status": "FAIL",
                 "error": f"ffmpeg volumedetect failed with exit code {result.returncode}: {result.stderr.strip()}",
                 "max_volume_db": None,
+                "peak_volume_db": None,
                 "mean_volume_db": None,
                 "histogram_0db_count": 0,
                 "clipping_detected": False,
@@ -184,6 +188,7 @@ def probe_signal_volumedetect(m4a_path: Path) -> dict[str, Any]:
                 "status": "FAIL",
                 "error": "Could not parse max_volume from ffmpeg output",
                 "max_volume_db": None,
+                "peak_volume_db": None,
                 "mean_volume_db": None,
                 "histogram_0db_count": 0,
                 "clipping_detected": False,
@@ -204,6 +209,7 @@ def probe_signal_volumedetect(m4a_path: Path) -> dict[str, Any]:
             "probe_tool": "ffmpeg_volumedetect",
             "status": "PASS",
             "max_volume_db": max_vol_db,
+            "peak_volume_db": max_vol_db,
             "mean_volume_db": mean_vol_db,
             "histogram_0db_count": hist_0db,
             "clipping_detected": clipping_detected,
@@ -214,6 +220,7 @@ def probe_signal_volumedetect(m4a_path: Path) -> dict[str, Any]:
             "status": "NOT_RUN",
             "error": "ffmpeg executable not found in PATH",
             "max_volume_db": None,
+            "peak_volume_db": None,
             "mean_volume_db": None,
             "histogram_0db_count": 0,
             "clipping_detected": False,
@@ -224,6 +231,7 @@ def probe_signal_volumedetect(m4a_path: Path) -> dict[str, Any]:
             "status": "FAIL",
             "error": str(exc),
             "max_volume_db": None,
+            "peak_volume_db": None,
             "mean_volume_db": None,
             "histogram_0db_count": 0,
             "clipping_detected": False,
@@ -245,35 +253,45 @@ def probe_audio(
         }
 
     actual_sha256 = compute_sha256(m4a_path)
-    expected_sha256 = None
+    manifest_sha = None
     manifest_data = None
 
-    if manifest_path is not None and manifest_path.is_file():
-        try:
-            manifest_text = manifest_path.read_text(encoding="utf-8")
-            manifest_data = json.loads(
-                manifest_text,
-                parse_constant=_reject_json_constant,
-                object_pairs_hook=_json_object_without_duplicates,
-            )
-            expected_sha256 = manifest_data.get("m4a_sha256")
-        except Exception as exc:
-            return {
-                "schema_version": "0.1",
-                "tool": "r02_audio_qa",
-                "status": "FAIL",
-                "error": f"Failed to read/parse manifest: {exc}",
-                "human_audio_approved": False,
-                "human_listening_performed": False,
-            }
+    if manifest_path is not None:
+        if manifest_path.is_file():
+            try:
+                manifest_text = manifest_path.read_text(encoding="utf-8")
+                manifest_data = json.loads(
+                    manifest_text,
+                    parse_constant=_reject_json_constant,
+                    object_pairs_hook=_json_object_without_duplicates,
+                )
+                manifest_sha = manifest_data.get("m4a_sha256")
+            except Exception as exc:
+                return {
+                    "schema_version": "0.1",
+                    "tool": "r02_audio_qa",
+                    "status": "FAIL",
+                    "error": f"Failed to read/parse manifest: {exc}",
+                    "human_audio_approved": False,
+                    "human_listening_performed": False,
+                }
+
+    sha_matches_manifest = (manifest_sha is not None) and (actual_sha256 == manifest_sha)
+    sha_matches_expected_master = (actual_sha256 == EXPECTED_MASTER_SHA256)
+    sha_match = sha_matches_manifest if manifest_path is not None else sha_matches_expected_master
 
     try:
         format_info = probe_audio_format(m4a_path)
     except Exception as exc:
+        is_missing = (
+            isinstance(exc, FileNotFoundError)
+            or "not found" in str(exc).lower()
+            or "no such file" in str(exc).lower()
+        )
         return {
             "schema_version": "0.1",
             "tool": "r02_audio_qa",
-            "status": "FAIL",
+            "status": "NOT_RUN" if is_missing else "FAIL",
             "error": f"Audio container probing failed: {exc}",
             "human_audio_approved": False,
             "human_listening_performed": False,
@@ -282,8 +300,17 @@ def probe_audio(
     signal_info = probe_signal_volumedetect(m4a_path)
     signal_passed = (signal_info.get("status") == "PASS") and (signal_info.get("max_volume_db") is not None)
 
+    peak_vol = signal_info.get("max_volume_db")
+    if peak_vol is None:
+        peak_vol = signal_info.get("peak_volume_db")
+
+    peak_volume_valid = (
+        signal_passed
+        and peak_vol is not None
+        and abs(peak_vol - EXPECTED_PEAK_VOLUME_DB) <= PEAK_VOLUME_TOLERANCE_DB
+    )
+
     # Perform assertions
-    sha_match = (expected_sha256 is not None) and (actual_sha256 == expected_sha256)
     duration_exact = abs(format_info["duration_sec"] - EXPECTED_DURATION_SEC) <= DURATION_TOLERANCE_SEC
     format_valid = (
         format_info["codec_name"] == EXPECTED_CODEC
@@ -292,15 +319,17 @@ def probe_audio(
     )
     container_valid = True  # Format probe succeeded without corrupt/truncated error
     zero_truncation = format_info["duration_sec"] >= (EXPECTED_DURATION_SEC - DURATION_TOLERANCE_SEC)
-    clipping_detected = signal_info["clipping_detected"]
+    clipping_detected = signal_info.get("clipping_detected", False)
 
     all_passed = (
         sha_match
+        and sha_matches_expected_master
         and duration_exact
         and format_valid
         and container_valid
         and zero_truncation
         and not clipping_detected
+        and peak_volume_valid
         and signal_passed
     )
 
@@ -318,7 +347,7 @@ def probe_audio(
         "m4a_file": m4a_path.name,
         "manifest_file": manifest_path.name if manifest_path else None,
         "actual_sha256": actual_sha256,
-        "expected_sha256": expected_sha256,
+        "expected_sha256": manifest_sha or EXPECTED_MASTER_SHA256,
         "probed_duration_sec": format_info["duration_sec"],
         "expected_duration_sec": EXPECTED_DURATION_SEC,
         "format": {
@@ -329,12 +358,14 @@ def probe_audio(
         },
         "signal_analysis": signal_info,
         "checks": {
-            "sha256_matches_manifest": sha_match,
+            "sha256_matches_manifest": sha_matches_manifest if manifest_path is not None else sha_matches_expected_master,
+            "sha256_matches_expected_master": sha_matches_expected_master,
             "duration_exact_1800s": duration_exact,
             "format_aac_44100_mono": format_valid,
             "container_integrity_valid": container_valid,
             "zero_truncation": zero_truncation,
             "clipping_detected": clipping_detected,
+            "peak_volume_matches_expected": peak_volume_valid,
             "ffmpeg_signal_probe_passed": signal_passed,
         },
         "human_audio_approved": False,
