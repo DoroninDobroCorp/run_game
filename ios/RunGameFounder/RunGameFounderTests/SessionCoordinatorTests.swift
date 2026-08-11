@@ -2,6 +2,7 @@ import CoreLocation
 import XCTest
 @testable import RunGameFounder
 
+@MainActor
 final class SessionCoordinatorTests: XCTestCase {
     private var sampleMission: MissionConfig!
     private var appModel: AppModel!

@@ -1,6 +1,7 @@
 import XCTest
 @testable import RunGameFounder
 
+@MainActor
 final class FileDurabilityTests: XCTestCase {
     private var tempDirectory: URL!
 

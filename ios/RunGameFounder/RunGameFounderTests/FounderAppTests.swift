@@ -2,6 +2,7 @@ import CoreLocation
 import XCTest
 @testable import RunGameFounder
 
+@MainActor
 final class FounderAppTests: XCTestCase {
     func testPendingEvidenceQueuesBlockAnotherMission() {
         XCTAssertTrue(

@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 @testable import RunGameFounder
 
+@MainActor
 final class ActiveRunJournalTests: XCTestCase {
     @MainActor
     func testJournalPersistsMetadataWithoutCoordinates() throws {

@@ -2,6 +2,7 @@ import CoreLocation
 import XCTest
 @testable import RunGameFounder
 
+@MainActor
 final class SessionStateMachineTests: XCTestCase {
     private var sampleMission: MissionConfig!
     private var defaultPrecommittedDate: Date!

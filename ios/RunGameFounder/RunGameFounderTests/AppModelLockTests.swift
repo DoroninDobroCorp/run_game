@@ -2,6 +2,7 @@ import Foundation
 import XCTest
 @testable import RunGameFounder
 
+@MainActor
 final class AppModelLockTests: XCTestCase {
     @MainActor
     func testEvidenceCaptureLocked_WhenPendingDebriefsNonEmpty() throws {
