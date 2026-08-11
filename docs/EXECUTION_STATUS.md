@@ -2,7 +2,7 @@
 
 **Последнее обновление:** 11 августа 2026 года
 **Текущая фаза:** Research Phase (`R02` — `READY_FOR_DEVICE_SMOKE`, pre-first-test hardening завершён)
-**Текущий коммит:** `7193d5cbe191a5b4537646c937a010ee6b24c775` (ветка `executor/pre-first-test-max-eddea8e`)
+**Текущий коммит:** `d71b8724e718780ec8d5f051a883330764c004b1` (ветка `executor/pre-first-test-max-eddea8e`)
 
 ---
 
@@ -56,7 +56,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `READY_FOR_DEVICE_SMOKE`| `R01` | Pre-First-Test Max Hardening завершён. Созданы `docs/PRE_FIRST_TEST_READINESS.md` (18 readiness lanes), `tools/r02_doctor.py`, `tools/r02_validate_evidence.py`, `tools/r02_audio_qa.py`, `tools/r03_analyze.py` и `research/r04/decision_template.md`. Пройден `make verify-pretest` (156 Python unittest, 42 Xcode unit tests, 3 Xcode UI tests). Активная founder fixture — центральный Вальпараисо (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins). Вся синтетическая и симуляционная часть готова. | 11.08.2026 | Physical-device smoke ➔ дневной walk-through/derived report ➔ human route approval ➔ полный lock-screen audio check ➔ GPS-gated solo founder run ➔ immediate JSON/queued 24h recall. |
+| **R02** | `READY_FOR_DEVICE_SMOKE`| `R01` | Pre-First-Test Max Hardening завершён. Созданы `docs/PRE_FIRST_TEST_READINESS.md` (18 readiness lanes), `tools/r02_doctor.py`, `tools/r02_validate_evidence.py`, `tools/r02_audio_qa.py`, `tools/r03_analyze.py` и `research/r04/decision_template.md`. Пройден `make verify-pretest` (180 Python unittest, 42 Xcode unit tests, 3 Xcode UI tests). Активная founder fixture — центральный Вальпараисо (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins). Вся синтетическая и симуляционная часть готова. | 11.08.2026 | Physical-device smoke ➔ дневной walk-through/derived report ➔ human route approval ➔ полный lock-screen audio check ➔ GPS-gated solo founder run ➔ immediate JSON/queued 24h recall. |
 | **R03** | `NOT_STARTED`| `R02` | Созданы `research/r03/preregistration.v0.1.json`, `tools/r03_analyze.py` и `tests/test_r03_analyze.py` для офлайн-анализа синтетических A/B данных. | 11.08.2026 | Ожидает завершения физического этапа R02. |
 | **R04** | `NOT_STARTED`| `R02` | Создан `research/r04/decision_template.md` (decision-ready шаблон с описанием аудитории, оффера, stop-loss и метрик конверсии). | 11.08.2026 | Ожидает основательского решения по запуску тестов спроса (может идти параллельно с R03). |
 
@@ -66,14 +66,14 @@
 
 ## 5. Command Evidence
 
-Сводный результат автоматизированного прогона для текущего состояния (`commit 7193d5c`):
+Сводный результат автоматизированного прогона для текущего состояния (`commit d71b872`):
 
 * `make verify-pretest`:
-  - `tools/r02_doctor.py`: `PASS` (9 проверок, 1 WARN по uncommitted изменениям).
+  - `tools/r02_doctor.py`: `PASS` (9 проверок, 0 WARN по uncommitted изменениям при чистом рабочем дереве).
   - `tools/r02_audit_privacy.py`: `PASS` (4/4 проверки приватности, 0 утечек координат/секретов).
   - `tools/r02_preflight.py`: `READY_FOR_DEVICE_SMOKE` (12/12 проверок пройдены).
   - `tools/r02_audio_qa.py`: `PASS` (1800.0s exact AAC master, peak -0.12dB, SHA совпадает).
-  - `/usr/bin/python3 -m unittest discover -s tests`: `PASS` (156 тестов пройдено, 0 ошибок).
+  - `/usr/bin/python3 -m unittest discover -s tests`: `PASS` (180 тестов пройдено, 0 ошибок).
   - `xcodebuild ... RunGameFounderTests`: `PASS` (42 юнита-теста Swift пройдено).
   - `xcodebuild ... RunGameFounderUITests`: `PASS` (3 UI-теста пройдено на iPhone 16 Pro iOS 18.5 Simulator).
 
@@ -101,5 +101,5 @@
 * **16.07.2026 (R02):** Зафиксированы Леа, M1–M3 micro-arc, три enum-state, четыре setup clues и reveal «игрок своими маршрутами создал Леа». Реализованы детерминированная линеаризация, A/B contract и запрет participant export до human approval.
 * **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
 * **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
-* **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 156 Python-тестов и 45 Swift/UI-тестов (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
+* **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 180 Python-тестов и 45 Swift/UI-тестов (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
 
