@@ -1,5 +1,8 @@
 # Run Game Founder — инструкция первого теста с нуля
 
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`)
+**Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+
 Это инструкция для владельца проекта. Приложение — локальный founder-only
 research instrument, не медицинская рекомендация и не публичный продукт.
 Fitness-сетка ещё не прошла профильный review. До внешних участников она не

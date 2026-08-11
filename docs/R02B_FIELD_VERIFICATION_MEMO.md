@@ -1,8 +1,10 @@
 # R02B Field Verification & Evidence Memo (Valparaíso Route Draft)
 
-**Дата обновления:** 10 августа 2026 года
+**Дата обновления:** 11 августа 2026 года
 
-**Текущий статус:** `offline preflight READY_FOR_DEVICE_SMOKE; physical device, audio, walk-through and run evidence pending`
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`; physical device, audio, walk-through and run evidence pending)
+
+**Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 
 **Исследовательский режим:** `SOLO_FOUNDER_NARRATIVE_RUN` — самостоятельная
 личная проверка с заблокированным телефоном на уже знакомом маршруте.

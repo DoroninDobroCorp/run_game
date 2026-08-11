@@ -1,6 +1,7 @@
 # Run Game — Geo-Narrative Running Companion
 
-> **Current Project Phase:** `R02` — Pre-First-Test Hardened (`READY_FOR_DEVICE_SMOKE`)
+> **Current Project Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`)
+> **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 > **Active Fixture:** Valparaíso Central, Chile (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins)
 > **Master Readiness Standard:** 18/18 Readiness Lanes verified clean (`docs/PRE_FIRST_TEST_READINESS.md`)
 
@@ -47,7 +48,7 @@ The repository includes a Python-based utility suite in `tools/` for preflight v
 | **Pre-Test Doctor** | `tools/r02_doctor.py` | Validates local environment (Python 3.12, Xcode, iOS simulator, directory structures, git status, domain threshold parity). |
 | **Privacy Audit** | `tools/r02_audit_privacy.py` | Scans tracked files, JSON outputs, and git history for coordinate leaks, personal identifiers, or API keys. |
 | **Offline Preflight** | `tools/r02_preflight.py` | Verifies route bundle integrity, audio file presence, manifest checksums, and iOS resource alignment. |
-| **Audio QA Probe** | `tools/r02_audio_qa.py` | Validates master audio format (AAC/44.1kHz mono), exact 30-min duration (1800.0s), peak levels (-0.12dB), and SHA-256 manifest matching. |
+| **Audio QA Probe** | `tools/r02_audio_qa.py` | Validates master audio format (AAC/44.1kHz mono), exact 30-min duration (1800.0s), peak levels (-1.6dB), and SHA-256 fingerprint (`17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`). |
 | **Offline GPX Analyzer** | `tools/r02_analyze_gpx.py` | Derives distance, pace, bounding box, and POI arrival timestamps from raw GPX tracks without saving raw coordinates in public artifacts. |
 | **Evidence Validator** | `tools/r02_validate_evidence.py` | Enforces fail-closed evidence locking rules (`evidenceCaptureLocked = true`) until all pending queues and human gates pass. |
 | **iOS Resource Sync** | `tools/r02_prepare_ios.py` | Packages research fixtures (`research/r02/local/valparaiso_central`) into iOS bundle resources (`ios/RunGameFounder/Resources/Local`). |

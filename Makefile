@@ -1,4 +1,4 @@
-PYTHON ?= python3
+PYTHON ?= python3.13
 
 IOS_DIR := ios/RunGameFounder
 SIMULATOR ?= platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5

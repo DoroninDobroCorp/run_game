@@ -1,9 +1,9 @@
 # Pre-First-Test Readiness (PRE_FIRST_TEST_READINESS)
 
 **Date:** August 11, 2026
-**Phase:** Research Phase (`R02` Pre-First-Test Max Hardening)
-**Branch:** `executor/pre-first-test-max-eddea8e`
-**Commit SHA:** `d71b8724e718780ec8d5f051a883330764c004b1`
+**Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`)
+**Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+**Branch:** `executor/pre-first-test-final-hardening-e8c32fa`
 **Overall Readiness Status:** `READY_FOR_DEVICE_SMOKE` (All synthetic/simulator validations passed cleanly; physical device smoke & human gates pending founder execution)
 
 ---
@@ -23,7 +23,7 @@ All technical preflight checks, audio probes, privacy audits, cross-language con
 | **L01** | Python Environment & Tooling | `PASS` | Python 3.12 / Darwin 25.0.0; `r02_doctor.py` passes | None |
 | **L02** | Xcode & Swift Compiler Hardening | `PASS` | `SWIFT_STRICT_CONCURRENCY=complete`, zero warnings | None |
 | **L03** | Local Fixtures & Asset Integrity | `PASS` | Valparaíso Central fixture, 30min M4A, manifest, mission.json | None |
-| **L04** | Technical Audio QA Probe | `PASS` | AAC/44.1kHz/mono, 1800.0s exact, peak -0.12dB, SHA verified | Audio listening review |
+| **L04** | Technical Audio QA Probe | `PASS` | AAC/44.1kHz/mono, 1800.0s exact, peak -1.6dB, SHA `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22` verified | Audio listening review |
 | **L05** | Privacy & Security Audit | `PASS` | Zero raw GPX/coords in tracked files/JSON; `.gitignore` verified | None |
 | **L06** | Swift ↔ Python Contract Parity | `PASS` | `test_cross_contract.py`: exact threshold and schema version parity | None |
 | **L07** | Evidence Locking Logic | `PASS` | `VAL-EVIDENCE-001` to `005`: pending queues lock evidence capture | Physical debrief/recall |
