@@ -132,16 +132,19 @@ def generate_synthetic_ab_dataset(
 
         # Outcome values with plausible effect sizes for Condition A vs B
         if condition == "A":
-            # Condition A: higher place recall and higher desire
+            # Condition A: higher next workout start rate, higher place recall and higher desire
+            base_workout_start = 1 if rng.random() < 0.75 else 0
             base_places = rng.gauss(4.2, 1.1)
             base_desire = rng.gauss(5.5, 1.0)
             base_necessity = rng.gauss(5.2, 1.1)
         else:
-            # Condition B: lower place recall and neutral desire
+            # Condition B: lower next workout start rate, lower place recall and neutral desire
+            base_workout_start = 1 if rng.random() < 0.45 else 0
             base_places = rng.gauss(2.1, 1.0)
             base_desire = rng.gauss(3.8, 1.2)
             base_necessity = rng.gauss(2.5, 1.2)
 
+        actual_next_workout_start = base_workout_start
         place_count = max(0, min(10, int(round(base_places))))
         desire_score = max(1, min(7, int(round(base_desire))))
         necessity_score = max(1, min(7, int(round(base_necessity))))
@@ -156,6 +159,7 @@ def generate_synthetic_ab_dataset(
                 "route_completed": not is_aborted,
                 "audio_duration_seconds": 1800.0 if not is_aborted else float(rng.randint(300, 1200)),
             },
+            "actual_next_workout_start": actual_next_workout_start,
             "immediate_debrief": {
                 "schema_version": SCHEMA_VERSION_DEBRIEF,
                 "completed": True,
@@ -240,12 +244,14 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
     clean_groups = {
         "A": {
             "pids": [],
+            "next_workout_starts": [],
             "place_recall_counts": [],
             "desire_m02_scores": [],
             "place_necessity_scores": [],
         },
         "B": {
             "pids": [],
+            "next_workout_starts": [],
             "place_recall_counts": [],
             "desire_m02_scores": [],
             "place_necessity_scores": [],
@@ -298,6 +304,7 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
             exclusions["by_condition"][cond] += 1
         else:
             clean_groups[cond]["pids"].append(p.get("participant_id"))
+            clean_groups[cond]["next_workout_starts"].append(float(p.get("actual_next_workout_start", 0)))
             clean_groups[cond]["place_recall_counts"].append(float(rec.get("unaided_place_recall_count", 0)))
             clean_groups[cond]["desire_m02_scores"].append(float(rec.get("desire_for_m02_1_to_7", 0)))
             clean_groups[cond]["place_necessity_scores"].append(float(imm.get("place_necessity_1_to_7", 0)))
@@ -308,6 +315,10 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
 
     n_clean_a = len(group_a["pids"])
     n_clean_b = len(group_b["pids"])
+
+    mean_workout_a, std_workout_a = compute_mean_and_std(group_a["next_workout_starts"])
+    mean_workout_b, std_workout_b = compute_mean_and_std(group_b["next_workout_starts"])
+    cohen_workout = compute_cohens_d(group_a["next_workout_starts"], group_b["next_workout_starts"])
 
     mean_places_a, std_places_a = compute_mean_and_std(group_a["place_recall_counts"])
     mean_places_b, std_places_b = compute_mean_and_std(group_b["place_recall_counts"])
@@ -333,6 +344,20 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
             "condition_B": n_clean_b,
         },
         "primary_outcomes": {
+            "actual_next_workout_start": {
+                "condition_A": {"mean": round(mean_workout_a, 2), "std": round(std_workout_a, 2), "n": n_clean_a},
+                "condition_B": {"mean": round(mean_workout_b, 2), "std": round(std_workout_b, 2), "n": n_clean_b},
+                "difference": round(mean_workout_a - mean_workout_b, 2),
+                "cohens_d": round(cohen_workout, 2),
+            },
+        },
+        "manipulation_checks": {
+            "place_necessity": {
+                "condition_A": {"mean": round(mean_nec_a, 2), "std": round(std_nec_a, 2), "n": n_clean_a},
+                "condition_B": {"mean": round(mean_nec_b, 2), "std": round(std_nec_b, 2), "n": n_clean_b},
+                "difference": round(mean_nec_a - mean_nec_b, 2),
+                "cohens_d": round(cohen_nec, 2),
+            },
             "unaided_place_recall": {
                 "condition_A": {"mean": round(mean_places_a, 2), "std": round(std_places_a, 2), "n": n_clean_a},
                 "condition_B": {"mean": round(mean_places_b, 2), "std": round(std_places_b, 2), "n": n_clean_b},
@@ -345,14 +370,6 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
                 "difference": round(mean_desire_a - mean_desire_b, 2),
                 "cohens_d": round(cohen_desire, 2),
             },
-        },
-        "manipulation_checks": {
-            "place_necessity": {
-                "condition_A": {"mean": round(mean_nec_a, 2), "std": round(std_nec_a, 2), "n": n_clean_a},
-                "condition_B": {"mean": round(mean_nec_b, 2), "std": round(std_nec_b, 2), "n": n_clean_b},
-                "difference": round(mean_nec_a - mean_nec_b, 2),
-                "cohens_d": round(cohen_nec, 2),
-            }
         },
         "interpretation_warning": "SYNTHETIC_DATASET_ONLY. R03 remains NOT_STARTED; no GO claims or real evidence established.",
     }

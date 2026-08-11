@@ -3,7 +3,7 @@
   "study_id": "R03_SYNTHETIC_EVALUATION",
   "title": "R03 Controlled Field Evaluation of Narrative Audio Conditioning (Conditions A vs B)",
   "preregistered_at": "2026-08-11T00:00:00Z",
-  "hypothesis": "Condition A (Narrative Audio) increases 24h unaided place and story retention compared to Condition B (Non-narrative Control) without increasing route abort rates.",
+  "hypothesis": "Condition A (Narrative Audio) increases actual next workout start rate (within 72 hours) compared to Condition B (Non-narrative Control) without increasing route abort rates.",
   "conditions": {
     "A": {
       "name": "Condition A (Narrative Audio)",
@@ -25,6 +25,22 @@
   },
   "primary_outcomes": [
     {
+      "id": "actual_next_workout_start",
+      "name": "Actual Next Workout Started Within 72 Hours (Binary 0/1)",
+      "metric": "binary",
+      "min_value": 0,
+      "max_value": 1
+    }
+  ],
+  "manipulation_checks": [
+    {
+      "id": "place_necessity_score",
+      "name": "Place Necessity Rating (1..7 Likert)",
+      "metric": "likert",
+      "min_value": 1,
+      "max_value": 7
+    },
+    {
       "id": "retention_place_count",
       "name": "24h Unaided Place Recall Count",
       "metric": "count",
@@ -34,15 +50,6 @@
     {
       "id": "desire_m02_score",
       "name": "Desire for Mission 02 (1..7 Likert)",
-      "metric": "likert",
-      "min_value": 1,
-      "max_value": 7
-    }
-  ],
-  "manipulation_checks": [
-    {
-      "id": "place_necessity_score",
-      "name": "Place Necessity Rating (1..7 Likert)",
       "metric": "likert",
       "min_value": 1,
       "max_value": 7
