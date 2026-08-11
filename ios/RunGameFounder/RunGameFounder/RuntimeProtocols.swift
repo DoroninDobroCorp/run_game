@@ -49,6 +49,7 @@ protocol LocationRecording: AnyObject, ObservableObject {
     var lastSummary: TrackSummary? { get }
     var completedNormally: Bool { get }
     var incidents: [String] { get }
+    var partialGPXBasename: String? { get }
 
     var latestSamplePublisher: AnyPublisher<TrackSample?, Never> { get }
     var lastErrorPublisher: AnyPublisher<String?, Never> { get }

@@ -7,14 +7,17 @@ final class SessionCoordinatorTests: XCTestCase {
     private var appModel: AppModel!
     private var defaults: UserDefaults!
     private var suiteName: String!
+    private var tempDir: URL!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         sampleMission = try MissionConfig.loadFromBundle()
         suiteName = "SessionCoordinatorTests.\(UUID().uuidString)"
         defaults = UserDefaults(suiteName: suiteName)!
+        tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(suiteName, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         appModel = MainActor.assumeIsolated {
-            AppModel(defaults: defaults)
+            AppModel(defaults: defaults, documentsDirectory: tempDir)
         }
     }
 
@@ -22,9 +25,13 @@ final class SessionCoordinatorTests: XCTestCase {
         if let suiteName {
             defaults?.removePersistentDomain(forName: suiteName)
         }
+        if let tempDir {
+            try? FileManager.default.removeItem(at: tempDir)
+        }
         sampleMission = nil
         appModel = nil
         defaults = nil
+        tempDir = nil
         try super.tearDownWithError()
     }
 

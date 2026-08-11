@@ -79,6 +79,8 @@ enum ActiveRunJournalResult {
 
 final class ActiveRunJournal {
     static let journalKey = "founder.activeRunJournal"
+    static let journalFilename = "active_run_journal.json"
+
     private let defaults: UserDefaults
     private let documentsDirectory: URL
     private let encoder: JSONEncoder
@@ -101,6 +103,10 @@ final class ActiveRunJournal {
         self.decoder = dec
     }
 
+    var journalFileURL: URL {
+        documentsDirectory.appendingPathComponent(Self.journalFilename)
+    }
+
     var quarantineDirectoryURL: URL {
         documentsDirectory.appendingPathComponent(".quarantine", isDirectory: true)
     }
@@ -111,41 +117,63 @@ final class ActiveRunJournal {
     }
 
     func loadJournal() -> ActiveRunJournalResult {
-        guard let data = defaults.data(forKey: Self.journalKey) else {
+        let fileManager = FileManager.default
+        let data: Data
+        if fileManager.fileExists(atPath: journalFileURL.path) {
+            do {
+                data = try Data(contentsOf: journalFileURL)
+            } catch {
+                let reason = "Failed to read active journal file: \(error.localizedDescription)"
+                quarantineCorruptedJournal(reason: reason, rawData: Data())
+                return .corrupted(reason)
+            }
+        } else if let legacyData = defaults.data(forKey: Self.journalKey) {
+            data = legacyData
+        } else {
             return .none
         }
+
         do {
             let attempt = try decoder.decode(ActiveRunAttempt.self, from: data)
             guard attempt.schemaVersion == "0.1" else {
-                quarantineCorruptedJournal(reason: "Unsupported active journal schema version \(attempt.schemaVersion)", rawData: data)
-                return .corrupted("Unsupported active journal schema version \(attempt.schemaVersion)")
+                let reason = "Unsupported active journal schema version \(attempt.schemaVersion)"
+                quarantineCorruptedJournal(reason: reason, rawData: data)
+                return .corrupted(reason)
             }
             return .attempt(attempt)
         } catch {
-            quarantineCorruptedJournal(reason: "Corrupted active journal data: \(error.localizedDescription)", rawData: data)
-            return .corrupted("Corrupted active journal data: \(error.localizedDescription)")
+            let reason = "Corrupted active journal data: \(error.localizedDescription)"
+            quarantineCorruptedJournal(reason: reason, rawData: data)
+            return .corrupted(reason)
         }
     }
 
     func save(_ attempt: ActiveRunAttempt) {
-        if let data = try? encoder.encode(attempt) {
+        do {
+            let data = try encoder.encode(attempt)
+            try FileDurability.writeAtomicStaging(data: data, to: journalFileURL, overwrite: true)
             defaults.set(data, forKey: Self.journalKey)
+        } catch {
+            // Fail closed log or handling
         }
     }
 
     func clear() {
         defaults.removeObject(forKey: Self.journalKey)
+        try? FileManager.default.removeItem(at: journalFileURL)
     }
 
     @discardableResult
     func quarantineCorruptedJournal(reason: String, rawData: Data) -> URL? {
-        // Relocate corrupted journal data to .quarantine directory
         defaults.removeObject(forKey: Self.journalKey)
+        try? FileManager.default.removeItem(at: journalFileURL)
+
         do {
             try FileManager.default.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
-            let filename = "corrupted-journal-\(ISO8601DateFormatter().string(from: Date())).json"
+            let isoDate = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+            let filename = "corrupted-journal-\(isoDate)-\(UUID().uuidString.prefix(6)).json"
             let destination = quarantineDirectoryURL.appendingPathComponent(filename)
-            try FileDurability.writeFinalEvidence(data: rawData, to: destination)
+            try FileDurability.writeAtomicStaging(data: rawData, to: destination, overwrite: true)
             return destination
         } catch {
             return nil

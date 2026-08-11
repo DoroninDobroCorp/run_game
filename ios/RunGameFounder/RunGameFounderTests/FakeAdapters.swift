@@ -76,6 +76,7 @@ final class FakeLocationRecorder: LocationRecording {
     var lastSummary: TrackSummary? = nil
     var completedNormally: Bool = false
     var incidents: [String] = []
+    var partialGPXBasename: String? = nil
     var stopCallCount: Int = 0
 
     let latestSampleSubject = CurrentValueSubject<TrackSample?, Never>(nil)

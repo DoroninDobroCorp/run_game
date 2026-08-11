@@ -305,8 +305,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 locationIncidents: locationIncidents
             )
 
-            actions.append(.clearJournal)
             actions.append(.scheduleDebrief(context))
+            actions.append(.clearJournal)
             if successful {
                 actions.append(.scheduleRecall(context))
                 state = .completed(context: context)
@@ -363,8 +363,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 locationIncidents: attempt.locationIncidents
             )
             state = .aborted(context: recoveredContext, reason: recoveredContext.abortReason)
-            actions.append(.clearJournal)
             actions.append(.scheduleDebrief(recoveredContext))
+            actions.append(.clearJournal)
 
         // MARK: - 5. Callback Race Conditions / Out of order events
         default:
@@ -429,8 +429,8 @@ struct SessionStateMachine: Equatable, Sendable {
         )
 
         state = .aborted(context: context, reason: reason)
-        actions.append(.clearJournal)
         actions.append(.scheduleDebrief(context))
+        actions.append(.clearJournal)
         actions.append(.setStatusMessage(reason))
         return actions
     }

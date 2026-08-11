@@ -9,10 +9,14 @@ final class ActiveRunJournalTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
 
-        let journal = ActiveRunJournal(defaults: defaults)
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
         XCTAssertNil(journal.currentAttempt)
 
         let attempt = ActiveRunAttempt(
@@ -34,9 +38,12 @@ final class ActiveRunJournalTests: XCTestCase {
         journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
 
-        // Inspect raw UserDefaults data to ensure NO coordinate keys exist and partial_gpx_basename is present
-        let data = try XCTUnwrap(defaults.data(forKey: ActiveRunJournal.journalKey))
-        let jsonDict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        // Inspect file-backed active_run_journal.json on disk
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
+        XCTAssertTrue(FileDurability.isExcludedFromBackup(url: journal.journalFileURL))
+
+        let fileData = try Data(contentsOf: journal.journalFileURL)
+        let jsonDict = try JSONSerialization.jsonObject(with: fileData) as! [String: Any]
 
         XCTAssertEqual(jsonDict["run_id"] as? String, "test-run-123")
         XCTAssertEqual(jsonDict["schema_version"] as? String, "0.1")
@@ -55,10 +62,14 @@ final class ActiveRunJournalTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let initialModel = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let initialModel = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(initialModel.mission)
 
-        // 1. Create an active run attempt in defaults prior to AppModel init
+        // 1. Create an active run attempt in file-backed journal prior to AppModel init
         let attempt = ActiveRunAttempt(
             schemaVersion: "0.1",
             runID: "crashed-run-789",
@@ -66,6 +77,7 @@ final class ActiveRunJournalTests: XCTestCase {
             bindingID: mission.bindingID,
             audioSHA256: mission.audioSHA256,
             routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            partialGPXBasename: "crashed-run-789.partial.gpx",
             condition: "A",
             phase: .running,
             startedAt: Date().addingTimeInterval(-300),
@@ -73,13 +85,12 @@ final class ActiveRunJournalTests: XCTestCase {
             audioIncidents: [],
             locationIncidents: []
         )
-        let encoder = JSONEncoder()
-        encoder.dateEncodingStrategy = .iso8601
-        let attemptData = try encoder.encode(attempt)
-        defaults.set(attemptData, forKey: ActiveRunJournal.journalKey)
+        let preJournal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        preJournal.save(attempt)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: preJournal.journalFileURL.path))
 
         // 2. Initialize AppModel (simulating app relaunch)
-        let model = AppModel(defaults: defaults)
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
 
         // 3. Verify evidence lock and restored aborted context
         XCTAssertTrue(model.evidenceCaptureLocked)
@@ -91,7 +102,8 @@ final class ActiveRunJournalTests: XCTestCase {
         XCTAssertFalse(restored.completed)
         XCTAssertTrue(restored.abortReason.contains("App relaunch recovery"))
 
-        // 4. Verify active journal key in defaults was cleared
+        // 4. Verify active journal file and defaults key were cleared
+        XCTAssertFalse(FileManager.default.fileExists(atPath: preJournal.journalFileURL.path))
         XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
     }
 
@@ -105,9 +117,10 @@ final class ActiveRunJournalTests: XCTestCase {
         try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: docDir) }
 
-        // Set invalid data in active journal key
-        let corruptedData = Data("corrupted json data".utf8)
-        defaults.set(corruptedData, forKey: ActiveRunJournal.journalKey)
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        // Write corrupted data directly to active_run_journal.json
+        let corruptedData = Data("corrupted json content".utf8)
+        try corruptedData.write(to: journal.journalFileURL)
 
         let model = AppModel(defaults: defaults, documentsDirectory: docDir)
 
@@ -115,32 +128,55 @@ final class ActiveRunJournalTests: XCTestCase {
         XCTAssertTrue(model.journalCorrupted)
         XCTAssertNotNil(model.journalErrorBanner)
 
-        // Verify corrupted file was quarantined
-        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        // Verify corrupted file was removed from main path and quarantined
+        XCTAssertFalse(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
         XCTAssertTrue(FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path))
         let files = try FileManager.default.contentsOfDirectory(atPath: journal.quarantineDirectoryURL.path)
         XCTAssertEqual(files.count, 1)
+        XCTAssertTrue(files.first?.hasPrefix("corrupted-journal-") == true)
 
-        // Reset quarantine
+        // Reset quarantine via model UI flow
         model.resetJournalQuarantine()
         XCTAssertFalse(FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path))
         XCTAssertFalse(model.journalCorrupted)
+        XCTAssertNil(model.journalErrorBanner)
     }
 
     @MainActor
-    func testCorruptedJournalFailsClosed() throws {
+    func testUnsupportedSchemaVersionJournalRelocatedToQuarantine() throws {
         let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        // Set invalid data in active journal key
-        defaults.set(Data("corrupted json data".utf8), forKey: ActiveRunJournal.journalKey)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
 
-        let model = AppModel(defaults: defaults)
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        let invalidSchemaAttempt = ActiveRunAttempt(
+            schemaVersion: "99.9",
+            runID: "invalid-schema-run",
+            missionID: "m01",
+            bindingID: "b01",
+            audioSHA256: "sha256",
+            routeWorkoutFingerprint: "fp",
+            phase: .running,
+            startedAt: Date()
+        )
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let data = try encoder.encode(invalidSchemaAttempt)
+        try data.write(to: journal.journalFileURL)
 
-        XCTAssertTrue(model.evidenceCaptureLocked)
-        XCTAssertTrue(model.journalCorrupted)
-        XCTAssertNotNil(model.journalErrorBanner)
+        let result = journal.loadJournal()
+        if case .corrupted(let reason) = result {
+            XCTAssertTrue(reason.contains("Unsupported active journal schema version 99.9"))
+        } else {
+            XCTFail("Expected .corrupted result")
+        }
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path))
     }
 
     @MainActor
@@ -149,10 +185,14 @@ final class ActiveRunJournalTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
 
-        let journal = ActiveRunJournal(defaults: defaults)
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
         let attempt = ActiveRunAttempt(
             schemaVersion: "0.1",
             runID: "normal-run",
@@ -160,6 +200,7 @@ final class ActiveRunJournalTests: XCTestCase {
             bindingID: mission.bindingID,
             audioSHA256: mission.audioSHA256,
             routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            partialGPXBasename: "normal-run.partial.gpx",
             condition: "A",
             phase: .running,
             startedAt: Date(),
@@ -169,9 +210,126 @@ final class ActiveRunJournalTests: XCTestCase {
         )
         journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
 
         journal.clear()
         XCTAssertNil(journal.currentAttempt)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
         XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
+    }
+
+    @MainActor
+    func testDurableDebriefEnqueuedBeforeJournalClear() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let model = AppModel(defaults: defaults)
+        let mission = try XCTUnwrap(model.mission)
+        let nextWorkout = Date().addingTimeInterval(48 * 3600)
+
+        // 1. Test natural finish action sequence
+        var sm1 = SessionStateMachine(initialState: .running(
+            runID: "run-finish",
+            startedAt: Date(),
+            runStartedAt: Date(),
+            pauseCount: 0,
+            isPlaying: true
+        ))
+        let samples = [
+            TrackSample(latitude: -33.0472, longitude: -71.6127, elevation: 10.0, horizontalAccuracy: 5.0, timestamp: Date()),
+            TrackSample(latitude: -33.0473, longitude: -71.6128, elevation: 11.0, horizontalAccuracy: 5.0, timestamp: Date().addingTimeInterval(10))
+        ]
+        let sampleTrack = try TrackSummary.make(fileName: "test.gpx", samples: samples)
+        let actionsFinish = sm1.handle(
+            event: .audioFinishedNaturally(
+                summary: sampleTrack,
+                routeTraversal: nil,
+                audioIncidents: [],
+                locationIncidents: [],
+                elapsed: 1800
+            ),
+            mission: mission,
+            precommittedNextWorkoutAt: nextWorkout
+        )
+
+        let debriefIndex1 = actionsFinish.firstIndex {
+            if case .scheduleDebrief = $0 { return true }
+            return false
+        }
+        let clearIndex1 = actionsFinish.firstIndex {
+            if case .clearJournal = $0 { return true }
+            return false
+        }
+
+        XCTAssertNotNil(debriefIndex1)
+        XCTAssertNotNil(clearIndex1)
+        XCTAssertTrue(debriefIndex1! < clearIndex1!, "scheduleDebrief must occur before clearJournal on finish")
+
+        // 2. Test user abort action sequence
+        var sm2 = SessionStateMachine(initialState: .running(
+            runID: "run-abort",
+            startedAt: Date(),
+            runStartedAt: Date(),
+            pauseCount: 0,
+            isPlaying: true
+        ))
+        let actionsAbort = sm2.handle(
+            event: .userAborted(
+                reason: "Test user abort",
+                summary: sampleTrack,
+                routeTraversal: nil,
+                audioIncidents: [],
+                locationIncidents: [],
+                elapsed: 300
+            ),
+            mission: mission,
+            precommittedNextWorkoutAt: nextWorkout
+        )
+
+        let debriefIndex2 = actionsAbort.firstIndex {
+            if case .scheduleDebrief = $0 { return true }
+            return false
+        }
+        let clearIndex2 = actionsAbort.firstIndex {
+            if case .clearJournal = $0 { return true }
+            return false
+        }
+
+        XCTAssertNotNil(debriefIndex2)
+        XCTAssertNotNil(clearIndex2)
+        XCTAssertTrue(debriefIndex2! < clearIndex2!, "scheduleDebrief must occur before clearJournal on abort")
+
+        // 3. Test crash recovery action sequence
+        var sm3 = SessionStateMachine(initialState: .ready)
+        let attempt = ActiveRunAttempt(
+            schemaVersion: "0.1",
+            runID: "recovered-run",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            partialGPXBasename: "recovered.partial.gpx",
+            phase: .running,
+            startedAt: Date()
+        )
+        let actionsCrash = sm3.handle(
+            event: .processCrashRecovered(attempt: attempt),
+            mission: mission,
+            precommittedNextWorkoutAt: nextWorkout
+        )
+
+        let debriefIndex3 = actionsCrash.firstIndex {
+            if case .scheduleDebrief = $0 { return true }
+            return false
+        }
+        let clearIndex3 = actionsCrash.firstIndex {
+            if case .clearJournal = $0 { return true }
+            return false
+        }
+
+        XCTAssertNotNil(debriefIndex3)
+        XCTAssertNotNil(clearIndex3)
+        XCTAssertTrue(debriefIndex3! < clearIndex3!, "scheduleDebrief must occur before clearJournal on crash recovery")
     }
 }

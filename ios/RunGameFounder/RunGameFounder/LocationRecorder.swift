@@ -41,6 +41,8 @@ final class LocationRecorder: NSObject, ObservableObject, @preconcurrency CLLoca
 
     var hasFullAccuracy: Bool { accuracyAuthorization == .fullAccuracy }
 
+    var partialGPXBasename: String? { recoveryURL?.lastPathComponent }
+
     func requestPermission() {
         manager.requestWhenInUseAuthorization()
     }

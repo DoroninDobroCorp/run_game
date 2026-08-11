@@ -260,7 +260,9 @@ final class SessionStateMachineTests: XCTestCase {
         XCTAssertEqual(actions[0], .cancelFirstFixTimer)
         XCTAssertEqual(actions[1], .stopAudioPlayback)
         XCTAssertEqual(actions[2], .stopGPSRecording(completed: false))
-        XCTAssertEqual(actions[3], .clearJournal)
+        let containsScheduleDebrief = actions.contains { if case .scheduleDebrief = $0 { return true }; return false }
+        XCTAssertTrue(containsScheduleDebrief)
+        XCTAssertEqual(actions[4], .clearJournal)
         XCTAssertEqual(actions[5], .setStatusMessage("Audio session interrupted: Incoming phone call"))
     }
 
@@ -431,9 +433,9 @@ final class SessionStateMachineTests: XCTestCase {
         }
 
         XCTAssertEqual(actions.count, 2)
-        XCTAssertEqual(actions[0], .clearJournal)
         let containsScheduleDebrief = actions.contains { if case .scheduleDebrief = $0 { return true }; return false }
         XCTAssertTrue(containsScheduleDebrief)
+        XCTAssertEqual(actions[1], .clearJournal)
     }
 
     // MARK: - Helper Methods
