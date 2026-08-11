@@ -640,6 +640,18 @@ struct ImmediateDebriefEvidence: Codable {
     let placeNecessity1To7: Int
     let predictedNextTwist: String
     let nextWorkoutStillScheduled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case missionGoalInOneSentence = "mission_goal_in_one_sentence"
+        case momentCompanionBecameImportant = "moment_companion_became_important"
+        case unaidedMemorableScene = "unaided_memorable_scene"
+        case attentionDropMoment = "attention_drop_moment"
+        case whatPhysicalMovementChanged = "what_physical_movement_changed"
+        case desireForM02_1To7 = "desire_for_m02_1_to_7"
+        case placeNecessity1To7 = "place_necessity_1_to_7"
+        case predictedNextTwist = "predicted_next_twist"
+        case nextWorkoutStillScheduled = "next_workout_still_scheduled"
+    }
 }
 
 struct RecallAfter24HoursEvidence: Codable {
@@ -713,6 +725,25 @@ struct RecallCompletionRecord: Codable {
     let unaidedPlaceRecall: [String]
     let desireForM02_1To7: Int
     let evidenceLimits: [String]
+
+    enum CodingKeys: String, CodingKey {
+        case schemaVersion = "schema_version"
+        case recordStatus = "record_status"
+        case participantID = "participant_id"
+        case runID = "run_id"
+        case bindingID = "binding_id"
+        case missionID = "mission_id"
+        case condition
+        case audioSHA256 = "audio_sha256"
+        case routeWorkoutFingerprint = "route_workout_fingerprint"
+        case runEndedAtLocal = "run_ended_at_local"
+        case dueAtLocal = "due_at_local"
+        case completedAtLocal = "completed_at_local"
+        case unaidedStoryRecall = "unaided_story_recall"
+        case unaidedPlaceRecall = "unaided_place_recall"
+        case desireForM02_1To7 = "desire_for_m02_1_to_7"
+        case evidenceLimits = "evidence_limits"
+    }
 
     init(
         schemaVersion: String,

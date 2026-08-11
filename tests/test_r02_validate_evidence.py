@@ -22,11 +22,11 @@ from tools.r02_validate_evidence import (
 
 
 class TestR02ValidateEvidence(unittest.TestCase):
-    """Test suite for schema 0.3 immediate and recall evidence validation."""
+    """Test suite for schema 0.4 immediate and 0.3 recall evidence validation."""
 
     def setUp(self) -> None:
         self.valid_immediate_dict = {
-            "schema_version": "0.3",
+            "schema_version": "0.4",
             "record_status": "immediate_complete",
             "participant_id": "participant_founder_001",
             "run_id": "run-12345",
@@ -105,7 +105,7 @@ class TestR02ValidateEvidence(unittest.TestCase):
         }
 
         self.valid_recall_dict = {
-            "schema_version": "0.2",
+            "schema_version": "0.3",
             "record_status": "recall_24h_complete",
             "participant_id": "participant_founder_001",
             "run_id": "run-12345",
@@ -128,6 +128,51 @@ class TestR02ValidateEvidence(unittest.TestCase):
         self.assertTrue(res["valid"])
         self.assertEqual(res["type"], "immediate_debrief")
         self.assertFalse(res["confound_delayed_debrief"])
+
+    def test_valid_aborted_immediate_debrief_passes(self) -> None:
+        """VAL-VALIDATOR-005: Aborted completed immediate debrief with abort=True and runtime.completed=False passes."""
+        aborted_data = json.loads(json.dumps(self.valid_immediate_dict))
+        aborted_data["safety"]["abort"] = True
+        aborted_data["safety"]["abort_reason"] = "Hardware malfunction required safety halt"
+        aborted_data["runtime"]["completed"] = False
+        aborted_data["track"] = None
+
+        res = validate_immediate_debrief(aborted_data)
+        self.assertTrue(res["valid"])
+        self.assertEqual(res["type"], "immediate_debrief")
+        self.assertEqual(res["record_status"], "immediate_complete")
+
+    def test_valid_aborted_immediate_debrief_with_partial_track_passes(self) -> None:
+        """VAL-VALIDATOR-005: Aborted completed immediate debrief with partial GPX summary passes."""
+        aborted_data = json.loads(json.dumps(self.valid_immediate_dict))
+        aborted_data["safety"]["abort"] = True
+        aborted_data["safety"]["abort_reason"] = "User aborted after 10 minutes"
+        aborted_data["runtime"]["completed"] = False
+
+        res = validate_immediate_debrief(aborted_data)
+        self.assertTrue(res["valid"])
+
+    def test_aborted_immediate_debrief_rejects_empty_abort_reason(self) -> None:
+        """VAL-VALIDATOR-005: Aborted immediate debrief without non-empty abort_reason is rejected."""
+        aborted_data = json.loads(json.dumps(self.valid_immediate_dict))
+        aborted_data["safety"]["abort"] = True
+        aborted_data["safety"]["abort_reason"] = "   "
+        aborted_data["runtime"]["completed"] = False
+
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(aborted_data)
+        self.assertIn("aborted immediate debrief requires non-empty safety.abort_reason", str(ctx.exception))
+
+    def test_aborted_immediate_debrief_rejects_runtime_completed_true(self) -> None:
+        """VAL-VALIDATOR-005: Aborted immediate debrief with runtime.completed=True is rejected."""
+        aborted_data = json.loads(json.dumps(self.valid_immediate_dict))
+        aborted_data["safety"]["abort"] = True
+        aborted_data["safety"]["abort_reason"] = "Aborted run"
+        aborted_data["runtime"]["completed"] = True
+
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(aborted_data)
+        self.assertIn("run cannot be both aborted", str(ctx.exception))
 
     def test_valid_recall_record_passes(self) -> None:
         res = validate_recall_record(self.valid_recall_dict)
@@ -159,7 +204,7 @@ class TestR02ValidateEvidence(unittest.TestCase):
         self.assertIn("missing or empty required field 'participant_id'", str(ctx.exception))
 
     def test_reject_duplicate_keys(self) -> None:
-        json_str = '{"schema_version": "0.3", "schema_version": "0.3", "run_id": "123"}'
+        json_str = '{"schema_version": "0.4", "schema_version": "0.4", "run_id": "123"}'
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
             f.write(json_str)
             f_path = Path(f.name)
@@ -173,7 +218,7 @@ class TestR02ValidateEvidence(unittest.TestCase):
 
     def test_reject_nan_infinity(self) -> None:
         for val in ["NaN", "Infinity", "-Infinity"]:
-            json_str = f'{{"schema_version": "0.3", "recording_delay_seconds": {val}}}'
+            json_str = f'{{"schema_version": "0.4", "recording_delay_seconds": {val}}}'
             with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
                 f.write(json_str)
                 f_path = Path(f.name)

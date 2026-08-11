@@ -551,4 +551,256 @@ final class FounderAppTests: XCTestCase {
         let data = try JSONSerialization.data(withJSONObject: object)
         return try JSONDecoder().decode(MissionConfig.self, from: data)
     }
+
+    func testHostSideSwiftToPythonBridge_SuccessfulPairAndAbortedDebriefValidatesWithExitCode0() throws {
+        let repoRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let validatorScript = repoRoot.appendingPathComponent("tools/r02_validate_evidence.py")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: validatorScript.path), "r02_validate_evidence.py must exist")
+
+        let pythonPath: String = {
+            if let envPython = ProcessInfo.processInfo.environment["PYTHON"],
+               FileManager.default.isExecutableFile(atPath: envPython) {
+                return envPython
+            }
+            if FileManager.default.isExecutableFile(atPath: "/usr/bin/python3") {
+                return "/usr/bin/python3"
+            }
+            return "/usr/bin/python3"
+        }()
+
+        func runValidator(args: [String]) throws -> (exitCode: Int32, stdout: String, stderr: String) {
+            guard let taskClass = NSClassFromString("NSTask") as? NSObject.Type else {
+                XCTFail("NSTask class not found in runtime")
+                return (-1, "", "NSTask unavailable")
+            }
+            let task = taskClass.init()
+            task.setValue(pythonPath, forKey: "launchPath")
+            task.setValue([validatorScript.path] + args, forKey: "arguments")
+
+            guard let pipeClass = NSClassFromString("NSPipe") as? NSObject.Type else {
+                XCTFail("NSPipe class not found in runtime")
+                return (-1, "", "NSPipe unavailable")
+            }
+            let outPipe = pipeClass.init()
+            let errPipe = pipeClass.init()
+            task.setValue(outPipe, forKey: "standardOutput")
+            task.setValue(errPipe, forKey: "standardError")
+
+            task.perform(NSSelectorFromString("launch"))
+            task.perform(NSSelectorFromString("waitUntilExit"))
+
+            let exitCode = (task.value(forKey: "terminationStatus") as? Int32) ?? -1
+            let outHandle = outPipe.value(forKey: "fileHandleForReading") as! FileHandle
+            let errHandle = errPipe.value(forKey: "fileHandleForReading") as! FileHandle
+
+            let outData = outHandle.readDataToEndOfFile()
+            let errData = errHandle.readDataToEndOfFile()
+            return (
+                exitCode,
+                String(data: outData, encoding: .utf8) ?? "",
+                String(data: errData, encoding: .utf8) ?? ""
+            )
+        }
+
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // 1. Successful pair validation
+        let endedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let recordedAt = endedAt.addingTimeInterval(300)
+        let dueAt = endedAt.addingTimeInterval(86400)
+        let completedAt = dueAt.addingTimeInterval(600)
+
+        let successfulDebrief = DebriefRecord(
+            schemaVersion: "0.4",
+            recordStatus: "immediate_complete",
+            participantID: "participant_founder_bridge_001",
+            runID: "bridge-success-run",
+            bindingID: "valparaiso_central",
+            missionID: "m01",
+            condition: "A",
+            participantRole: "founder",
+            startedAtLocal: endedAt.addingTimeInterval(-1800),
+            endedAtLocal: endedAt,
+            recordedAtLocal: recordedAt,
+            recordingDelaySeconds: 300,
+            precommittedNextWorkoutAtLocal: dueAt,
+            audioSHA256: String(repeating: "a", count: 64),
+            routeWorkoutFingerprint: String(repeating: "b", count: 64),
+            track: TrackSummary(
+                fileName: "bridge-success-run.gpx",
+                fileSHA256: String(repeating: "c", count: 64),
+                sampleCount: 50,
+                startedAt: endedAt.addingTimeInterval(-1800),
+                endedAt: endedAt,
+                durationSeconds: 1800,
+                distanceMeters: 2500,
+                meanHorizontalAccuracyMeters: 5,
+                maximumSampleGapSeconds: 10
+            ),
+            routeTraversalEvidence: nil,
+            safety: SafetyEvidence(
+                routeManuallyChecked: true,
+                abort: false,
+                abortReason: "",
+                neededScreenWhileMoving: false,
+                navConflicts: []
+            ),
+            runtime: RuntimeEvidence(
+                completed: true,
+                geoSlotsReached: ["slot1"],
+                geoFallbacksUsed: [],
+                missedOrLateCues: [],
+                operatorImprovisationUsed: false,
+                audioIncidents: [],
+                additionalAudioNotes: "",
+                offRouteIncidents: [],
+                pauseCount: 0,
+                locationIncidents: []
+            ),
+            immediateDebriefBeforeEdits: ImmediateDebriefEvidence(
+                missionGoalInOneSentence: "Goal sentence.",
+                momentCompanionBecameImportant: "Companion moment.",
+                unaidedMemorableScene: "Memorable scene.",
+                attentionDropMoment: "None.",
+                whatPhysicalMovementChanged: "Pace change.",
+                desireForM02_1To7: 6,
+                placeNecessity1To7: 7,
+                predictedNextTwist: "Plot twist.",
+                nextWorkoutStillScheduled: true
+            ),
+            recallAfter24h: RecallAfter24HoursEvidence(pending: true, instructions: "Recall in 24h"),
+            confounds: ConfoundEvidence(
+                unfamiliarCityNovelty: "",
+                fatigue: "",
+                noise: "",
+                weather: "",
+                routeQuality: "",
+                audioQuality: "",
+                elevationOrStairs: ""
+            ),
+            device: DeviceEvidence(
+                model: "iPhone 16 Pro",
+                systemName: "iOS",
+                systemVersion: "18.5",
+                headphones: "AirPods Pro",
+                lockScreenUsed: true,
+                lockScreenAnswerRecorded: true
+            ),
+            evidenceLimits: ["Bridge test"]
+        )
+
+        let successfulRecall = RecallCompletionRecord(
+            schemaVersion: "0.3",
+            recordStatus: "recall_24h_complete",
+            participantID: "participant_founder_bridge_001",
+            runID: "bridge-success-run",
+            bindingID: "valparaiso_central",
+            missionID: "m01",
+            condition: "A",
+            audioSHA256: String(repeating: "a", count: 64),
+            routeWorkoutFingerprint: String(repeating: "b", count: 64),
+            runEndedAtLocal: endedAt,
+            dueAtLocal: dueAt,
+            completedAtLocal: completedAt,
+            unaidedStoryRecall: "I remember Lea and the plaza.",
+            unaidedPlaceRecall: ["Plaza Sotomayor", "Muelle Prat"],
+            desireForM02_1To7: 6,
+            evidenceLimits: ["Recall completed in bridge test."]
+        )
+
+        let immURL = tempDir.appendingPathComponent("immediate-success.json")
+        let recURL = tempDir.appendingPathComponent("recall-success.json")
+        try JSONEncoder.evidence.encode(successfulDebrief).write(to: immURL)
+        try JSONEncoder.evidence.encode(successfulRecall).write(to: recURL)
+
+        let pairResult = try runValidator(args: ["--immediate", immURL.path, "--recall", recURL.path])
+        XCTAssertEqual(pairResult.exitCode, 0, "Python validator failed on successful pair: \(pairResult.stderr)")
+        XCTAssertTrue(pairResult.stdout.contains("[PASS]"), "Validator output should contain [PASS]: \(pairResult.stdout)")
+
+        // 2. Aborted completed immediate debrief validation
+        let abortedEndedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let abortedRecordedAt = abortedEndedAt.addingTimeInterval(200)
+
+        let abortedDebrief = DebriefRecord(
+            schemaVersion: "0.4",
+            recordStatus: "immediate_complete",
+            participantID: "participant_founder_bridge_002",
+            runID: "bridge-aborted-run",
+            bindingID: "valparaiso_central",
+            missionID: "m01",
+            condition: "A",
+            participantRole: "founder",
+            startedAtLocal: abortedEndedAt.addingTimeInterval(-300),
+            endedAtLocal: abortedEndedAt,
+            recordedAtLocal: abortedRecordedAt,
+            recordingDelaySeconds: 200,
+            precommittedNextWorkoutAtLocal: abortedEndedAt.addingTimeInterval(86400),
+            audioSHA256: String(repeating: "d", count: 64),
+            routeWorkoutFingerprint: String(repeating: "e", count: 64),
+            track: nil,
+            routeTraversalEvidence: nil,
+            safety: SafetyEvidence(
+                routeManuallyChecked: true,
+                abort: true,
+                abortReason: "Aborted run due to heavy rain and safety hazard",
+                neededScreenWhileMoving: false,
+                navConflicts: []
+            ),
+            runtime: RuntimeEvidence(
+                completed: false,
+                geoSlotsReached: [],
+                geoFallbacksUsed: [],
+                missedOrLateCues: [],
+                operatorImprovisationUsed: false,
+                audioIncidents: [],
+                additionalAudioNotes: "",
+                offRouteIncidents: [],
+                pauseCount: 0,
+                locationIncidents: []
+            ),
+            immediateDebriefBeforeEdits: ImmediateDebriefEvidence(
+                missionGoalInOneSentence: "Goal sentence.",
+                momentCompanionBecameImportant: "Companion moment.",
+                unaidedMemorableScene: "Memorable scene.",
+                attentionDropMoment: "None.",
+                whatPhysicalMovementChanged: "Pace change.",
+                desireForM02_1To7: 4,
+                placeNecessity1To7: 4,
+                predictedNextTwist: "Plot twist.",
+                nextWorkoutStillScheduled: false
+            ),
+            recallAfter24h: RecallAfter24HoursEvidence(pending: false, instructions: ""),
+            confounds: ConfoundEvidence(
+                unfamiliarCityNovelty: "",
+                fatigue: "",
+                noise: "",
+                weather: "Heavy rain",
+                routeQuality: "",
+                audioQuality: "",
+                elevationOrStairs: ""
+            ),
+            device: DeviceEvidence(
+                model: "iPhone 16 Pro",
+                systemName: "iOS",
+                systemVersion: "18.5",
+                headphones: "AirPods Pro",
+                lockScreenUsed: true,
+                lockScreenAnswerRecorded: true
+            ),
+            evidenceLimits: ["Bridge test aborted debrief"]
+        )
+
+        let abortedURL = tempDir.appendingPathComponent("immediate-aborted.json")
+        try JSONEncoder.evidence.encode(abortedDebrief).write(to: abortedURL)
+
+        let abortedResult = try runValidator(args: [abortedURL.path])
+        XCTAssertEqual(abortedResult.exitCode, 0, "Python validator failed on aborted debrief: \(abortedResult.stderr)")
+        XCTAssertTrue(abortedResult.stdout.contains("[PASS]"), "Validator output should contain [PASS]: \(abortedResult.stdout)")
+    }
 }

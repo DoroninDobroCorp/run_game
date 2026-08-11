@@ -257,11 +257,11 @@ class CrossContractPythonASTTests(unittest.TestCase):
             self.assertEqual(node.value, expected_val, f"{var_name} AST constant value mismatch")
 
         expected_schemas = {
-            "SCHEMA_VERSION_DEBRIEF": "0.3",
-            "SCHEMA_VERSION_JOURNAL": "0.1",
+            "SCHEMA_VERSION_DEBRIEF": "0.4",
+            "SCHEMA_VERSION_JOURNAL": "0.2",
             "SCHEMA_VERSION_WALKTHROUGH": "0.2",
             "SCHEMA_VERSION_AUDIO_APPROVAL": "0.2",
-            "SCHEMA_VERSION_RECALL": "0.2",
+            "SCHEMA_VERSION_RECALL": "0.3",
         }
 
         for var_name, expected_val in expected_schemas.items():
@@ -283,11 +283,11 @@ class CrossContractPythonASTTests(unittest.TestCase):
         self.assertEqual(MIN_WALKTHROUGH_DURATION_SEC, 120.0)
         self.assertEqual(MAX_SAMPLE_GAP_SEC, 120.0)
 
-        self.assertEqual(SCHEMA_VERSION_DEBRIEF, "0.3")
-        self.assertEqual(SCHEMA_VERSION_JOURNAL, "0.1")
+        self.assertEqual(SCHEMA_VERSION_DEBRIEF, "0.4")
+        self.assertEqual(SCHEMA_VERSION_JOURNAL, "0.2")
         self.assertEqual(SCHEMA_VERSION_WALKTHROUGH, "0.2")
         self.assertEqual(SCHEMA_VERSION_AUDIO_APPROVAL, "0.2")
-        self.assertEqual(SCHEMA_VERSION_RECALL, "0.2")
+        self.assertEqual(SCHEMA_VERSION_RECALL, "0.3")
 
 
 class CrossContractSwiftASTParityTests(unittest.TestCase):
@@ -384,7 +384,7 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.valid_immediate_dict = {
-            "schema_version": "0.3",
+            "schema_version": "0.4",
             "record_status": "immediate_complete",
             "participant_id": "participant_founder_001",
             "run_id": "run-parity-001",
@@ -463,7 +463,7 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
         }
 
         self.valid_recall_dict = {
-            "schema_version": "0.2",
+            "schema_version": "0.3",
             "record_status": "recall_24h_complete",
             "participant_id": "participant_founder_001",
             "run_id": "run-parity-001",
@@ -487,7 +487,7 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
         data["schema_version"] = "9.9"
         with self.assertRaises(ValidationError) as ctx:
             validate_immediate_debrief(data)
-        self.assertIn("expected schema_version '0.3'", str(ctx.exception))
+        self.assertIn("expected schema_version '0.4'", str(ctx.exception))
 
     def test_negative_malformed_sha256_rejected(self) -> None:
         """Negative test: malformed audio SHA256 string is rejected."""
@@ -592,7 +592,7 @@ class CrossContractDisproofTests(unittest.TestCase):
 
     def setUp(self) -> None:
         self.base_immediate = {
-            "schema_version": "0.3",
+            "schema_version": "0.4",
             "record_status": "immediate_complete",
             "participant_id": "participant_founder_001",
             "run_id": "run-disproof-001",
@@ -668,12 +668,12 @@ class CrossContractDisproofTests(unittest.TestCase):
         }
 
     def test_disproof_schema_version_change_causes_failure(self) -> None:
-        """Disproof test: modifying schema_version in payload from 0.3 to 0.4 causes validation failure."""
+        """Disproof test: modifying schema_version in payload from 0.4 to 0.5 causes validation failure."""
         mutated = dict(self.base_immediate)
-        mutated["schema_version"] = "0.4"
+        mutated["schema_version"] = "0.5"
         with self.assertRaises(ValidationError) as ctx:
             validate_immediate_debrief(mutated)
-        self.assertIn("expected schema_version '0.3'", str(ctx.exception))
+        self.assertIn("expected schema_version '0.4'", str(ctx.exception))
 
     def test_disproof_recording_delay_mismatch_causes_failure(self) -> None:
         """Disproof test: modifying recording_delay_seconds so it diverges from timestamps causes validation failure."""

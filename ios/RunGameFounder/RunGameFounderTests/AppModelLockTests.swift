@@ -131,6 +131,127 @@ final class AppModelLockTests: XCTestCase {
     }
 
     @MainActor
+    func testAbortedImmediateDebriefRecordSemantics_EncodesImmediateCompleteRuntimeCompletedFalseSafetyAbortTrueAndSuppressesRecall() throws {
+        let suiteName = "AppModelLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
+        let mission = try XCTUnwrap(model.mission)
+
+        let endedAt = Date()
+        let abortedContext = RunSessionContext(
+            runID: "test-aborted-debrief-semantics",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            condition: "A",
+            startedAt: endedAt.addingTimeInterval(-200),
+            endedAt: endedAt,
+            precommittedNextWorkoutAt: endedAt.addingTimeInterval(86400),
+            completed: false,
+            aborted: true,
+            abortReason: "Participant experienced muscle strain",
+            audioElapsedSeconds: 200,
+            pauseCount: 0,
+            track: nil,
+            routeTraversalEvidence: nil,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+
+        // Schedule debrief for aborted run
+        try model.scheduleDebrief(for: abortedContext)
+        XCTAssertEqual(model.pendingDebriefs.count, 1)
+
+        // Construct completed immediate debrief record for aborted run
+        let debriefRecord = DebriefRecord(
+            schemaVersion: "0.4",
+            recordStatus: "immediate_complete",
+            participantID: abortedContext.participantID,
+            runID: abortedContext.runID,
+            bindingID: abortedContext.bindingID,
+            missionID: abortedContext.missionID,
+            condition: abortedContext.condition,
+            participantRole: "founder",
+            startedAtLocal: abortedContext.startedAt,
+            endedAtLocal: abortedContext.endedAt,
+            recordedAtLocal: endedAt.addingTimeInterval(100),
+            recordingDelaySeconds: 100,
+            precommittedNextWorkoutAtLocal: abortedContext.precommittedNextWorkoutAt,
+            audioSHA256: abortedContext.audioSHA256,
+            routeWorkoutFingerprint: abortedContext.routeWorkoutFingerprint,
+            track: nil,
+            routeTraversalEvidence: nil,
+            safety: SafetyEvidence(
+                routeManuallyChecked: true,
+                abort: abortedContext.aborted,
+                abortReason: abortedContext.abortReason,
+                neededScreenWhileMoving: false,
+                navConflicts: []
+            ),
+            runtime: RuntimeEvidence(
+                completed: abortedContext.completed && !abortedContext.aborted,
+                geoSlotsReached: [],
+                geoFallbacksUsed: [],
+                missedOrLateCues: [],
+                operatorImprovisationUsed: false,
+                audioIncidents: [],
+                additionalAudioNotes: "",
+                offRouteIncidents: [],
+                pauseCount: 0,
+                locationIncidents: []
+            ),
+            immediateDebriefBeforeEdits: ImmediateDebriefEvidence(
+                missionGoalInOneSentence: "Goal",
+                momentCompanionBecameImportant: "Moment",
+                unaidedMemorableScene: "Scene",
+                attentionDropMoment: "None",
+                whatPhysicalMovementChanged: "Pace",
+                desireForM02_1To7: 4,
+                placeNecessity1To7: 4,
+                predictedNextTwist: "Twist",
+                nextWorkoutStillScheduled: false
+            ),
+            recallAfter24h: RecallAfter24HoursEvidence(pending: false, instructions: ""),
+            confounds: ConfoundEvidence(
+                unfamiliarCityNovelty: "",
+                fatigue: "High fatigue",
+                noise: "",
+                weather: "",
+                routeQuality: "",
+                audioQuality: "",
+                elevationOrStairs: ""
+            ),
+            device: DeviceEvidence(
+                model: "iPhone 16 Pro",
+                systemName: "iOS",
+                systemVersion: "18.5",
+                headphones: "AirPods Pro",
+                lockScreenUsed: true,
+                lockScreenAnswerRecorded: true
+            ),
+            evidenceLimits: ["Aborted debrief test"]
+        )
+
+        // Verify semantics
+        XCTAssertEqual(debriefRecord.recordStatus, "immediate_complete")
+        XCTAssertEqual(debriefRecord.schemaVersion, "0.4")
+        XCTAssertFalse(debriefRecord.runtime.completed)
+        XCTAssertTrue(debriefRecord.safety.abort)
+        XCTAssertFalse(debriefRecord.safety.abortReason.isEmpty)
+
+        // Complete debrief in AppModel and verify NO 24h recall is generated
+        try model.completeDebrief(runID: abortedContext.runID)
+        XCTAssertTrue(model.pendingDebriefs.isEmpty)
+        XCTAssertTrue(model.pendingRecalls.isEmpty)
+    }
+
+    @MainActor
     func testLocalEvidenceURLsExcludesDraftsAndPartialGPX() throws {
         let suiteName = "AppModelLockTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!

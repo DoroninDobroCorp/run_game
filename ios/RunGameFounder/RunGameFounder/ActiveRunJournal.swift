@@ -43,7 +43,7 @@ struct ActiveRunAttempt: Codable, Equatable {
     }
 
     init(
-        schemaVersion: String = "0.1",
+        schemaVersion: String = "0.2",
         participantID: String = "participant_founder_default",
         runID: String,
         missionID: String,
@@ -146,7 +146,7 @@ final class ActiveRunJournal {
 
         do {
             let attempt = try decoder.decode(ActiveRunAttempt.self, from: data)
-            guard attempt.schemaVersion == "0.1" else {
+            guard attempt.schemaVersion == "0.2" else {
                 let reason = "Unsupported active journal schema version \(attempt.schemaVersion)"
                 _ = try? quarantineCorruptedJournal(reason: reason, rawData: data)
                 return .corrupted(reason)

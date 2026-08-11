@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""Fail-closed validator for schema 0.3 immediate debrief and 24h recall JSON evidence files.
+"""Fail-closed validator for schema 0.4 immediate debrief and 0.3 24h recall JSON evidence files.
 
 Fulfills assertions VAL-VALIDATOR-001 and VAL-VALIDATOR-002.
 
 Validates:
 - Duplicate JSON keys rejection
 - Non-finite numbers (NaN/Infinity) rejection
-- Schema 0.3 for immediate debrief records (recordStatus == "immediate_complete" or "draft_incomplete")
-- Schema 0.2 for recall records (recordStatus == "recall_24h_complete" or "recall_24h_draft")
+- Schema 0.4 for immediate debrief records (recordStatus == "immediate_complete" or "draft_incomplete")
+- Schema 0.3 for recall records (recordStatus == "recall_24h_complete" or "recall_24h_draft")
 - SHA256 hex string format enforcement (64 hex characters)
 - Likert score range enforcement (1..7) for integer scores
 - Timestamp ordering and delay calculations (recordingDelaySeconds, completedAtLocal >= dueAtLocal)
@@ -130,7 +130,7 @@ def _timestamp_to_seconds(value: str) -> float:
 
 
 def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
-    """Validate a schema 0.3 immediate debrief JSON structure."""
+    """Validate a schema 0.4 immediate debrief JSON structure."""
     if not isinstance(data, dict):
         raise ValidationError("root payload must be a JSON object")
 
@@ -219,6 +219,10 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(safety_abort, bool):
         raise ValidationError("safety.abort must be a boolean")
 
+    abort_reason = safety.get("abort_reason")
+    if abort_reason is not None and not isinstance(abort_reason, str):
+        raise ValidationError("safety.abort_reason must be a string")
+
     runtime = data.get("runtime")
     if not isinstance(runtime, dict):
         raise ValidationError("missing or invalid runtime object")
@@ -230,10 +234,14 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
         raise ValidationError("run cannot be both aborted (safety.abort=True) and completed (runtime.completed=True)")
 
     if record_status == "immediate_complete":
-        if not runtime_completed:
-            raise ValidationError("record_status 'immediate_complete' requires runtime.completed to be True")
         if safety_abort:
-            raise ValidationError("record_status 'immediate_complete' requires safety.abort to be False")
+            if runtime_completed:
+                raise ValidationError("aborted run must have runtime.completed set to False")
+            if not isinstance(abort_reason, str) or not abort_reason.strip():
+                raise ValidationError("aborted immediate debrief requires non-empty safety.abort_reason")
+        else:
+            if not runtime_completed:
+                raise ValidationError("non-aborted immediate_complete record requires runtime.completed to be True")
 
     # Device
     device = data.get("device")
@@ -250,11 +258,9 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
 
     # Track Summary check
     track = data.get("track")
-    if record_status == "immediate_complete" or runtime_completed:
+    if runtime_completed:
         if track is None or not isinstance(track, dict):
             raise ValidationError("completed record requires a valid track summary object")
-        if safety_abort:
-            raise ValidationError("completed record cannot be marked as aborted (safety.abort=True)")
 
     if track is not None:
         if not isinstance(track, dict):
@@ -291,7 +297,7 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_recall_record(data: dict[str, Any]) -> dict[str, Any]:
-    """Validate a schema 0.2 24h recall JSON structure."""
+    """Validate a schema 0.3 24h recall JSON structure."""
     if not isinstance(data, dict):
         raise ValidationError("root payload must be a JSON object")
 

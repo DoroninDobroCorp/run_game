@@ -268,7 +268,7 @@ struct DebriefView: View {
         let recordedAt = Date()
         let delay = recordedAt.timeIntervalSince(context.endedAt)
         return DebriefRecord(
-            schemaVersion: "0.3",
+            schemaVersion: "0.4",
             recordStatus: status,
             participantID: context.participantID,
             runID: context.runID,
@@ -461,7 +461,7 @@ struct DebriefView: View {
         let url = evidenceURL(missionID: missionID, runID: runID, suffix: suffix)
         guard let data = try? Data(contentsOf: url),
               let record = try? JSONDecoder.evidence.decode(DebriefRecord.self, from: data),
-              record.schemaVersion == "0.3" || record.schemaVersion == "0.2",
+              record.schemaVersion == "0.4" || record.schemaVersion == "0.3",
               record.recordStatus == expectedStatus,
               record.participantID == context.participantID,
               record.runID == context.runID,
@@ -608,7 +608,7 @@ struct RecallView: View {
 
     private func makeRecord(status: String) -> RecallCompletionRecord {
         RecallCompletionRecord(
-            schemaVersion: "0.2",
+            schemaVersion: "0.3",
             recordStatus: status,
             participantID: record.participantID,
             runID: record.runID,
@@ -685,7 +685,7 @@ struct RecallView: View {
         let url = evidenceURL(record: record, suffix: suffix)
         guard let data = try? Data(contentsOf: url),
               let completion = try? JSONDecoder.evidence.decode(RecallCompletionRecord.self, from: data),
-              completion.schemaVersion == "0.2",
+              completion.schemaVersion == "0.3",
               completion.recordStatus == expectedStatus,
               completion.participantID == record.participantID,
               completion.runID == record.runID,
@@ -706,7 +706,7 @@ struct RecallView: View {
     }
 }
 
-private extension JSONEncoder {
+extension JSONEncoder {
     static var evidence: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
@@ -716,7 +716,7 @@ private extension JSONEncoder {
     }
 }
 
-private extension JSONDecoder {
+extension JSONDecoder {
     static var evidence: JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601

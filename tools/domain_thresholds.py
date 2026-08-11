@@ -23,8 +23,8 @@ MIN_WALKTHROUGH_DURATION_SEC: float = 120.0  # Minimum walkthrough duration
 MAX_SAMPLE_GAP_SEC: float = 120.0      # Maximum allowed gap between consecutive GPS samples
 
 # Schema versions
-SCHEMA_VERSION_DEBRIEF: str = "0.3"
-SCHEMA_VERSION_JOURNAL: str = "0.1"
+SCHEMA_VERSION_DEBRIEF: str = "0.4"
+SCHEMA_VERSION_JOURNAL: str = "0.2"
 SCHEMA_VERSION_WALKTHROUGH: str = "0.2"
 SCHEMA_VERSION_AUDIO_APPROVAL: str = "0.2"
-SCHEMA_VERSION_RECALL: str = "0.2"
+SCHEMA_VERSION_RECALL: str = "0.3"

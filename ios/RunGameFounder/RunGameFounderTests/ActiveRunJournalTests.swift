@@ -21,7 +21,7 @@ final class ActiveRunJournalTests: XCTestCase {
         XCTAssertNil(journal.currentAttempt)
 
         let attempt = ActiveRunAttempt(
-            schemaVersion: "0.1",
+            schemaVersion: "0.2",
             runID: "test-run-123",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
@@ -47,7 +47,7 @@ final class ActiveRunJournalTests: XCTestCase {
         let jsonDict = try JSONSerialization.jsonObject(with: fileData) as! [String: Any]
 
         XCTAssertEqual(jsonDict["run_id"] as? String, "test-run-123")
-        XCTAssertEqual(jsonDict["schema_version"] as? String, "0.1")
+        XCTAssertEqual(jsonDict["schema_version"] as? String, "0.2")
         XCTAssertEqual(jsonDict["partial_gpx_basename"] as? String, "test-run-123.partial.gpx")
         XCTAssertNil(jsonDict["latitude"])
         XCTAssertNil(jsonDict["longitude"])
@@ -72,7 +72,7 @@ final class ActiveRunJournalTests: XCTestCase {
 
         // 1. Create an active run attempt in file-backed journal prior to AppModel init
         let attempt = ActiveRunAttempt(
-            schemaVersion: "0.1",
+            schemaVersion: "0.2",
             runID: "crashed-run-789",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
@@ -195,7 +195,7 @@ final class ActiveRunJournalTests: XCTestCase {
 
         let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
         let attempt = ActiveRunAttempt(
-            schemaVersion: "0.1",
+            schemaVersion: "0.2",
             runID: "normal-run",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
@@ -420,7 +420,7 @@ final class ActiveRunJournalTests: XCTestCase {
         // 3. Test crash recovery action sequence
         var sm3 = SessionStateMachine(initialState: .ready)
         let attempt = ActiveRunAttempt(
-            schemaVersion: "0.1",
+            schemaVersion: "0.2",
             runID: "recovered-run",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
@@ -550,7 +550,7 @@ final class ActiveRunJournalTests: XCTestCase {
         try gpxData.write(to: partialURL)
 
         let attempt = ActiveRunAttempt(
-            schemaVersion: "0.1",
+            schemaVersion: "0.2",
             runID: "recovered-run-456",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
@@ -591,7 +591,7 @@ final class ActiveRunJournalTests: XCTestCase {
         let mission = try XCTUnwrap(initialModel.mission)
 
         let attempt = ActiveRunAttempt(
-            schemaVersion: "0.1",
+            schemaVersion: "0.2",
             runID: "traversal-run-789",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
