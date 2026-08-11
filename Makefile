@@ -89,6 +89,11 @@ r02-story-validate:
 
 strict-ab-validate:
 	$(PYTHON) -m unittest tests/test_r02_build_master.py tests/test_r02_verify_field.py
+	@if [ -f "$(R02_FIXTURE)/audio/m01_solo_founder_30min_condition_b.manifest.json" ]; then \
+		$(PYTHON) tools/r02_verify_field.py --manifest $(R02_FIXTURE)/audio/m01_solo_founder_30min.manifest.json --compare-manifest $(R02_FIXTURE)/audio/m01_solo_founder_30min_condition_b.manifest.json; \
+	else \
+		$(PYTHON) tools/r02_verify_field.py --audio-dir $(R02_FIXTURE)/audio; \
+	fi
 
 r02-evidence-validate:
 	$(PYTHON) -m unittest tests/test_r02_validate_evidence.py

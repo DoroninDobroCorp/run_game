@@ -69,6 +69,13 @@ class MakefileTargetsTests(unittest.TestCase):
         self.assertIn("enableThreadSanitizer", tsan_block, "test-tsan must use -enableThreadSanitizer YES")
         self.assertIn("UNSUPPORTED", tsan_block, "test-tsan must report UNSUPPORTED if unavailable")
 
+    def test_strict_ab_validate_target_executes_verify_field(self) -> None:
+        """Verify strict-ab-validate target executes tools/r02_verify_field.py."""
+        match = re.search(r"^strict-ab-validate\s*:.*?(?=\n[a-zA-Z0-9_\.-]+\s*:|\Z)", self.content, re.MULTILINE | re.DOTALL)
+        self.assertIsNotNone(match, "strict-ab-validate target block must be found")
+        block = match.group(0)
+        self.assertIn("tools/r02_verify_field.py", block, "strict-ab-validate must execute tools/r02_verify_field.py")
+
     def test_verify_pretest_sequence(self) -> None:
         """Verify verify-pretest includes all required stages in sequence."""
         match = re.search(r"^verify-pretest\s*:\s*(.*)$", self.content, re.MULTILINE)
