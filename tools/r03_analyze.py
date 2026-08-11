@@ -104,6 +104,71 @@ def compute_cohens_d(group_a: List[float], group_b: List[float]) -> float:
     return (mean_a - mean_b) / s_pooled
 
 
+def compute_itt_risk_metrics(group_a: List[float], group_b: List[float]) -> Dict[str, Any]:
+    """Compute Intention-To-Treat (ITT) risk difference, risk ratio, and 95% confidence intervals."""
+    n_a = len(group_a)
+    n_b = len(group_b)
+    if n_a == 0 or n_b == 0:
+        return {
+            "n_assigned_A": n_a,
+            "events_A": 0,
+            "risk_A": 0.0,
+            "n_assigned_B": n_b,
+            "events_B": 0,
+            "risk_B": 0.0,
+            "risk_difference": 0.0,
+            "risk_difference_se": 0.0,
+            "risk_difference_ci_95": [0.0, 0.0],
+            "risk_ratio": 1.0,
+            "risk_ratio_ci_95": [1.0, 1.0],
+        }
+
+    k_a = sum(1 for x in group_a if x > 0.5)
+    k_b = sum(1 for x in group_b if x > 0.5)
+
+    p_a = k_a / n_a
+    p_b = k_b / n_b
+
+    # ITT Risk Difference
+    rd = p_a - p_b
+    se_rd = math.sqrt((p_a * (1.0 - p_a) / n_a) + (p_b * (1.0 - p_b) / n_b))
+    z = 1.959963984540054  # 95% two-sided Z-critical value
+
+    rd_ci_lower = max(-1.0, rd - z * se_rd)
+    rd_ci_upper = min(1.0, rd + z * se_rd)
+
+    # ITT Risk Ratio
+    rr = p_a / p_b if p_b > 0 else (float("inf") if p_a > 0 else 1.0)
+
+    # For RR 95% CI, use log transformation with Haldane-Anscombe continuity correction if zero/full events
+    if k_a == 0 or k_b == 0 or k_a == n_a or k_b == n_b:
+        a_c, n_ac = k_a + 0.5, n_a + 1.0
+        b_c, n_bc = k_b + 0.5, n_b + 1.0
+        p_ac, p_bc = a_c / n_ac, b_c / n_bc
+        ln_rr = math.log(p_ac / p_bc)
+        se_ln_rr = math.sqrt(((1.0 - p_ac) / a_c) + ((1.0 - p_bc) / b_c))
+    else:
+        ln_rr = math.log(p_a / p_b)
+        se_ln_rr = math.sqrt(((1.0 - p_a) / k_a) + ((1.0 - p_b) / k_b))
+
+    rr_ci_lower = math.exp(ln_rr - z * se_ln_rr)
+    rr_ci_upper = math.exp(ln_rr + z * se_ln_rr)
+
+    return {
+        "n_assigned_A": n_a,
+        "events_A": int(k_a),
+        "risk_A": round(p_a, 4),
+        "n_assigned_B": n_b,
+        "events_B": int(k_b),
+        "risk_B": round(p_b, 4),
+        "risk_difference": round(rd, 4),
+        "risk_difference_se": round(se_rd, 4),
+        "risk_difference_ci_95": [round(rd_ci_lower, 4), round(rd_ci_upper, 4)],
+        "risk_ratio": round(rr, 4) if not math.isinf(rr) else None,
+        "risk_ratio_ci_95": [round(rr_ci_lower, 4), round(rr_ci_upper, 4)],
+    }
+
+
 def generate_synthetic_ab_dataset(
     n_total: int = 100,
     seed: int = 42,
@@ -309,6 +374,11 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
             clean_groups[cond]["desire_m02_scores"].append(float(rec.get("desire_for_m02_1_to_7", 0)))
             clean_groups[cond]["place_necessity_scores"].append(float(imm.get("place_necessity_1_to_7", 0)))
 
+    # Compute ITT metrics for primary outcome (actual_next_workout_start) across ALL assigned participants
+    assigned_a_workout = [float(p.get("actual_next_workout_start", 0)) for p in participants if p.get("condition") == "A"]
+    assigned_b_workout = [float(p.get("actual_next_workout_start", 0)) for p in participants if p.get("condition") == "B"]
+    itt_workout_metrics = compute_itt_risk_metrics(assigned_a_workout, assigned_b_workout)
+
     # Compute outcomes and effect sizes
     group_a = clean_groups["A"]
     group_b = clean_groups["B"]
@@ -345,8 +415,29 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
         },
         "primary_outcomes": {
             "actual_next_workout_start": {
-                "condition_A": {"mean": round(mean_workout_a, 2), "std": round(std_workout_a, 2), "n": n_clean_a},
-                "condition_B": {"mean": round(mean_workout_b, 2), "std": round(std_workout_b, 2), "n": n_clean_b},
+                "metric": "binary",
+                "analysis_population": "intention_to_treat",
+                "condition_A": {
+                    "risk": itt_workout_metrics["risk_A"],
+                    "events": itt_workout_metrics["events_A"],
+                    "n_assigned": itt_workout_metrics["n_assigned_A"],
+                    "mean": round(mean_workout_a, 2),
+                    "std": round(std_workout_a, 2),
+                    "n": n_clean_a,
+                },
+                "condition_B": {
+                    "risk": itt_workout_metrics["risk_B"],
+                    "events": itt_workout_metrics["events_B"],
+                    "n_assigned": itt_workout_metrics["n_assigned_B"],
+                    "mean": round(mean_workout_b, 2),
+                    "std": round(std_workout_b, 2),
+                    "n": n_clean_b,
+                },
+                "risk_difference": itt_workout_metrics["risk_difference"],
+                "risk_difference_se": itt_workout_metrics["risk_difference_se"],
+                "risk_difference_ci_95": itt_workout_metrics["risk_difference_ci_95"],
+                "risk_ratio": itt_workout_metrics["risk_ratio"],
+                "risk_ratio_ci_95": itt_workout_metrics["risk_ratio_ci_95"],
                 "difference": round(mean_workout_a - mean_workout_b, 2),
                 "cohens_d": round(cohen_workout, 2),
             },

@@ -120,6 +120,57 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertTrue(len(r03_line) > 0, "R03 line must exist in EXECUTION_STATUS.md")
         self.assertIn("NOT_STARTED", r03_line[0])
 
+    def test_itt_risk_metrics_computation(self):
+        """Fulfills VAL-R03-002: verifies ITT risk difference and ratio with confidence intervals."""
+        group_a = [1.0] * 35 + [0.0] * 15  # Risk A = 0.70 (35/50)
+        group_b = [1.0] * 20 + [0.0] * 30  # Risk B = 0.40 (20/50)
+
+        res = r03_analyze.compute_itt_risk_metrics(group_a, group_b)
+        self.assertEqual(res["n_assigned_A"], 50)
+        self.assertEqual(res["events_A"], 35)
+        self.assertEqual(res["risk_A"], 0.7)
+        self.assertEqual(res["n_assigned_B"], 50)
+        self.assertEqual(res["events_B"], 20)
+        self.assertEqual(res["risk_B"], 0.4)
+        self.assertEqual(res["risk_difference"], 0.3)
+        self.assertAlmostEqual(res["risk_difference_se"], 0.0949, places=3)
+        self.assertEqual(len(res["risk_difference_ci_95"]), 2)
+        self.assertLess(res["risk_difference_ci_95"][0], 0.3)
+        self.assertGreater(res["risk_difference_ci_95"][1], 0.3)
+        self.assertEqual(res["risk_ratio"], 1.75)
+        self.assertEqual(len(res["risk_ratio_ci_95"]), 2)
+        self.assertLess(res["risk_ratio_ci_95"][0], 1.75)
+        self.assertGreater(res["risk_ratio_ci_95"][1], 1.75)
+
+    def test_itt_analysis_includes_all_assigned_participants(self):
+        """Fulfills VAL-R03-002: analyze_dataset computes ITT metrics over all assigned participants."""
+        dataset = r03_analyze.generate_synthetic_ab_dataset(n_total=40, seed=42)
+        # Mark 5 participants as aborted (excluded from per-protocol)
+        for i in range(5):
+            dataset["participants"][i]["session"]["aborted"] = True
+
+        report = r03_analyze.analyze_dataset(dataset)
+        outcome = report["primary_outcomes"]["actual_next_workout_start"]
+        self.assertEqual(outcome["analysis_population"], "intention_to_treat")
+        self.assertEqual(
+            outcome["condition_A"]["n_assigned"] + outcome["condition_B"]["n_assigned"],
+            40,
+            "ITT denominator must include all assigned participants (40), even aborted ones",
+        )
+        self.assertIn("risk_difference", outcome)
+        self.assertIn("risk_difference_ci_95", outcome)
+        self.assertIn("risk_ratio", outcome)
+        self.assertIn("risk_ratio_ci_95", outcome)
+
+    def test_preregistration_specifies_itt_analysis_plan(self):
+        """Fulfills VAL-R03-001 and VAL-R03-002: preregistration specifies ITT risk difference/ratio analysis."""
+        prereg_path = ROOT / "research" / "r03" / "preregistration.v0.1.json"
+        data = r03_analyze.load_strict_json(prereg_path)
+        plan = data.get("analysis_plan", {})
+        self.assertEqual(plan.get("analysis_population"), "intention_to_treat")
+        self.assertEqual(plan.get("primary_outcome_analysis"), "itt_risk_difference_and_ratio")
+        self.assertEqual(plan.get("confidence_interval"), 0.95)
+
 
 if __name__ == "__main__":
     unittest.main()

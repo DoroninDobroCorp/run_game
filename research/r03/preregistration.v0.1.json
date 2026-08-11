@@ -28,6 +28,12 @@
       "id": "actual_next_workout_start",
       "name": "Actual Next Workout Started Within 72 Hours (Binary 0/1)",
       "metric": "binary",
+      "analysis_population": "intention_to_treat",
+      "analysis_methods": [
+        "risk_difference",
+        "risk_ratio",
+        "confidence_intervals_95"
+      ],
       "min_value": 0,
       "max_value": 1
     }
@@ -74,6 +80,9 @@
     }
   ],
   "analysis_plan": {
+    "analysis_population": "intention_to_treat",
+    "primary_outcome_analysis": "itt_risk_difference_and_ratio",
+    "confidence_interval": 0.95,
     "compute_denominators": true,
     "compute_exclusions": true,
     "effect_size_metric": "cohens_d",
