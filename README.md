@@ -1,5 +1,8 @@
 # Run Game — Geo-Narrative Running Companion
 
+> **Human handoff:** Before installing on a physical iPhone, follow
+> [`HUMAN_FIRST_IPHONE_SMOKE_TEST.md`](./HUMAN_FIRST_IPHONE_SMOKE_TEST.md).
+
 > **Current Project Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`), Stages `R03`/`R04` `NOT_STARTED`
 > **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 > **Active Fixture:** Valparaíso Central, Chile (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins)
@@ -111,7 +114,7 @@ make r02-audit-privacy
 # Run Preflight Bundle & Asset Checks
 make r02-preflight
 
-# Run Python Unit Tests & Synthetic Harness (219 tests)
+# Run Python Unit Tests & Synthetic Harness (229 tests)
 make verify-synthetic
 
 # Run iOS Unit & UI Tests (iPhone 16 Pro Simulator)

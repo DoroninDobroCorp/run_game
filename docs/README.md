@@ -6,16 +6,19 @@
 
 ## Читать в таком порядке
 
-1. [GEO_NARRATIVE_PRODUCT_STRATEGY.md](./GEO_NARRATIVE_PRODUCT_STRATEGY.md) — текущее продуктовое решение, обещание и инвестиционные ворота.
-2. [R02_NARRATIVE_PROOF.md](./R02_NARRATIVE_PROOF.md) — текущее story-first решение R02, выбранная вселенная «Нулевой слой», трёхмиссионный граф и полевой следующий шаг.
-3. [GEO_NARRATIVE_TECHNICAL_SPEC.md](./GEO_NARRATIVE_TECHNICAL_SPEC.md) — реалистичная архитектура географического MVP и технические kill criteria.
-4. [AI_RUNNING_COMPETITOR_RESEARCH_2026.md](./AI_RUNNING_COMPETITOR_RESEARCH_2026.md) — актуальный срез прямых и смежных конкурентов, traction и коммерческие выводы.
-5. [AI_FIRST_EXECUTION_PLAN.md](./AI_FIRST_EXECUTION_PLAN.md) — последовательность автономных задач с готовыми промптами для отдельных Codex-чатов.
-6. [EXECUTION_STATUS.md](./EXECUTION_STATUS.md) — единственный журнал фактического выполнения, доказательств и текущих blockers.
-7. [R02_FOUNDER_IPHONE_TEST_GUIDE.md](./R02_FOUNDER_IPHONE_TEST_GUIDE.md) —
+1. [HUMAN_FIRST_IPHONE_SMOKE_TEST.md](../HUMAN_FIRST_IPHONE_SMOKE_TEST.md) —
+   короткая передача человеку: checkout, локальные артефакты, установка и
+   первый безопасный device smoke.
+2. [GEO_NARRATIVE_PRODUCT_STRATEGY.md](./GEO_NARRATIVE_PRODUCT_STRATEGY.md) — текущее продуктовое решение, обещание и инвестиционные ворота.
+3. [R02_NARRATIVE_PROOF.md](./R02_NARRATIVE_PROOF.md) — текущее story-first решение R02, выбранная вселенная «Нулевой слой», трёхмиссионный граф и полевой следующий шаг.
+4. [GEO_NARRATIVE_TECHNICAL_SPEC.md](./GEO_NARRATIVE_TECHNICAL_SPEC.md) — реалистичная архитектура географического MVP и технические kill criteria.
+5. [AI_RUNNING_COMPETITOR_RESEARCH_2026.md](./AI_RUNNING_COMPETITOR_RESEARCH_2026.md) — актуальный срез прямых и смежных конкурентов, traction и коммерческие выводы.
+6. [AI_FIRST_EXECUTION_PLAN.md](./AI_FIRST_EXECUTION_PLAN.md) — последовательность автономных задач с готовыми промптами для отдельных Codex-чатов.
+7. [EXECUTION_STATUS.md](./EXECUTION_STATUS.md) — единственный журнал фактического выполнения, доказательств и текущих blockers.
+8. [R02_FOUNDER_IPHONE_TEST_GUIDE.md](./R02_FOUNDER_IPHONE_TEST_GUIDE.md) —
    установка, offline preflight, дневной обход, audio/GPS gates, recovery и
    debrief для первого founder test.
-8. [R02B_FIELD_VERIFICATION_MEMO.md](./R02B_FIELD_VERIFICATION_MEMO.md) —
+9. [R02B_FIELD_VERIFICATION_MEMO.md](./R02B_FIELD_VERIFICATION_MEMO.md) —
    граница уже существующих артефактов и ещё отсутствующего field evidence.
 
 ## Текущий тезис

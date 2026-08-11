@@ -126,7 +126,7 @@ class DocumentationIntegrityTests(unittest.TestCase):
         self.assertNotIn("$250", content, "README.md must not contain stale $250 budget figure")
         self.assertNotIn("3.0%", content, "README.md must not contain stale 3.0% PDCR figure")
         self.assertNotIn("156 tests", content, "README.md must not contain outdated 156 test count")
-        self.assertIn("219 tests", content, "README.md must reflect exact 219 Python test count")
+        self.assertIn("229 tests", content, "README.md must reflect exact 229 Python test count")
 
         self.assertIn("R02", content, "README.md must mention Stage R02")
         self.assertIn("IN_PROGRESS", content, "README.md must report R02 as IN_PROGRESS")
@@ -147,8 +147,8 @@ class DocumentationIntegrityTests(unittest.TestCase):
             self.assertIn("R02", doc_content, f"{name} must contain R02 stage")
             self.assertIn("IN_PROGRESS", doc_content, f"{name} must report IN_PROGRESS for R02")
             self.assertIn("NOT_STARTED", doc_content, f"{name} must report NOT_STARTED for R03/R04")
-            self.assertIn("219", doc_content, f"{name} must report exact 219 Python test count")
-            self.assertIn("66", doc_content, f"{name} must report exact 66 Swift unit test count")
+            self.assertIn("229", doc_content, f"{name} must report exact 229 Python test count")
+            self.assertIn("72", doc_content, f"{name} must report exact 72 Swift unit test count")
 
 
 if __name__ == "__main__":

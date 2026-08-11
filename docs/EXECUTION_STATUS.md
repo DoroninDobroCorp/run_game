@@ -3,7 +3,7 @@
 **Последнее обновление:** 11 августа 2026 года
 **Текущая фаза:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`, pre-first-test hardening завершён)
 **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
-**Текущая ветка:** `executor/pre-first-test-acceptance-fixes-c2c0d26`
+**Текущая ветка:** `executor/pre-first-test-last-mile-7a11842`
 
 ---
 
@@ -67,14 +67,14 @@
 
 ## 5. Command Evidence
 
-Сводный результат автоматизированного прогона для текущего состояния (`commit d71b872`):
+Сводный результат независимого автоматизированного прогона для принятого технического baseline (`commit 610849e`):
 
 * `make verify-pretest`:
   - `tools/r02_doctor.py`: `PASS` (9 проверок, 0 WARN по uncommitted изменениям при чистом рабочем дереве).
   - `tools/r02_audit_privacy.py`: `PASS` (4/4 проверки приватности, 0 утечек координат/секретов).
   - `tools/r02_preflight.py`: `READY_FOR_DEVICE_SMOKE` (12/12 проверок пройдены).
   - `tools/r02_audio_qa.py`: `PASS` (1800.0s exact AAC master, peak -1.6dB, SHA `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22` совпадает).
-  - `/usr/bin/python3 -m unittest discover -s tests`: `PASS` (219 тестов пройдено, 0 ошибок).
+  - `/usr/bin/python3 -m unittest discover -s tests`: `PASS` (229 тестов пройдено, 0 ошибок).
   - `xcodebuild ... RunGameFounderTests`: `PASS` (66 юнита-тестов Swift пройдено).
   - `xcodebuild ... RunGameFounderUITests`: `PASS` (3 UI-теста пройдено на iPhone 16 Pro iOS 18.5 Simulator).
 
@@ -102,4 +102,4 @@
 * **16.07.2026 (R02):** Зафиксированы Леа, M1–M3 micro-arc, три enum-state, четыре setup clues и reveal «игрок своими маршрутами создал Леа». Реализованы детерминированная линеаризация, A/B contract и запрет participant export до human approval.
 * **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
 * **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
-* **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 219 Python-тестов и 69 Swift/UI-тестов (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
+* **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 229 Python-тестов, 72 Swift unit-теста и 5 Swift UI-тестов, включая ASan/TSan (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
