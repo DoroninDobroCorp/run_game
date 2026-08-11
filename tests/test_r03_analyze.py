@@ -1,6 +1,6 @@
 """Unit test suite for R03 Preregistration and Synthetic Analysis Harness (tools/r03_analyze.py).
 
-Fulfills assertions VAL-R03-001 and VAL-R03-002.
+Fulfills assertions VAL-R03-001, VAL-R03-002, and VAL-R03-003.
 """
 
 from __future__ import annotations
@@ -28,6 +28,29 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertIn("conditions", data)
         self.assertIn("A", data["conditions"])
         self.assertIn("B", data["conditions"])
+
+    def test_preregistration_marks_unknown_sample_sizes_and_windows_as_unset(self):
+        """Fulfills VAL-R03-001: preregistration.v0.1.json marks unknown sample sizes/windows as UNSET/TBD."""
+        prereg_path = ROOT / "research" / "r03" / "preregistration.v0.1.json"
+        data = r03_analyze.load_strict_json(prereg_path)
+
+        sample_size = data.get("sample_size", {})
+        self.assertIn(sample_size.get("min_n_per_condition"), ["UNSET", "TBD"])
+        self.assertIn(sample_size.get("target_n"), ["UNSET", "TBD"])
+
+        eval_windows = data.get("evaluation_windows", {})
+        self.assertTrue(len(eval_windows) > 0, "evaluation_windows must be present")
+        self.assertIn(eval_windows.get("recruitment_window"), ["UNSET", "TBD"])
+        self.assertIn(eval_windows.get("data_collection_window"), ["UNSET", "TBD"])
+
+    def test_preregistration_defines_condition_b_as_component_test(self):
+        """Fulfills VAL-R03-001: Condition B is defined as a component test with non-dramatic place function."""
+        prereg_path = ROOT / "research" / "r03" / "preregistration.v0.1.json"
+        data = r03_analyze.load_strict_json(prereg_path)
+        cond_b = data.get("conditions", {}).get("B", {})
+        description = cond_b.get("description", "").lower()
+        self.assertIn("component test", description)
+        self.assertIn("non-dramatic place function", description)
 
     def test_preregistration_defines_sole_primary_outcome_and_secondary_manipulation_checks(self):
         """Fulfills VAL-R03-002: preregistration.v0.1.json defines actual_next_workout_start as sole primary outcome."""
@@ -61,6 +84,33 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertIn("unaided_place_recall", report["manipulation_checks"])
         self.assertIn("desire_for_m02", report["manipulation_checks"])
 
+    def test_neutral_null_synthetic_generator_default(self):
+        """Fulfills VAL-R03-002: synthetic generator defaults to neutral null effect (zero baked advantage for A)."""
+        # Generate large sample to verify null effect convergence
+        dataset = r03_analyze.generate_synthetic_ab_dataset(n_total=2000, seed=42)
+        report = r03_analyze.analyze_dataset(dataset)
+
+        outcome = report["primary_outcomes"]["actual_next_workout_start"]
+        risk_diff = outcome["risk_difference"]
+        risk_ratio = outcome["risk_ratio"]
+
+        # Null effect means risk difference is close to 0.0 and risk ratio close to 1.0
+        self.assertAlmostEqual(risk_diff, 0.0, delta=0.06, msg=f"Risk difference should be near 0.0 under null, got {risk_diff}")
+        self.assertAlmostEqual(risk_ratio, 1.0, delta=0.15, msg=f"Risk ratio should be near 1.0 under null, got {risk_ratio}")
+
+    def test_synthetic_generator_randomization_and_reproducibility(self):
+        """Fulfills VAL-R03-002: verifies 1:1 allocation ratio and deterministic seed reproducibility."""
+        ds1 = r03_analyze.generate_synthetic_ab_dataset(n_total=100, seed=777)
+        ds2 = r03_analyze.generate_synthetic_ab_dataset(n_total=100, seed=777)
+        self.assertEqual(ds1, ds2, "Identical seed must produce identical synthetic dataset")
+
+        n_a = sum(1 for p in ds1["participants"] if p["condition"] == "A")
+        n_b = sum(1 for p in ds1["participants"] if p["condition"] == "B")
+        self.assertEqual(n_a + n_b, 100)
+        # Randomization should produce approx balanced groups
+        self.assertGreater(n_a, 35)
+        self.assertGreater(n_b, 35)
+
     def test_analysis_harness_evaluates_primary_binary_outcome_without_altering_not_started_status(self):
         """Fulfills VAL-R03-002: r03_analyze.py evaluates primary binary outcome without altering status."""
         dataset = r03_analyze.generate_synthetic_ab_dataset(n_total=20, seed=42)
@@ -80,6 +130,29 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertGreaterEqual(report["exclusions"]["total_excluded"], 3)
         self.assertGreaterEqual(report["exclusions"]["by_reason"]["excl_aborted_run"], 1)
         self.assertGreaterEqual(report["exclusions"]["by_reason"]["excl_delayed_debrief"], 1)
+
+    def test_itt_missingness_handling_and_tracking(self):
+        """Fulfills VAL-R03-002: verifies missing recall and aborted records are properly tracked and included in ITT."""
+        dataset = r03_analyze.generate_synthetic_ab_dataset(n_total=30, seed=101, prob_abort=0.0)
+        # Mark 4 participants as having missing recall and 2 as aborted
+        dataset["participants"][0]["recall_24h"] = None
+        dataset["participants"][1]["recall_24h"] = None
+        dataset["participants"][2]["recall_24h"] = None
+        dataset["participants"][3]["recall_24h"] = None
+        dataset["participants"][4]["session"]["aborted"] = True
+        dataset["participants"][5]["session"]["aborted"] = True
+
+        report = r03_analyze.analyze_dataset(dataset)
+        denoms = report["denominators"]
+        self.assertEqual(denoms["total_enrolled"], 30)
+        self.assertEqual(denoms["sessions_aborted"]["A"] + denoms["sessions_aborted"]["B"], 2)
+
+        outcome = report["primary_outcomes"]["actual_next_workout_start"]
+        self.assertEqual(
+            outcome["condition_A"]["n_assigned"] + outcome["condition_B"]["n_assigned"],
+            30,
+            "All 30 assigned participants must be in ITT denominator despite missing recall / aborts",
+        )
 
     def test_analysis_rejects_duplicate_json_keys(self):
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f:
@@ -170,6 +243,47 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertEqual(plan.get("analysis_population"), "intention_to_treat")
         self.assertEqual(plan.get("primary_outcome_analysis"), "itt_risk_difference_and_ratio")
         self.assertEqual(plan.get("confidence_interval"), 0.95)
+
+    def test_complete_r03_scaffolding_artifacts_exist_and_validate(self):
+        """Fulfills VAL-R03-003: all R03 scaffolding artifacts exist and validate cleanly."""
+        r03_dir = ROOT / "research" / "r03"
+
+        # 1. anonymized_event_schema.json
+        schema_path = r03_dir / "anonymized_event_schema.json"
+        self.assertTrue(schema_path.is_file(), "anonymized_event_schema.json must exist")
+        schema = r03_analyze.load_strict_json(schema_path)
+        self.assertEqual(schema.get("title"), "R03AnonymizedEventSchema")
+        self.assertIn("participant_id", schema.get("properties", {}))
+        self.assertIn("actual_next_workout_start", schema.get("properties", {}))
+
+        # 2. synthetic_fixture.json
+        fixture_path = r03_dir / "synthetic_fixture.json"
+        self.assertTrue(fixture_path.is_file(), "synthetic_fixture.json must exist")
+        fixture = r03_analyze.load_strict_json(fixture_path)
+        self.assertEqual(fixture.get("dataset_type"), "synthetic_ab_trial")
+        self.assertTrue(fixture.get("synthetic"))
+        self.assertGreater(len(fixture.get("participants", [])), 0)
+        # Verify it analyzes cleanly
+        report = r03_analyze.analyze_dataset(fixture)
+        self.assertEqual(report["status"], "PASS")
+
+        # 3. blank_analysis_report.json
+        report_path = r03_dir / "blank_analysis_report.json"
+        self.assertTrue(report_path.is_file(), "blank_analysis_report.json must exist")
+        blank_report = r03_analyze.load_strict_json(report_path)
+        self.assertEqual(blank_report.get("status"), "UNEXECUTED")
+        self.assertEqual(blank_report.get("execution_status_claim"), "NOT_STARTED")
+        self.assertIn("denominators", blank_report)
+        self.assertIn("primary_outcomes", blank_report)
+
+        # 4. consent_privacy_checklist.md
+        checklist_path = r03_dir / "consent_privacy_checklist.md"
+        self.assertTrue(checklist_path.is_file(), "consent_privacy_checklist.md must exist")
+        content = checklist_path.read_text(encoding="utf-8")
+        self.assertIn("R03 Consent & Privacy Verification Checklist", content)
+        self.assertIn("Informed Consent", content)
+        self.assertIn("Pseudonymization", content)
+        self.assertIn("NOT_STARTED", content)
 
 
 if __name__ == "__main__":

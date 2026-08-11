@@ -10,9 +10,14 @@
       "description": "Full narrative story overlay bound to spatial POI anchors and C25K workout transitions"
     },
     "B": {
-      "name": "Condition B (Control / Non-narrative)",
-      "description": "Structured workout cues only with neutral environmental audio"
+      "name": "Condition B (Component Test / Non-narrative Control)",
+      "description": "Component test with identical workout cues, route timing, and audio voice as Condition A, but using a non-dramatic place function (neutral environmental framing without story narrative or spatial POI dramatic triggers)"
     }
+  },
+  "evaluation_windows": {
+    "recruitment_window": "UNSET",
+    "data_collection_window": "TBD",
+    "followup_window_hours": "TBD"
   },
   "randomization": {
     "allocation_ratio": "1:1",
@@ -20,8 +25,8 @@
     "strata": ["participant_role", "device_model"]
   },
   "sample_size": {
-    "target_n": 100,
-    "min_n_per_condition": 40
+    "target_n": "TBD",
+    "min_n_per_condition": "UNSET"
   },
   "primary_outcomes": [
     {

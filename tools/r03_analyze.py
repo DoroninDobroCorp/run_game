@@ -176,9 +176,25 @@ def generate_synthetic_ab_dataset(
     prob_delayed_debrief: float = 0.08,
     prob_early_recall: float = 0.03,
     prob_missing_recall: float = 0.05,
+    null_effect: bool = True,
+    prob_workout_start_a: Optional[float] = None,
+    prob_workout_start_b: Optional[float] = None,
 ) -> Dict[str, Any]:
-    """Generate a synthetic, randomized A/B trial dataset adhering to preregistration schema."""
+    """Generate a synthetic, randomized A/B trial dataset adhering to preregistration schema.
+
+    Defaults to neutral null effect (zero baked advantage for Condition A).
+    """
     rng = random.Random(seed)
+
+    if prob_workout_start_a is not None:
+        p_start_a = prob_workout_start_a
+    else:
+        p_start_a = 0.50 if null_effect else 0.75
+
+    if prob_workout_start_b is not None:
+        p_start_b = prob_workout_start_b
+    else:
+        p_start_b = 0.50 if null_effect else 0.45
 
     participants = []
     for idx in range(n_total):
@@ -195,19 +211,22 @@ def generate_synthetic_ab_dataset(
         else:
             recording_delay_sec = float(rng.randint(10, 600))
 
-        # Outcome values with plausible effect sizes for Condition A vs B
+        # Outcome values: neutral null effect by default (zero baked advantage for A)
         if condition == "A":
-            # Condition A: higher next workout start rate, higher place recall and higher desire
-            base_workout_start = 1 if rng.random() < 0.75 else 0
-            base_places = rng.gauss(4.2, 1.1)
-            base_desire = rng.gauss(5.5, 1.0)
-            base_necessity = rng.gauss(5.2, 1.1)
+            base_workout_start = 1 if rng.random() < p_start_a else 0
+            if null_effect and prob_workout_start_a is None:
+                base_places = rng.gauss(2.5, 1.0)
+                base_desire = rng.gauss(4.0, 1.0)
+                base_necessity = rng.gauss(3.5, 1.0)
+            else:
+                base_places = rng.gauss(4.2, 1.1)
+                base_desire = rng.gauss(5.5, 1.0)
+                base_necessity = rng.gauss(5.2, 1.1)
         else:
-            # Condition B: lower next workout start rate, lower place recall and neutral desire
-            base_workout_start = 1 if rng.random() < 0.45 else 0
-            base_places = rng.gauss(2.1, 1.0)
-            base_desire = rng.gauss(3.8, 1.2)
-            base_necessity = rng.gauss(2.5, 1.2)
+            base_workout_start = 1 if rng.random() < p_start_b else 0
+            base_places = rng.gauss(2.5, 1.0) if null_effect else rng.gauss(2.1, 1.0)
+            base_desire = rng.gauss(4.0, 1.0) if null_effect else rng.gauss(3.8, 1.2)
+            base_necessity = rng.gauss(3.5, 1.0) if null_effect else rng.gauss(2.5, 1.2)
 
         actual_next_workout_start = base_workout_start
         place_count = max(0, min(10, int(round(base_places))))
@@ -252,6 +271,7 @@ def generate_synthetic_ab_dataset(
     return {
         "schema_version": "0.1",
         "dataset_type": "synthetic_ab_trial",
+        "synthetic": True,
         "seed": seed,
         "n_total": n_total,
         "participants": participants,
