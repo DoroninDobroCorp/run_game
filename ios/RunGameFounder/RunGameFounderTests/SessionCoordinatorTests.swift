@@ -17,8 +17,8 @@ final class SessionCoordinatorTests: XCTestCase {
         defaults = UserDefaults(suiteName: suiteName)!
         tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(suiteName, isDirectory: true)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        appModel = MainActor.assumeIsolated {
-            AppModel(defaults: defaults, documentsDirectory: tempDir)
+        MainActor.assumeIsolated {
+            appModel = AppModel(defaults: defaults, documentsDirectory: tempDir)
         }
     }
 
@@ -82,7 +82,7 @@ final class SessionCoordinatorTests: XCTestCase {
     }
 
     @MainActor
-    func testCoordinatorPublishedStateProperties_ReflectRuntimeChanges() throws {
+    func testCoordinatorPublishedStateProperties_ReflectRuntimeChanges() async throws {
         let fakeAudio = FakeAudioController()
         let fakeRecorder = FakeLocationRecorder()
         fakeRecorder.startResult = .started
@@ -124,7 +124,7 @@ final class SessionCoordinatorTests: XCTestCase {
             XCTAssertEqual(coordinator.audioElapsedSeconds, 42.0)
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: 1.0)
+        await fulfillment(of: [expectation], timeout: 1.0)
     }
 
     @MainActor
