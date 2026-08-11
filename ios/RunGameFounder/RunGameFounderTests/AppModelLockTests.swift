@@ -84,16 +84,16 @@ final class AppModelLockTests: XCTestCase {
     }
 
     @MainActor
-    func testAbortedRunDoesNotEnqueuePendingRecall() throws {
+    func testScheduleRecallGuardsAgainstAbortedContext() throws {
         let suiteName = "AppModelLockTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
         let model = AppModel(defaults: defaults)
         let mission = try XCTUnwrap(model.mission)
-        
+
         let endedAt = Date()
         let abortedContext = RunSessionContext(
-            runID: "test-aborted-run",
+            runID: "test-aborted-run-recall",
             missionID: mission.missionID,
             bindingID: mission.bindingID,
             audioSHA256: mission.audioSHA256,
@@ -112,10 +112,28 @@ final class AppModelLockTests: XCTestCase {
             audioIncidents: [],
             locationIncidents: []
         )
-        
-        model.scheduleDebrief(for: abortedContext)
-        XCTAssertEqual(model.pendingDebriefs.count, 1)
+
+        model.scheduleRecall(for: abortedContext)
         XCTAssertTrue(model.pendingRecalls.isEmpty)
+    }
+
+    @MainActor
+    func testLocalEvidenceURLsExcludesDraftsAndPartialGPX() throws {
+        let suiteName = "AppModelLockTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        try Data("partial".utf8).write(to: directory.appendingPathComponent("run.partial.gpx"))
+        try Data("draft".utf8).write(to: directory.appendingPathComponent("m01-run1-draft.json"))
+        try Data("immediate".utf8).write(to: directory.appendingPathComponent("m01-run1-immediate.json"))
+
+        let model = AppModel(defaults: defaults, documentsDirectory: directory)
+        XCTAssertEqual(model.localEvidenceURLs.map(\.lastPathComponent), ["m01-run1-immediate.json"])
+        XCTAssertEqual(model.recoveredTrackURLs.map(\.lastPathComponent), ["run.partial.gpx"])
     }
 
     @MainActor
