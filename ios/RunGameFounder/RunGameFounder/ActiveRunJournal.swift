@@ -7,6 +7,7 @@ enum ActiveRunPhase: String, Codable {
 
 struct ActiveRunAttempt: Codable, Equatable {
     let schemaVersion: String
+    let participantID: String
     let runID: String
     let missionID: String
     let bindingID: String
@@ -23,6 +24,7 @@ struct ActiveRunAttempt: Codable, Equatable {
 
     enum CodingKeys: String, CodingKey {
         case schemaVersion = "schema_version"
+        case participantID = "participant_id"
         case runID = "run_id"
         case missionID = "mission_id"
         case bindingID = "binding_id"
@@ -40,6 +42,7 @@ struct ActiveRunAttempt: Codable, Equatable {
 
     init(
         schemaVersion: String = "0.1",
+        participantID: String = "participant_founder_default",
         runID: String,
         missionID: String,
         bindingID: String,
@@ -55,6 +58,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         locationIncidents: [String] = []
     ) {
         self.schemaVersion = schemaVersion
+        self.participantID = participantID
         self.runID = runID
         self.missionID = missionID
         self.bindingID = bindingID

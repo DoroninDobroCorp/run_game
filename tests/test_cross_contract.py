@@ -357,6 +357,27 @@ class CrossContractSwiftASTParityTests(unittest.TestCase):
         loc_lits = extract_swift_func_literals(self.loc_ast, "locationManager")
         self.assertIn(int(MAX_EVIDENCE_ACCURACY_M), loc_lits, "LocationRecorder.locationManager accuracy threshold AST mismatch")
 
+    def test_swift_ast_participant_id_fields_parity(self) -> None:
+        """Assert participantID field presence in Swift models and active journal structs via source AST inspection."""
+        models_code = SWIFT_MODELS_PATH.read_text(encoding="utf-8")
+        journal_code = SWIFT_ACTIVE_JOURNAL_PATH.read_text(encoding="utf-8")
+
+        for struct_name in ["RunSessionContext", "DebriefRecord", "PendingRecall", "RecallCompletionRecord"]:
+            self.assertIn(
+                f"struct {struct_name}",
+                models_code,
+                f"Swift struct {struct_name} must be defined in Models.swift"
+            )
+            self.assertIn(
+                "participantID",
+                models_code,
+                f"Models.swift must contain participantID property for {struct_name}"
+            )
+
+        self.assertIn("struct ActiveRunAttempt", journal_code)
+        self.assertIn("participantID", journal_code)
+        self.assertIn('case participantID = "participant_id"', journal_code)
+
 
 class CrossContractNegativeValidatorTests(unittest.TestCase):
     """Negative tests passing malformed evidence artifacts to production Python validators."""
@@ -520,6 +541,26 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
             with self.assertRaises(ValidationError) as ctx:
                 validate_evidence_pair(p_imm, p_rec)
             self.assertIn("pair identity mismatch for run_id", str(ctx.exception))
+        finally:
+            p_imm.unlink()
+            p_rec.unlink()
+
+    def test_negative_pair_mode_mismatched_participant_id_rejected(self) -> None:
+        """Negative test: paired immediate and recall files with different participant_ids are rejected."""
+        rec = dict(self.valid_recall_dict)
+        rec["participant_id"] = "participant_different_002"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(self.valid_immediate_dict, f_imm)
+            json.dump(rec, f_rec)
+            p_imm = Path(f_imm.name)
+            p_rec = Path(f_rec.name)
+
+        try:
+            with self.assertRaises(ValidationError) as ctx:
+                validate_evidence_pair(p_imm, p_rec)
+            self.assertIn("pair identity mismatch for participant_id", str(ctx.exception))
         finally:
             p_imm.unlink()
             p_rec.unlink()

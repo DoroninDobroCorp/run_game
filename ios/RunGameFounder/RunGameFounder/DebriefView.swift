@@ -270,6 +270,7 @@ struct DebriefView: View {
         return DebriefRecord(
             schemaVersion: "0.3",
             recordStatus: status,
+            participantID: context.participantID,
             runID: context.runID,
             bindingID: context.bindingID,
             missionID: context.missionID,
@@ -462,6 +463,7 @@ struct DebriefView: View {
               let record = try? JSONDecoder.evidence.decode(DebriefRecord.self, from: data),
               record.schemaVersion == "0.3" || record.schemaVersion == "0.2",
               record.recordStatus == expectedStatus,
+              record.participantID == context.participantID,
               record.runID == context.runID,
               record.missionID == context.missionID,
               record.bindingID == context.bindingID,
@@ -608,6 +610,7 @@ struct RecallView: View {
         RecallCompletionRecord(
             schemaVersion: "0.2",
             recordStatus: status,
+            participantID: record.participantID,
             runID: record.runID,
             bindingID: record.bindingID,
             missionID: record.missionID,
@@ -684,6 +687,7 @@ struct RecallView: View {
               let completion = try? JSONDecoder.evidence.decode(RecallCompletionRecord.self, from: data),
               completion.schemaVersion == "0.2",
               completion.recordStatus == expectedStatus,
+              completion.participantID == record.participantID,
               completion.runID == record.runID,
               completion.missionID == record.missionID,
               completion.bindingID == record.bindingID,

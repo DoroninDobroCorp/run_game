@@ -467,6 +467,7 @@ struct AudioApprovalRecord: Codable, Equatable {
 }
 
 struct RunSessionContext: Codable, Equatable {
+    let participantID: String
     let runID: String
     let missionID: String
     let bindingID: String
@@ -485,11 +486,54 @@ struct RunSessionContext: Codable, Equatable {
     let routeTraversalEvidence: WalkthroughEvidence?
     let audioIncidents: [String]
     let locationIncidents: [String]
+
+    init(
+        participantID: String = "participant_founder_default",
+        runID: String,
+        missionID: String,
+        bindingID: String,
+        audioSHA256: String,
+        routeWorkoutFingerprint: String,
+        condition: String,
+        startedAt: Date,
+        endedAt: Date,
+        precommittedNextWorkoutAt: Date,
+        completed: Bool,
+        aborted: Bool,
+        abortReason: String,
+        audioElapsedSeconds: TimeInterval,
+        pauseCount: Int,
+        track: TrackSummary?,
+        routeTraversalEvidence: WalkthroughEvidence?,
+        audioIncidents: [String],
+        locationIncidents: [String]
+    ) {
+        self.participantID = participantID
+        self.runID = runID
+        self.missionID = missionID
+        self.bindingID = bindingID
+        self.audioSHA256 = audioSHA256
+        self.routeWorkoutFingerprint = routeWorkoutFingerprint
+        self.condition = condition
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.precommittedNextWorkoutAt = precommittedNextWorkoutAt
+        self.completed = completed
+        self.aborted = aborted
+        self.abortReason = abortReason
+        self.audioElapsedSeconds = audioElapsedSeconds
+        self.pauseCount = pauseCount
+        self.track = track
+        self.routeTraversalEvidence = routeTraversalEvidence
+        self.audioIncidents = audioIncidents
+        self.locationIncidents = locationIncidents
+    }
 }
 
 struct DebriefRecord: Codable {
     let schemaVersion: String
     let recordStatus: String
+    let participantID: String
     let runID: String
     let bindingID: String
     let missionID: String
@@ -511,6 +555,58 @@ struct DebriefRecord: Codable {
     let confounds: ConfoundEvidence
     let device: DeviceEvidence
     let evidenceLimits: [String]
+
+    init(
+        schemaVersion: String,
+        recordStatus: String,
+        participantID: String = "participant_founder_default",
+        runID: String,
+        bindingID: String,
+        missionID: String,
+        condition: String,
+        participantRole: String,
+        startedAtLocal: Date,
+        endedAtLocal: Date,
+        recordedAtLocal: Date,
+        recordingDelaySeconds: Double,
+        precommittedNextWorkoutAtLocal: Date,
+        audioSHA256: String,
+        routeWorkoutFingerprint: String,
+        track: TrackSummary?,
+        routeTraversalEvidence: WalkthroughEvidence?,
+        safety: SafetyEvidence,
+        runtime: RuntimeEvidence,
+        immediateDebriefBeforeEdits: ImmediateDebriefEvidence,
+        recallAfter24h: RecallAfter24HoursEvidence,
+        confounds: ConfoundEvidence,
+        device: DeviceEvidence,
+        evidenceLimits: [String]
+    ) {
+        self.schemaVersion = schemaVersion
+        self.recordStatus = recordStatus
+        self.participantID = participantID
+        self.runID = runID
+        self.bindingID = bindingID
+        self.missionID = missionID
+        self.condition = condition
+        self.participantRole = participantRole
+        self.startedAtLocal = startedAtLocal
+        self.endedAtLocal = endedAtLocal
+        self.recordedAtLocal = recordedAtLocal
+        self.recordingDelaySeconds = recordingDelaySeconds
+        self.precommittedNextWorkoutAtLocal = precommittedNextWorkoutAtLocal
+        self.audioSHA256 = audioSHA256
+        self.routeWorkoutFingerprint = routeWorkoutFingerprint
+        self.track = track
+        self.routeTraversalEvidence = routeTraversalEvidence
+        self.safety = safety
+        self.runtime = runtime
+        self.immediateDebriefBeforeEdits = immediateDebriefBeforeEdits
+        self.recallAfter24h = recallAfter24h
+        self.confounds = confounds
+        self.device = device
+        self.evidenceLimits = evidenceLimits
+    }
 }
 
 struct SafetyEvidence: Codable {
@@ -553,6 +649,7 @@ struct RecallAfter24HoursEvidence: Codable {
 
 struct PendingRecall: Codable, Equatable, Identifiable {
     var id: String { runID }
+    let participantID: String
     let runID: String
     let bindingID: String
     let missionID: String
@@ -562,8 +659,31 @@ struct PendingRecall: Codable, Equatable, Identifiable {
     let runEndedAt: Date
     let dueAt: Date
 
+    init(
+        participantID: String = "participant_founder_default",
+        runID: String,
+        bindingID: String,
+        missionID: String,
+        condition: String,
+        audioSHA256: String,
+        routeWorkoutFingerprint: String,
+        runEndedAt: Date,
+        dueAt: Date
+    ) {
+        self.participantID = participantID
+        self.runID = runID
+        self.bindingID = bindingID
+        self.missionID = missionID
+        self.condition = condition
+        self.audioSHA256 = audioSHA256
+        self.routeWorkoutFingerprint = routeWorkoutFingerprint
+        self.runEndedAt = runEndedAt
+        self.dueAt = dueAt
+    }
+
     static func make(context: RunSessionContext) -> PendingRecall {
         PendingRecall(
+            participantID: context.participantID,
             runID: context.runID,
             bindingID: context.bindingID,
             missionID: context.missionID,
@@ -579,6 +699,7 @@ struct PendingRecall: Codable, Equatable, Identifiable {
 struct RecallCompletionRecord: Codable {
     let schemaVersion: String
     let recordStatus: String
+    let participantID: String
     let runID: String
     let bindingID: String
     let missionID: String
@@ -592,6 +713,42 @@ struct RecallCompletionRecord: Codable {
     let unaidedPlaceRecall: [String]
     let desireForM02_1To7: Int
     let evidenceLimits: [String]
+
+    init(
+        schemaVersion: String,
+        recordStatus: String,
+        participantID: String = "participant_founder_default",
+        runID: String,
+        bindingID: String,
+        missionID: String,
+        condition: String,
+        audioSHA256: String,
+        routeWorkoutFingerprint: String,
+        runEndedAtLocal: Date,
+        dueAtLocal: Date,
+        completedAtLocal: Date,
+        unaidedStoryRecall: String,
+        unaidedPlaceRecall: [String],
+        desireForM02_1To7: Int,
+        evidenceLimits: [String]
+    ) {
+        self.schemaVersion = schemaVersion
+        self.recordStatus = recordStatus
+        self.participantID = participantID
+        self.runID = runID
+        self.bindingID = bindingID
+        self.missionID = missionID
+        self.condition = condition
+        self.audioSHA256 = audioSHA256
+        self.routeWorkoutFingerprint = routeWorkoutFingerprint
+        self.runEndedAtLocal = runEndedAtLocal
+        self.dueAtLocal = dueAtLocal
+        self.completedAtLocal = completedAtLocal
+        self.unaidedStoryRecall = unaidedStoryRecall
+        self.unaidedPlaceRecall = unaidedPlaceRecall
+        self.desireForM02_1To7 = desireForM02_1To7
+        self.evidenceLimits = evidenceLimits
+    }
 }
 
 struct ConfoundEvidence: Codable {

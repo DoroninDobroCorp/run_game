@@ -81,7 +81,8 @@ final class SessionCoordinator: ObservableObject {
         let actions = stateMachine.handle(
             event: event,
             mission: mission,
-            precommittedNextWorkoutAt: precommittedNextWorkoutAt
+            precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+            participantID: appModel.participantId
         )
         execute(actions)
         updatePublishedSnapshots()

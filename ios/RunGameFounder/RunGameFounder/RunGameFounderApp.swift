@@ -13,6 +13,7 @@ struct RunGameFounderApp: App {
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-pending-debrief") {
             if let mission = model.mission {
                 let context = RunSessionContext(
+                    participantID: model.participantId,
                     runID: "ui-test-debrief-1",
                     missionID: mission.missionID,
                     bindingID: mission.bindingID,
@@ -38,6 +39,7 @@ struct RunGameFounderApp: App {
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-pending-recall") {
             if let mission = model.mission {
                 let context = RunSessionContext(
+                    participantID: model.participantId,
                     runID: "ui-test-recall-1",
                     missionID: mission.missionID,
                     bindingID: mission.bindingID,

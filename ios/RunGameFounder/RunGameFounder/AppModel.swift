@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 final class AppModel: ObservableObject {
+    @Published private(set) var participantId: String = ""
     @Published private(set) var mission: MissionConfig?
     @Published private(set) var loadError: String?
     @Published var sidewalksChecked = false
@@ -26,10 +27,22 @@ final class AppModel: ObservableObject {
     private let encoder = JSONEncoder()
     private let decoder = JSONDecoder()
 
-    init(defaults: UserDefaults = .standard, documentsDirectory: URL? = nil) {
+    init(defaults: UserDefaults = .standard, documentsDirectory: URL? = nil, participantId: String? = nil) {
         self.defaults = defaults
         self.documentsDirectory = documentsDirectory
             ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+
+        if let participantId, !participantId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.participantId = participantId
+            defaults.set(participantId, forKey: Self.participantIdKey)
+        } else if let stored = defaults.string(forKey: Self.participantIdKey), !stored.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            self.participantId = stored
+        } else {
+            let generated = "participant_founder_" + UUID().uuidString
+            defaults.set(generated, forKey: Self.participantIdKey)
+            self.participantId = generated
+        }
+
         loadMission()
         restorePendingDebriefs()
         restorePendingRecalls()
@@ -223,6 +236,7 @@ final class AppModel: ObservableObject {
         case .attempt(let attempt):
             let endedAt = Date()
             let recoveredContext = RunSessionContext(
+                participantID: attempt.participantID,
                 runID: attempt.runID,
                 missionID: attempt.missionID,
                 bindingID: attempt.bindingID,
@@ -358,6 +372,7 @@ final class AppModel: ObservableObject {
         return true
     }
 
+    static let participantIdKey = "rungame.preference.participant_id"
     private static let routeApprovalPrefix = "founder.v2.routeApproved."
     private static let audioApprovalPrefix = "founder.v2.homeAudioCompleted."
     private static let pendingWalkthroughPrefix = "founder.v2.pendingWalkthrough."

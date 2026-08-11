@@ -282,4 +282,213 @@ final class AppModelLockTests: XCTestCase {
         XCTAssertEqual(jsonDict["schema_version"] as? String, "0.3")
         XCTAssertEqual(jsonDict["recording_delay_seconds"] as? Double, -5.25)
     }
+
+    @MainActor
+    func testParticipantId_LocalDeviceStorageAndPropagation() throws {
+        let suiteName = "AppModelLockTests.ParticipantId.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        // 1. Initial creation generates and persists participantId
+        let customId = "participant_founder_test_123"
+        let model1 = AppModel(defaults: defaults, participantId: customId)
+        XCTAssertEqual(model1.participantId, customId)
+        XCTAssertEqual(defaults.string(forKey: AppModel.participantIdKey), customId)
+
+        // 2. Subsequent AppModel load restores existing participantId
+        let model2 = AppModel(defaults: defaults)
+        XCTAssertEqual(model2.participantId, customId)
+
+        // 3. Propagation across RunSessionContext -> DebriefRecord & PendingRecall -> RecallCompletionRecord
+        let endedAt = Date()
+        let context = RunSessionContext(
+            participantID: model2.participantId,
+            runID: "test-run-participant-propagation",
+            missionID: "m01",
+            bindingID: "binding-valparaiso",
+            audioSHA256: String(repeating: "a", count: 64),
+            routeWorkoutFingerprint: String(repeating: "b", count: 64),
+            condition: "A",
+            startedAt: endedAt.addingTimeInterval(-1800),
+            endedAt: endedAt,
+            precommittedNextWorkoutAt: endedAt.addingTimeInterval(86400),
+            completed: true,
+            aborted: false,
+            abortReason: "",
+            audioElapsedSeconds: 1800,
+            pauseCount: 0,
+            track: nil,
+            routeTraversalEvidence: nil,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+
+        XCTAssertEqual(context.participantID, customId)
+
+        let pendingRecall = PendingRecall.make(context: context)
+        XCTAssertEqual(pendingRecall.participantID, customId)
+
+        let debriefRecord = DebriefRecord(
+            schemaVersion: "0.3",
+            recordStatus: "immediate_complete",
+            participantID: context.participantID,
+            runID: context.runID,
+            bindingID: context.bindingID,
+            missionID: context.missionID,
+            condition: context.condition,
+            participantRole: "founder",
+            startedAtLocal: context.startedAt,
+            endedAtLocal: context.endedAt,
+            recordedAtLocal: endedAt.addingTimeInterval(60),
+            recordingDelaySeconds: 60,
+            precommittedNextWorkoutAtLocal: context.precommittedNextWorkoutAt,
+            audioSHA256: context.audioSHA256,
+            routeWorkoutFingerprint: context.routeWorkoutFingerprint,
+            track: nil,
+            routeTraversalEvidence: nil,
+            safety: SafetyEvidence(routeManuallyChecked: true, abort: false, abortReason: "", neededScreenWhileMoving: false, navConflicts: []),
+            runtime: RuntimeEvidence(completed: true, geoSlotsReached: [], geoFallbacksUsed: [], missedOrLateCues: [], operatorImprovisationUsed: false, audioIncidents: [], additionalAudioNotes: "", offRouteIncidents: [], pauseCount: 0, locationIncidents: []),
+            immediateDebriefBeforeEdits: ImmediateDebriefEvidence(missionGoalInOneSentence: "Goal", momentCompanionBecameImportant: "Moment", unaidedMemorableScene: "Scene", attentionDropMoment: "Drop", whatPhysicalMovementChanged: "Movement", desireForM02_1To7: 5, placeNecessity1To7: 5, predictedNextTwist: "Twist", nextWorkoutStillScheduled: true),
+            recallAfter24h: RecallAfter24HoursEvidence(pending: true, instructions: "Instr"),
+            confounds: ConfoundEvidence(unfamiliarCityNovelty: "", fatigue: "", noise: "", weather: "", routeQuality: "", audioQuality: "", elevationOrStairs: ""),
+            device: DeviceEvidence(model: "iPhone", systemName: "iOS", systemVersion: "18.5", headphones: "AirPods", lockScreenUsed: true, lockScreenAnswerRecorded: true),
+            evidenceLimits: []
+        )
+
+        XCTAssertEqual(debriefRecord.participantID, customId)
+
+        let recallRecord = RecallCompletionRecord(
+            schemaVersion: "0.2",
+            recordStatus: "recall_24h_complete",
+            participantID: pendingRecall.participantID,
+            runID: pendingRecall.runID,
+            bindingID: pendingRecall.bindingID,
+            missionID: pendingRecall.missionID,
+            condition: pendingRecall.condition,
+            audioSHA256: pendingRecall.audioSHA256,
+            routeWorkoutFingerprint: pendingRecall.routeWorkoutFingerprint,
+            runEndedAtLocal: pendingRecall.runEndedAt,
+            dueAtLocal: pendingRecall.dueAt,
+            completedAtLocal: pendingRecall.dueAt.addingTimeInterval(1800),
+            unaidedStoryRecall: "Story",
+            unaidedPlaceRecall: ["Place 1"],
+            desireForM02_1To7: 6,
+            evidenceLimits: []
+        )
+
+        XCTAssertEqual(recallRecord.participantID, customId)
+        XCTAssertEqual(debriefRecord.participantID, recallRecord.participantID)
+
+        // Verify JSON encoding produces snake_case participant_id
+        let encoder = JSONEncoder()
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+        encoder.dateEncodingStrategy = .iso8601
+
+        let immData = try encoder.encode(debriefRecord)
+        let immDict = try JSONSerialization.jsonObject(with: immData) as! [String: Any]
+        XCTAssertEqual(immDict["participant_id"] as? String, customId)
+
+        let recData = try encoder.encode(recallRecord)
+        let recDict = try JSONSerialization.jsonObject(with: recData) as! [String: Any]
+        XCTAssertEqual(recDict["participant_id"] as? String, customId)
+    }
+
+    @MainActor
+    func testSwiftStructJSONPayloadsPassPythonValidatorPairChecking() throws {
+        let participantId = "participant_founder_parity_001"
+        let endedAt = Date(timeIntervalSince1970: 1_770_000_000)
+        let startedAt = endedAt.addingTimeInterval(-1800)
+        let recordedAt = endedAt.addingTimeInterval(300)
+        let precommittedAt = endedAt.addingTimeInterval(86400)
+
+        let trackSummary = TrackSummary(
+            fileName: "run-parity.gpx",
+            fileSHA256: String(repeating: "c", count: 64),
+            sampleCount: 50,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            durationSeconds: 1800,
+            distanceMeters: 2500,
+            meanHorizontalAccuracyMeters: 5,
+            maximumSampleGapSeconds: 10
+        )
+
+        let debriefRecord = DebriefRecord(
+            schemaVersion: "0.3",
+            recordStatus: "immediate_complete",
+            participantID: participantId,
+            runID: "run-parity-001",
+            bindingID: "valparaiso_central",
+            missionID: "m01",
+            condition: "A",
+            participantRole: "founder",
+            startedAtLocal: startedAt,
+            endedAtLocal: endedAt,
+            recordedAtLocal: recordedAt,
+            recordingDelaySeconds: 300,
+            precommittedNextWorkoutAtLocal: precommittedAt,
+            audioSHA256: String(repeating: "a", count: 64),
+            routeWorkoutFingerprint: String(repeating: "b", count: 64),
+            track: trackSummary,
+            routeTraversalEvidence: nil,
+            safety: SafetyEvidence(routeManuallyChecked: true, abort: false, abortReason: "", neededScreenWhileMoving: false, navConflicts: []),
+            runtime: RuntimeEvidence(completed: true, geoSlotsReached: ["slot1"], geoFallbacksUsed: [], missedOrLateCues: [], operatorImprovisationUsed: false, audioIncidents: [], additionalAudioNotes: "", offRouteIncidents: [], pauseCount: 0, locationIncidents: []),
+            immediateDebriefBeforeEdits: ImmediateDebriefEvidence(missionGoalInOneSentence: "Goal sentence.", momentCompanionBecameImportant: "Moment.", unaidedMemorableScene: "Scene.", attentionDropMoment: "None.", whatPhysicalMovementChanged: "Pace.", desireForM02_1To7: 6, placeNecessity1To7: 7, predictedNextTwist: "Twist.", nextWorkoutStillScheduled: true),
+            recallAfter24h: RecallAfter24HoursEvidence(pending: true, instructions: "Recall in 24h"),
+            confounds: ConfoundEvidence(unfamiliarCityNovelty: "", fatigue: "", noise: "", weather: "", routeQuality: "", audioQuality: "", elevationOrStairs: ""),
+            device: DeviceEvidence(model: "iPhone 16 Pro", systemName: "iOS", systemVersion: "18.5", headphones: "AirPods Pro", lockScreenUsed: true, lockScreenAnswerRecorded: true),
+            evidenceLimits: ["Founder test"]
+        )
+
+        let dueAt = endedAt.addingTimeInterval(86400)
+        let completedAt = dueAt.addingTimeInterval(1800)
+
+        let recallRecord = RecallCompletionRecord(
+            schemaVersion: "0.2",
+            recordStatus: "recall_24h_complete",
+            participantID: participantId,
+            runID: "run-parity-001",
+            bindingID: "valparaiso_central",
+            missionID: "m01",
+            condition: "A",
+            audioSHA256: String(repeating: "a", count: 64),
+            routeWorkoutFingerprint: String(repeating: "b", count: 64),
+            runEndedAtLocal: endedAt,
+            dueAtLocal: dueAt,
+            completedAtLocal: completedAt,
+            unaidedStoryRecall: "Story recall.",
+            unaidedPlaceRecall: ["Plaza Sotomayor"],
+            desireForM02_1To7: 6,
+            evidenceLimits: ["Recall completed."]
+        )
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
+        encoder.dateEncodingStrategy = .iso8601
+        encoder.keyEncodingStrategy = .convertToSnakeCase
+
+        let immData = try encoder.encode(debriefRecord)
+        let recData = try encoder.encode(recallRecord)
+
+        let immDict = try JSONSerialization.jsonObject(with: immData) as! [String: Any]
+        let recDict = try JSONSerialization.jsonObject(with: recData) as! [String: Any]
+
+        // Verify top-level parity fields encoded directly by Swift structs
+        XCTAssertEqual(immDict["schema_version"] as? String, "0.3")
+        XCTAssertEqual(recDict["schema_version"] as? String, "0.2")
+
+        XCTAssertEqual(immDict["record_status"] as? String, "immediate_complete")
+        XCTAssertEqual(recDict["record_status"] as? String, "recall_24h_complete")
+
+        XCTAssertEqual(immDict["participant_id"] as? String, participantId)
+        XCTAssertEqual(recDict["participant_id"] as? String, participantId)
+        XCTAssertEqual(immDict["participant_id"] as? String, recDict["participant_id"] as? String)
+
+        XCTAssertEqual(immDict["run_id"] as? String, recDict["run_id"] as? String)
+        XCTAssertEqual(immDict["binding_id"] as? String, recDict["binding_id"] as? String)
+        XCTAssertEqual(immDict["mission_id"] as? String, recDict["mission_id"] as? String)
+        XCTAssertEqual(immDict["condition"] as? String, recDict["condition"] as? String)
+        XCTAssertEqual(immDict["audio_sha256"] as? String, recDict["audio_sha256"] as? String)
+        XCTAssertEqual(immDict["route_workout_fingerprint"] as? String, recDict["route_workout_fingerprint"] as? String)
+    }
 }

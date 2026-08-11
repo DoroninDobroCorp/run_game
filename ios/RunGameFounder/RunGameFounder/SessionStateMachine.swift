@@ -92,7 +92,8 @@ struct SessionStateMachine: Equatable, Sendable {
     mutating func handle(
         event: Event,
         mission: MissionConfig,
-        precommittedNextWorkoutAt: Date
+        precommittedNextWorkoutAt: Date,
+        participantID: String = "participant_founder_default"
     ) -> [Action] {
         var actions: [Action] = []
 
@@ -102,6 +103,7 @@ struct SessionStateMachine: Equatable, Sendable {
             state = .acquiringGPS(runID: runID, startedAt: now, qualifyingFixes: 0)
             let gpxPrefix = "\(mission.gpxPrefix)-run-\(runID)"
             let attempt = ActiveRunAttempt(
+                participantID: participantID,
                 runID: runID,
                 missionID: mission.missionID,
                 bindingID: mission.bindingID,
@@ -144,6 +146,7 @@ struct SessionStateMachine: Equatable, Sendable {
             state = .running(runID: runID, startedAt: startedAt, runStartedAt: now, pauseCount: 0, isPlaying: true)
             let gpxPrefix = "\(mission.gpxPrefix)-run-\(runID)"
             let attempt = ActiveRunAttempt(
+                participantID: participantID,
                 runID: runID,
                 missionID: mission.missionID,
                 bindingID: mission.bindingID,
@@ -209,7 +212,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: Date(),
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         case (.running, .routeDisconnected(let elapsed, let summary, let routeTraversal)):
@@ -222,7 +226,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: Date(),
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         case (.running, .remoteStopRequested(let elapsed, let summary, let routeTraversal)):
@@ -235,7 +240,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: Date(),
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         case (.running, .gpsFailed(let reason, let elapsed, let summary, let routeTraversal)):
@@ -248,7 +254,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: Date(),
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         case (.running, .audioStartFailed(let reason, let elapsed, let summary, let routeTraversal)):
@@ -261,7 +268,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: Date(),
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         // MARK: - 3. Natural Finish & User Abort
@@ -285,6 +293,7 @@ struct SessionStateMachine: Equatable, Sendable {
             if !locationIncidents.isEmpty { failureReasons.append("location incident recorded") }
 
             let context = RunSessionContext(
+                participantID: participantID,
                 runID: runID,
                 missionID: mission.missionID,
                 bindingID: mission.bindingID,
@@ -323,7 +332,8 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: now,
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         case (.acquiringGPS, .userAborted(let reason, let summary, let routeTraversal, let audioIncidents, let locationIncidents, let elapsed, let now)):
@@ -336,12 +346,14 @@ struct SessionStateMachine: Equatable, Sendable {
                 elapsed: elapsed,
                 now: now,
                 mission: mission,
-                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                participantID: participantID
             ))
 
         // MARK: - 4. Crash Recovery
         case (_, .processCrashRecovered(let attempt, let endedAt)):
             let recoveredContext = RunSessionContext(
+                participantID: attempt.participantID,
                 runID: attempt.runID,
                 missionID: attempt.missionID,
                 bindingID: attempt.bindingID,
@@ -382,7 +394,8 @@ struct SessionStateMachine: Equatable, Sendable {
         elapsed: TimeInterval,
         now: Date,
         mission: MissionConfig,
-        precommittedNextWorkoutAt: Date
+        precommittedNextWorkoutAt: Date,
+        participantID: String
     ) -> [Action] {
         var actions: [Action] = []
         actions.append(.cancelFirstFixTimer)
@@ -407,6 +420,7 @@ struct SessionStateMachine: Equatable, Sendable {
         }
 
         let context = RunSessionContext(
+            participantID: participantID,
             runID: runID,
             missionID: mission.missionID,
             bindingID: mission.bindingID,
