@@ -22,6 +22,11 @@ final class FakeAudioController: AudioControlling {
         latestIncidentSubject.eraseToAnyPublisher()
     }
 
+    let objectWillChangeSubject = PassthroughSubject<Void, Never>()
+    var objectWillChangePublisher: AnyPublisher<Void, Never> {
+        objectWillChangeSubject.eraseToAnyPublisher()
+    }
+
     var playSucceeds = true
     var prepareSucceeds = true
 
@@ -71,6 +76,7 @@ final class FakeLocationRecorder: LocationRecording {
     var lastSummary: TrackSummary? = nil
     var completedNormally: Bool = false
     var incidents: [String] = []
+    var stopCallCount: Int = 0
 
     let latestSampleSubject = CurrentValueSubject<TrackSample?, Never>(nil)
     var latestSamplePublisher: AnyPublisher<TrackSample?, Never> {
@@ -80,6 +86,11 @@ final class FakeLocationRecorder: LocationRecording {
     let lastErrorSubject = CurrentValueSubject<String?, Never>(nil)
     var lastErrorPublisher: AnyPublisher<String?, Never> {
         lastErrorSubject.eraseToAnyPublisher()
+    }
+
+    let objectWillChangeSubject = PassthroughSubject<Void, Never>()
+    var objectWillChangePublisher: AnyPublisher<Void, Never> {
+        objectWillChangeSubject.eraseToAnyPublisher()
     }
 
     var startResult: LocationStartResult = .started
@@ -95,6 +106,7 @@ final class FakeLocationRecorder: LocationRecording {
     }
 
     func stop(completed: Bool) -> TrackSummary? {
+        stopCallCount += 1
         isRecording = false
         completedNormally = completed
         return lastSummary

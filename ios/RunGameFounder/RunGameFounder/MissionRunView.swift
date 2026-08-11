@@ -86,26 +86,7 @@ struct MissionRunView: View {
         .interactiveDismissDisabled(coordinator.isRunning || coordinator.isAcquiringGPS)
         .confirmationDialog("Остановить миссию?", isPresented: $showAbortConfirmation) {
             Button("Остановить и сохранить partial GPX", role: .destructive) {
-                let summary = coordinator.recorder.stop(completed: false)
-                let routeTraversal = summary.map {
-                    WalkthroughEvidence.make(
-                        mission: mission,
-                        summary: $0,
-                        samples: coordinator.recorder.samples,
-                        locationIncidents: coordinator.recorder.incidents
-                    )
-                }
-                let audioIncidents = coordinator.audio.incidents.map {
-                    "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
-                }
-                coordinator.send(.userAborted(
-                    reason: "Founder emergency stop from app UI",
-                    summary: summary,
-                    routeTraversal: routeTraversal,
-                    audioIncidents: audioIncidents,
-                    locationIncidents: coordinator.recorder.incidents,
-                    elapsed: coordinator.audio.elapsed
-                ))
+                coordinator.abortSession(reason: "Founder emergency stop from app UI")
             }
             Button("Продолжить", role: .cancel) {}
         } message: {
@@ -118,26 +99,7 @@ struct MissionRunView: View {
         }
         .onDisappear {
             if coordinator.isRunning || coordinator.isAcquiringGPS {
-                let summary = coordinator.recorder.stop(completed: false)
-                let routeTraversal = summary.map {
-                    WalkthroughEvidence.make(
-                        mission: mission,
-                        summary: $0,
-                        samples: coordinator.recorder.samples,
-                        locationIncidents: coordinator.recorder.incidents
-                    )
-                }
-                let audioIncidents = coordinator.audio.incidents.map {
-                    "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
-                }
-                coordinator.send(.userAborted(
-                    reason: "Mission screen was dismissed before evidence completion",
-                    summary: summary,
-                    routeTraversal: routeTraversal,
-                    audioIncidents: audioIncidents,
-                    locationIncidents: coordinator.recorder.incidents,
-                    elapsed: coordinator.audio.elapsed
-                ))
+                coordinator.abortSession(reason: "Mission screen was dismissed before evidence completion")
             } else {
                 coordinator.audio.stop()
             }

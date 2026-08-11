@@ -16,6 +16,7 @@ protocol AudioControlling: AnyObject, ObservableObject {
     var onFatalError: ((String) -> Void)? { get set }
 
     var latestIncidentPublisher: AnyPublisher<AudioIncident?, Never> { get }
+    var objectWillChangePublisher: AnyPublisher<Void, Never> { get }
 
     func prepare(fileName: String, title: String, expectedDuration: TimeInterval?)
     func play() -> Bool
@@ -28,6 +29,10 @@ extension AudioController: AudioControlling {
         $incidents
             .map { $0.last }
             .eraseToAnyPublisher()
+    }
+
+    var objectWillChangePublisher: AnyPublisher<Void, Never> {
+        objectWillChange.map { _ in () }.eraseToAnyPublisher()
     }
 }
 
@@ -47,6 +52,7 @@ protocol LocationRecording: AnyObject, ObservableObject {
 
     var latestSamplePublisher: AnyPublisher<TrackSample?, Never> { get }
     var lastErrorPublisher: AnyPublisher<String?, Never> { get }
+    var objectWillChangePublisher: AnyPublisher<Void, Never> { get }
 
     func requestPermission()
     func start(prefix: String) -> LocationStartResult
@@ -61,5 +67,9 @@ extension LocationRecorder: LocationRecording {
 
     var lastErrorPublisher: AnyPublisher<String?, Never> {
         $lastError.eraseToAnyPublisher()
+    }
+
+    var objectWillChangePublisher: AnyPublisher<Void, Never> {
+        objectWillChange.map { _ in () }.eraseToAnyPublisher()
     }
 }

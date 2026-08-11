@@ -14,14 +14,14 @@ struct SessionStateMachine: Equatable, Sendable {
         case requestStart(runID: String, now: Date)
         case receiveGPSFix(accuracy: Double, distanceToStartMeters: Double)
         case gpsFirstFixTimeout
-        case gpsFailed(reason: String, elapsed: TimeInterval = 0)
+        case gpsFailed(reason: String, elapsed: TimeInterval = 0, summary: TrackSummary? = nil, routeTraversal: WalkthroughEvidence? = nil)
         case audioStarted(now: Date = Date())
-        case audioStartFailed(reason: String)
+        case audioStartFailed(reason: String, elapsed: TimeInterval = 0, summary: TrackSummary? = nil, routeTraversal: WalkthroughEvidence? = nil)
         case pauseRequested
         case resumeRequested
-        case audioInterrupted(reason: String, elapsed: TimeInterval)
-        case routeDisconnected(elapsed: TimeInterval)
-        case remoteStopRequested(elapsed: TimeInterval)
+        case audioInterrupted(reason: String, elapsed: TimeInterval, summary: TrackSummary? = nil, routeTraversal: WalkthroughEvidence? = nil)
+        case routeDisconnected(elapsed: TimeInterval, summary: TrackSummary? = nil, routeTraversal: WalkthroughEvidence? = nil)
+        case remoteStopRequested(elapsed: TimeInterval, summary: TrackSummary? = nil, routeTraversal: WalkthroughEvidence? = nil)
         case audioFinishedNaturally(
             summary: TrackSummary?,
             routeTraversal: WalkthroughEvidence?,
@@ -161,7 +161,7 @@ struct SessionStateMachine: Equatable, Sendable {
             actions.append(.saveJournal(attempt))
             actions.append(.setStatusMessage(nil))
 
-        case (.acquiringGPS, .audioStartFailed(let reason)):
+        case (.acquiringGPS, .audioStartFailed(let reason, _, _, _)):
             state = .ready
             actions.append(.cancelFirstFixTimer)
             actions.append(.cancelGPSRecording)
@@ -177,7 +177,7 @@ struct SessionStateMachine: Equatable, Sendable {
             actions.append(.clearJournal)
             actions.append(.setStatusMessage("За 30 секунд не получена точная GPS-точка у публичного старта."))
 
-        case (.acquiringGPS, .gpsFailed(let reason, _)):
+        case (.acquiringGPS, .gpsFailed(let reason, _, _, _)):
             state = .ready
             actions.append(.cancelFirstFixTimer)
             actions.append(.cancelGPSRecording)
@@ -199,11 +199,11 @@ struct SessionStateMachine: Equatable, Sendable {
                 actions.append(.startAudioPlayback)
             }
 
-        case (.running, .audioInterrupted(let reason, let elapsed)):
+        case (.running, .audioInterrupted(let reason, let elapsed, let summary, let routeTraversal)):
             actions.append(contentsOf: handleAbort(
                 reason: "Audio session interrupted: \(reason)",
-                summary: nil,
-                routeTraversal: nil,
+                summary: summary,
+                routeTraversal: routeTraversal,
                 audioIncidents: [reason],
                 locationIncidents: [],
                 elapsed: elapsed,
@@ -212,11 +212,11 @@ struct SessionStateMachine: Equatable, Sendable {
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt
             ))
 
-        case (.running, .routeDisconnected(let elapsed)):
+        case (.running, .routeDisconnected(let elapsed, let summary, let routeTraversal)):
             actions.append(contentsOf: handleAbort(
                 reason: "Audio session interrupted: Headphones disconnected",
-                summary: nil,
-                routeTraversal: nil,
+                summary: summary,
+                routeTraversal: routeTraversal,
                 audioIncidents: ["Headphones disconnected"],
                 locationIncidents: [],
                 elapsed: elapsed,
@@ -225,11 +225,11 @@ struct SessionStateMachine: Equatable, Sendable {
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt
             ))
 
-        case (.running, .remoteStopRequested(let elapsed)):
+        case (.running, .remoteStopRequested(let elapsed, let summary, let routeTraversal)):
             actions.append(contentsOf: handleAbort(
                 reason: "Remote stop from lock-screen controls",
-                summary: nil,
-                routeTraversal: nil,
+                summary: summary,
+                routeTraversal: routeTraversal,
                 audioIncidents: ["Remote stop requested"],
                 locationIncidents: [],
                 elapsed: elapsed,
@@ -238,13 +238,26 @@ struct SessionStateMachine: Equatable, Sendable {
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt
             ))
 
-        case (.running, .gpsFailed(let reason, let elapsed)):
+        case (.running, .gpsFailed(let reason, let elapsed, let summary, let routeTraversal)):
             actions.append(contentsOf: handleAbort(
                 reason: "GPS session failed: \(reason)",
-                summary: nil,
-                routeTraversal: nil,
+                summary: summary,
+                routeTraversal: routeTraversal,
                 audioIncidents: [],
                 locationIncidents: [reason],
+                elapsed: elapsed,
+                now: Date(),
+                mission: mission,
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt
+            ))
+
+        case (.running, .audioStartFailed(let reason, let elapsed, let summary, let routeTraversal)):
+            actions.append(contentsOf: handleAbort(
+                reason: "Fatal audio error: \(reason)",
+                summary: summary,
+                routeTraversal: routeTraversal,
+                audioIncidents: [reason],
+                locationIncidents: [],
                 elapsed: elapsed,
                 now: Date(),
                 mission: mission,

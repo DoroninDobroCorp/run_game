@@ -7,6 +7,11 @@ import Foundation
 @MainActor
 final class SessionCoordinator: ObservableObject {
     @Published private(set) var stateMachine: SessionStateMachine
+    @Published private(set) var currentRunState: SessionStateMachine.State
+    @Published private(set) var isRecording: Bool
+    @Published private(set) var recordedPointsCount: Int
+    @Published private(set) var audioElapsedSeconds: TimeInterval
+    @Published private(set) var activeIncidentCount: Int
     @Published private(set) var statusMessage: String?
 
     let mission: MissionConfig
@@ -31,10 +36,16 @@ final class SessionCoordinator: ObservableObject {
         self.audio = audio
         self.recorder = recorder
         self.stateMachine = SessionStateMachine(initialState: initialState)
+        self.currentRunState = initialState
+        self.isRecording = recorder.isRecording
+        self.recordedPointsCount = recorder.samples.count
+        self.audioElapsedSeconds = audio.elapsed
+        self.activeIncidentCount = audio.incidents.count + recorder.incidents.count
         self.precommittedNextWorkoutAt = precommittedNextWorkoutAt
 
         setupSubscriptions()
         prepareAudio()
+        updatePublishedSnapshots()
     }
 
     deinit {
@@ -42,7 +53,7 @@ final class SessionCoordinator: ObservableObject {
     }
 
     var state: SessionStateMachine.State {
-        stateMachine.state
+        currentRunState
     }
 
     var isReady: Bool { stateMachine.isReady }
@@ -73,6 +84,44 @@ final class SessionCoordinator: ObservableObject {
             precommittedNextWorkoutAt: precommittedNextWorkoutAt
         )
         execute(actions)
+        updatePublishedSnapshots()
+    }
+
+    func abortSession(reason: String) {
+        guard isRunning || isAcquiringGPS else { return }
+        let (summary, routeTraversal) = stopRecorderAndMakeEvidence(completed: false)
+        let audioIncidents = audio.incidents.map {
+            "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
+        }
+        send(.userAborted(
+            reason: reason,
+            summary: summary,
+            routeTraversal: routeTraversal,
+            audioIncidents: audioIncidents,
+            locationIncidents: recorder.incidents,
+            elapsed: audio.elapsed
+        ))
+    }
+
+    private func updatePublishedSnapshots() {
+        currentRunState = stateMachine.state
+        isRecording = recorder.isRecording
+        recordedPointsCount = recorder.samples.count
+        audioElapsedSeconds = audio.elapsed
+        activeIncidentCount = audio.incidents.count + recorder.incidents.count
+    }
+
+    private func stopRecorderAndMakeEvidence(completed: Bool) -> (summary: TrackSummary?, routeTraversal: WalkthroughEvidence?) {
+        let summary = recorder.stop(completed: completed)
+        let routeTraversal = summary.map {
+            WalkthroughEvidence.make(
+                mission: mission,
+                summary: $0,
+                samples: recorder.samples,
+                locationIncidents: recorder.incidents
+            )
+        }
+        return (summary, routeTraversal)
     }
 
     // MARK: - Actions Execution
@@ -87,7 +136,9 @@ final class SessionCoordinator: ObservableObject {
             case .cancelGPSRecording:
                 recorder.cancelPendingStart()
             case .stopGPSRecording(let completed):
-                _ = recorder.stop(completed: completed)
+                if recorder.isRecording {
+                    _ = recorder.stop(completed: completed)
+                }
             case .startFirstFixTimer(let seconds):
                 firstFixTimeout?.cancel()
                 firstFixTimeout = Task { @MainActor [weak self] in
@@ -125,18 +176,25 @@ final class SessionCoordinator: ObservableObject {
 
     // MARK: - Subscriptions & Handlers
     private func setupSubscriptions() {
+        // Observe changes on audio and recorder to keep published properties updated
+        audio.objectWillChangePublisher
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updatePublishedSnapshots()
+            }
+            .store(in: &cancellables)
+
+        recorder.objectWillChangePublisher
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updatePublishedSnapshots()
+            }
+            .store(in: &cancellables)
+
         // Prepare Audio handlers
         audio.onFinished = { [weak self] in
             guard let self, self.isRunning else { return }
-            let summary = self.recorder.stop(completed: true)
-            let routeTraversal = summary.map {
-                WalkthroughEvidence.make(
-                    mission: self.mission,
-                    summary: $0,
-                    samples: self.recorder.samples,
-                    locationIncidents: self.recorder.incidents
-                )
-            }
+            let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: true)
             let audioIncidents = self.audio.incidents.map {
                 "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
             }
@@ -151,15 +209,29 @@ final class SessionCoordinator: ObservableObject {
 
         audio.onStopRequested = { [weak self] in
             guard let self, self.isRunning else { return }
-            self.send(.remoteStopRequested(elapsed: self.audio.elapsed))
+            let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: false)
+            self.send(.remoteStopRequested(
+                elapsed: self.audio.elapsed,
+                summary: summary,
+                routeTraversal: routeTraversal
+            ))
         }
 
         audio.onFatalError = { [weak self] message in
             guard let self else { return }
-            if self.isRunning || self.isAcquiringGPS {
+            if self.isRunning {
+                let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: false)
+                self.send(.audioStartFailed(
+                    reason: message,
+                    elapsed: self.audio.elapsed,
+                    summary: summary,
+                    routeTraversal: routeTraversal
+                ))
+            } else if self.isAcquiringGPS {
                 self.send(.audioStartFailed(reason: message))
             } else {
                 self.statusMessage = message
+                self.updatePublishedSnapshots()
             }
         }
 
@@ -167,7 +239,9 @@ final class SessionCoordinator: ObservableObject {
         recorder.latestSamplePublisher
             .compactMap { $0 }
             .sink { [weak self] sample in
-                guard let self, self.isAcquiringGPS, let start = self.mission.routePoints.first else { return }
+                guard let self else { return }
+                self.updatePublishedSnapshots()
+                guard self.isAcquiringGPS, let start = self.mission.routePoints.first else { return }
                 let distance = sample.location.distance(from: start.location)
                 self.send(.receiveGPSFix(accuracy: sample.horizontalAccuracy, distanceToStartMeters: distance))
             }
@@ -181,7 +255,13 @@ final class SessionCoordinator: ObservableObject {
                 if self.isAcquiringGPS {
                     self.send(.gpsFailed(reason: error))
                 } else if self.isRunning {
-                    self.send(.gpsFailed(reason: "GPS session failed: \(error)", elapsed: self.audio.elapsed))
+                    let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: false)
+                    self.send(.gpsFailed(
+                        reason: "GPS session failed: \(error)",
+                        elapsed: self.audio.elapsed,
+                        summary: summary,
+                        routeTraversal: routeTraversal
+                    ))
                 }
             }
             .store(in: &cancellables)
@@ -193,9 +273,20 @@ final class SessionCoordinator: ObservableObject {
                 guard let self, self.isRunning else { return }
                 switch incident.kind {
                 case .interruptionBegan:
-                    self.send(.audioInterrupted(reason: incident.message, elapsed: self.audio.elapsed))
+                    let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: false)
+                    self.send(.audioInterrupted(
+                        reason: incident.message,
+                        elapsed: self.audio.elapsed,
+                        summary: summary,
+                        routeTraversal: routeTraversal
+                    ))
                 case .outputRouteDisconnected:
-                    self.send(.routeDisconnected(elapsed: self.audio.elapsed))
+                    let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: false)
+                    self.send(.routeDisconnected(
+                        elapsed: self.audio.elapsed,
+                        summary: summary,
+                        routeTraversal: routeTraversal
+                    ))
                 default:
                     break
                 }
