@@ -3,7 +3,7 @@ import XCTest
 
 @MainActor
 final class FileDurabilityTests: XCTestCase {
-    private var tempDirectory: URL!
+    nonisolated(unsafe) private var tempDirectory: URL!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
