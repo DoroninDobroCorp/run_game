@@ -36,19 +36,36 @@ enum FileDurability {
 
         let stagingURL = parentDir.appendingPathComponent(".tmp.\(UUID().uuidString)")
 
+        defer {
+            if fileManager.fileExists(atPath: stagingURL.path) {
+                try? fileManager.removeItem(at: stagingURL)
+            }
+        }
+
         // 1. Write staging file
         fileManager.createFile(atPath: stagingURL.path, contents: nil, attributes: nil)
         let fileHandle = try FileHandle(forWritingTo: stagingURL)
-        defer {
+        do {
+            try fileHandle.write(contentsOf: data)
+            // 2. Sync file handle to physical storage
+            if fcntl(fileHandle.fileDescriptor, F_FULLFSYNC) != 0 {
+                try fileHandle.synchronize()
+            }
+            try fileHandle.close()
+        } catch {
             try? fileHandle.close()
+            throw error
         }
-
-        try fileHandle.write(contentsOf: data)
-        // 2. Sync file handle to physical storage
-        try fileHandle.synchronize()
 
         // 3. Atomic rename / replace
         if fileManager.fileExists(atPath: url.path) {
+            if !overwrite {
+                throw NSError(
+                    domain: NSCocoaErrorDomain,
+                    code: NSFileWriteFileExistsError,
+                    userInfo: [NSFilePathErrorKey: url.path]
+                )
+            }
             _ = try fileManager.replaceItemAt(url, withItemAt: stagingURL)
         } else {
             try fileManager.moveItem(at: stagingURL, to: url)
@@ -57,7 +74,9 @@ enum FileDurability {
         // 4. Parent directory fsync
         let parentFD = open(parentDir.path, O_RDONLY)
         if parentFD >= 0 {
-            _ = fcntl(parentFD, F_FULLFSYNC)
+            if fcntl(parentFD, F_FULLFSYNC) != 0 {
+                _ = fsync(parentFD)
+            }
             close(parentFD)
         }
 

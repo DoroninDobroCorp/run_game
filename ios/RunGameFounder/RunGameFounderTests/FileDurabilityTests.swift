@@ -97,4 +97,87 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertTrue(model.queueCorrupted)
         XCTAssertTrue(model.evidenceCaptureLocked)
     }
+
+    func testConcurrentAtomicWrites() throws {
+        let iterations = 20
+        let expectation = expectation(description: "Concurrent atomic writes complete")
+        expectation.expectedFulfillmentCount = iterations
+
+        let targetDir = tempDirectory!
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            let fileURL = targetDir.appendingPathComponent("concurrent-\(index).json")
+            let data = Data("{\"index\": \(index)}".utf8)
+            do {
+                try FileDurability.writeAtomicDraft(data: data, to: fileURL)
+                let readData = try Data(contentsOf: fileURL)
+                XCTAssertEqual(readData, data)
+                XCTAssertTrue(FileDurability.isExcludedFromBackup(url: fileURL))
+            } catch {
+                XCTFail("Concurrent write failed for index \(index): \(error)")
+            }
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 10.0)
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: targetDir.path)
+        let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
+        XCTAssertTrue(tmpFiles.isEmpty, "Leftover staging files found: \(tmpFiles)")
+    }
+
+    func testConcurrentOverwriteProtection() throws {
+        let fileURL = tempDirectory.appendingPathComponent("concurrent-overwrite.json")
+        let initialData = Data("{\"status\": \"initial\"}".utf8)
+        try FileDurability.writeFinalEvidence(data: initialData, to: fileURL)
+
+        let iterations = 20
+        let expectation = expectation(description: "Concurrent overwrite attempts complete")
+        expectation.expectedFulfillmentCount = iterations
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            let replacementData = Data("{\"status\": \"replacement-\(index)\"}".utf8)
+            do {
+                try FileDurability.writeFinalEvidence(data: replacementData, to: fileURL)
+                XCTFail("writeFinalEvidence should have thrown NSFileWriteFileExistsError for index \(index)")
+            } catch {
+                let nsError = error as NSError
+                XCTAssertEqual(nsError.domain, NSCocoaErrorDomain)
+                XCTAssertEqual(nsError.code, NSFileWriteFileExistsError)
+            }
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 10.0)
+
+        let preservedData = try Data(contentsOf: fileURL)
+        XCTAssertEqual(preservedData, initialData)
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
+        XCTAssertTrue(tmpFiles.isEmpty, "Leftover staging files found: \(tmpFiles)")
+    }
+
+    func testOverwriteFailureCleansStagingAndPreservesOriginal() throws {
+        let fileURL = tempDirectory.appendingPathComponent("overwrite-failure.json")
+        let initialData = Data("{\"status\": \"original\"}".utf8)
+        try FileDurability.writeAtomicDraft(data: initialData, to: fileURL)
+
+        let overwriteData = Data("{\"status\": \"blocked\"}".utf8)
+
+        XCTAssertThrowsError(
+            try FileDurability.writeAtomicStaging(data: overwriteData, to: fileURL, overwrite: false)
+        ) { error in
+            let nsError = error as NSError
+            XCTAssertEqual(nsError.domain, NSCocoaErrorDomain)
+            XCTAssertEqual(nsError.code, NSFileWriteFileExistsError)
+        }
+
+        let currentData = try Data(contentsOf: fileURL)
+        XCTAssertEqual(currentData, initialData)
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
+        XCTAssertTrue(tmpFiles.isEmpty, "Staging file was not cleaned up after overwrite failure")
+    }
 }
