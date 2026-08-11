@@ -8,6 +8,11 @@ struct RunGameFounderApp: App {
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-reset") {
             let bundleID = Bundle.main.bundleIdentifier ?? "com.doronindobro.rungame.founder"
             UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            if let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+                try? FileManager.default.removeItem(at: docs.appendingPathComponent("pending_debriefs.json"))
+                try? FileManager.default.removeItem(at: docs.appendingPathComponent("pending_recalls.json"))
+                try? FileManager.default.removeItem(at: docs.appendingPathComponent("active_run_journal.json"))
+            }
         }
         let model = AppModel()
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-pending-debrief") {
