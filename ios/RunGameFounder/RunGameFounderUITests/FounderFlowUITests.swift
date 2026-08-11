@@ -19,6 +19,7 @@ final class FounderFlowUITests: XCTestCase {
 
         let walkthroughLink = app.buttons["routeWalkthroughLink"]
         XCTAssertTrue(walkthroughLink.exists)
+        app.swipeUp()
         walkthroughLink.tap()
 
         XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
@@ -37,6 +38,7 @@ final class FounderFlowUITests: XCTestCase {
         let app = launchedApp()
         let homeAudioLink = app.buttons["homeAudioLink"]
         XCTAssertTrue(homeAudioLink.exists)
+        app.swipeUp()
         homeAudioLink.tap()
 
         XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
@@ -67,6 +69,7 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertEqual(missionRunLink.identifier, "missionRunLink")
 
         // 2. Route Walkthrough controls & labels
+        app.swipeUp()
         walkthroughLink.tap()
         XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
 
@@ -83,6 +86,7 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
 
         // 3. Home Audio Check controls & labels
+        app.swipeUp()
         app.buttons["homeAudioLink"].tap()
         XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
 

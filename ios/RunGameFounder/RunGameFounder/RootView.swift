@@ -266,7 +266,6 @@ private struct DashboardView: View {
             .accessibilityIdentifier("missionRunLink")
             .disabled(!appModel.canBeginMission || appModel.evidenceCaptureLocked)
         }
-        .buttonStyle(.plain)
     }
 
     private var missionStartDetail: String {
