@@ -4,11 +4,11 @@ import XCTest
 
 @MainActor
 final class SessionCoordinatorTests: XCTestCase {
-    private var sampleMission: MissionConfig!
-    private var appModel: AppModel!
-    private var defaults: UserDefaults!
-    private var suiteName: String!
-    private var tempDir: URL!
+    nonisolated(unsafe) private var sampleMission: MissionConfig!
+    nonisolated(unsafe) private var appModel: AppModel!
+    nonisolated(unsafe) private var defaults: UserDefaults!
+    nonisolated(unsafe) private var suiteName: String!
+    nonisolated(unsafe) private var tempDir: URL!
 
     override func setUpWithError() throws {
         try super.setUpWithError()

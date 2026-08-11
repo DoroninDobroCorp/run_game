@@ -4,8 +4,8 @@ import XCTest
 
 @MainActor
 final class SessionStateMachineTests: XCTestCase {
-    private var sampleMission: MissionConfig!
-    private var defaultPrecommittedDate: Date!
+    nonisolated(unsafe) private var sampleMission: MissionConfig!
+    nonisolated(unsafe) private var defaultPrecommittedDate: Date!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
