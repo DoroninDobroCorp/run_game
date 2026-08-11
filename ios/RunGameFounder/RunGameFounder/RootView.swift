@@ -241,7 +241,7 @@ private struct DashboardView: View {
             }
             .accessibilityIdentifier("homeAudioLink")
             NavigationLink {
-                MissionRunView(mission: mission)
+                MissionRunView(mission: mission, appModel: appModel)
             } label: {
                 actionLabel(
                     number: "03",
