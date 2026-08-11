@@ -33,8 +33,50 @@ class TestR02AudioQA(unittest.TestCase):
         self.assertTrue(report["checks"]["container_integrity_valid"])
         self.assertTrue(report["checks"]["zero_truncation"])
         self.assertFalse(report["checks"]["clipping_detected"])
+        self.assertTrue(report["checks"]["ffmpeg_signal_probe_passed"])
+        self.assertEqual(report["signal_analysis"]["max_volume_db"], -1.6)
         self.assertFalse(report["human_audio_approved"])
         self.assertFalse(report["human_listening_performed"])
+
+    def test_ffmpeg_missing_returns_not_run(self):
+        with unittest.mock.patch("tools.r02_audio_qa.probe_signal_volumedetect", return_value={
+            "probe_tool": "ffmpeg_volumedetect",
+            "status": "NOT_RUN",
+            "error": "ffmpeg executable not found in PATH",
+            "max_volume_db": None,
+            "mean_volume_db": None,
+            "histogram_0db_count": 0,
+            "clipping_detected": False,
+        }):
+            report = r02_audio_qa.probe_audio(
+                m4a_path=MASTER_M4A if MASTER_M4A.exists() else Path(__file__),
+                manifest_path=MANIFEST_PATH if MANIFEST_PATH.exists() else None,
+            )
+            if MASTER_M4A.exists() and MANIFEST_PATH.exists():
+                self.assertEqual(report["status"], "NOT_RUN")
+                self.assertFalse(report["checks"]["ffmpeg_signal_probe_passed"])
+                self.assertEqual(report["signal_analysis"]["status"], "NOT_RUN")
+            self.assertFalse(report["human_audio_approved"])
+
+    def test_ffmpeg_error_returns_fail(self):
+        with unittest.mock.patch("tools.r02_audio_qa.probe_signal_volumedetect", return_value={
+            "probe_tool": "ffmpeg_volumedetect",
+            "status": "FAIL",
+            "error": "ffmpeg volumedetect failed",
+            "max_volume_db": None,
+            "mean_volume_db": None,
+            "histogram_0db_count": 0,
+            "clipping_detected": False,
+        }):
+            report = r02_audio_qa.probe_audio(
+                m4a_path=MASTER_M4A if MASTER_M4A.exists() else Path(__file__),
+                manifest_path=MANIFEST_PATH if MANIFEST_PATH.exists() else None,
+            )
+            if MASTER_M4A.exists() and MANIFEST_PATH.exists():
+                self.assertEqual(report["status"], "FAIL")
+                self.assertFalse(report["checks"]["ffmpeg_signal_probe_passed"])
+                self.assertEqual(report["signal_analysis"]["status"], "FAIL")
+            self.assertFalse(report["human_audio_approved"])
 
     def test_missing_m4a_fails_closed(self):
         non_existent = ROOT / "research/r02/local/valparaiso_central/audio/non_existent.m4a"

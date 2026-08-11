@@ -163,32 +163,65 @@ def probe_signal_volumedetect(m4a_path: Path) -> dict[str, Any]:
     ]
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+        if result.returncode != 0:
+            return {
+                "probe_tool": "ffmpeg_volumedetect",
+                "status": "FAIL",
+                "error": f"ffmpeg volumedetect failed with exit code {result.returncode}: {result.stderr.strip()}",
+                "max_volume_db": None,
+                "mean_volume_db": None,
+                "histogram_0db_count": 0,
+                "clipping_detected": False,
+            }
         stderr = result.stderr
         max_vol_match = re.search(r"max_volume:\s*([-+]?[0-9.]+)\s*dB", stderr)
         mean_vol_match = re.search(r"mean_volume:\s*([-+]?[0-9.]+)\s*dB", stderr)
         hist_0db_match = re.search(r"histogram_0db:\s*([0-9]+)", stderr)
 
-        max_vol_db = float(max_vol_match.group(1)) if max_vol_match else None
+        if not max_vol_match:
+            return {
+                "probe_tool": "ffmpeg_volumedetect",
+                "status": "FAIL",
+                "error": "Could not parse max_volume from ffmpeg output",
+                "max_volume_db": None,
+                "mean_volume_db": None,
+                "histogram_0db_count": 0,
+                "clipping_detected": False,
+            }
+
+        max_vol_db = float(max_vol_match.group(1))
         mean_vol_db = float(mean_vol_match.group(1)) if mean_vol_match else None
         hist_0db = int(hist_0db_match.group(1)) if hist_0db_match else 0
 
         # Clipping detected if max_volume >= 0.0 dB or histogram_0db > 0
         clipping_detected = False
-        if max_vol_db is not None and max_vol_db >= 0.0:
+        if max_vol_db >= 0.0:
             clipping_detected = True
         if hist_0db > 0:
             clipping_detected = True
 
         return {
             "probe_tool": "ffmpeg_volumedetect",
+            "status": "PASS",
             "max_volume_db": max_vol_db,
             "mean_volume_db": mean_vol_db,
             "histogram_0db_count": hist_0db,
             "clipping_detected": clipping_detected,
         }
+    except FileNotFoundError:
+        return {
+            "probe_tool": "ffmpeg_volumedetect",
+            "status": "NOT_RUN",
+            "error": "ffmpeg executable not found in PATH",
+            "max_volume_db": None,
+            "mean_volume_db": None,
+            "histogram_0db_count": 0,
+            "clipping_detected": False,
+        }
     except Exception as exc:
         return {
             "probe_tool": "ffmpeg_volumedetect",
+            "status": "FAIL",
             "error": str(exc),
             "max_volume_db": None,
             "mean_volume_db": None,
@@ -247,6 +280,7 @@ def probe_audio(
         }
 
     signal_info = probe_signal_volumedetect(m4a_path)
+    signal_passed = (signal_info.get("status") == "PASS") and (signal_info.get("max_volume_db") is not None)
 
     # Perform assertions
     sha_match = (expected_sha256 is not None) and (actual_sha256 == expected_sha256)
@@ -267,9 +301,15 @@ def probe_audio(
         and container_valid
         and zero_truncation
         and not clipping_detected
+        and signal_passed
     )
 
-    status = "PASS" if all_passed else "FAIL"
+    if signal_info.get("status") == "NOT_RUN":
+        status = "NOT_RUN"
+    elif all_passed:
+        status = "PASS"
+    else:
+        status = "FAIL"
 
     return {
         "schema_version": "0.1",
@@ -295,6 +335,7 @@ def probe_audio(
             "container_integrity_valid": container_valid,
             "zero_truncation": zero_truncation,
             "clipping_detected": clipping_detected,
+            "ffmpeg_signal_probe_passed": signal_passed,
         },
         "human_audio_approved": False,
         "human_listening_performed": False,

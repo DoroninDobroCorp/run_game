@@ -19,6 +19,25 @@ class TestR02Doctor(unittest.TestCase):
         self.assertIn(result["status"], ("PASS", "WARN", "BLOCKED"))
         self.assertIn("version", result)
         self.assertIn("executable", result)
+        self.assertIn("pyexpat_ok", result)
+
+    def test_inspect_python_executable_override(self) -> None:
+        with patch.dict("os.environ", {"PYTHON": "/custom/bin/python3"}):
+            result = r02_doctor.inspect_python()
+            self.assertEqual(result["executable"], "/custom/bin/python3")
+
+    def test_inspect_python_pyexpat_failure_blocks(self) -> None:
+        with patch.dict("sys.modules", {"pyexpat": None}):
+            result = r02_doctor.inspect_python()
+            self.assertEqual(result["status"], "BLOCKED")
+            self.assertFalse(result["pyexpat_ok"])
+
+    def test_inspect_tools(self) -> None:
+        result = r02_doctor.inspect_tools()
+        self.assertEqual(result["status"], "PASS")
+        self.assertIn("tools", result)
+        self.assertIn("ruff", result["tools"])
+        self.assertIn("mypy", result["tools"])
 
     def test_inspect_platform(self) -> None:
         result = r02_doctor.inspect_platform()
@@ -68,7 +87,7 @@ class TestR02Doctor(unittest.TestCase):
             self.assertEqual(report["tool"], "r02_doctor")
             self.assertIn(report["status"], ("PASS", "WARN", "BLOCKED"))
             self.assertIn("inspections", report)
-            for name in ("python", "platform", "git", "local_fixtures", "privacy", "audio_probes", "xcode", "xcodegen", "simulators"):
+            for name in ("python", "tools", "platform", "git", "local_fixtures", "privacy", "audio_probes", "xcode", "xcodegen", "simulators"):
                 self.assertIn(name, report["inspections"])
 
     def test_main_cli_output(self) -> None:

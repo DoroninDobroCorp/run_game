@@ -16,6 +16,9 @@ import subprocess
 import sys
 from typing import Any
 
+import os
+import shutil
+
 ROOT = Path(__file__).resolve().parents[1]
 
 DEFAULT_FIXTURE = ROOT / "research/r02/local/valparaiso_central"
@@ -24,15 +27,53 @@ DEFAULT_PROJECT_YML = ROOT / "ios/RunGameFounder/project.yml"
 
 
 def inspect_python() -> dict[str, Any]:
+    executable = os.environ.get("PYTHON") or sys.executable
     version = platform.python_version()
     major, minor = sys.version_info[:2]
-    # Python 3.8+ required/expected
-    ok = (major, minor) >= (3, 8)
+
+    pyexpat_ok = False
+    pyexpat_error = None
+    try:
+        import pyexpat
+        pyexpat_ok = True
+    except Exception as exc:
+        pyexpat_ok = False
+        pyexpat_error = str(exc)
+
+    ok = (major, minor) >= (3, 8) and pyexpat_ok
+    status = "PASS" if ok else "BLOCKED"
+
+    detail = f"Python {version} ({executable})"
+    if not pyexpat_ok:
+        detail += f" - pyexpat import failed: {pyexpat_error}"
+
     return {
-        "status": "PASS" if ok else "BLOCKED",
-        "detail": f"Python {version} ({sys.executable})",
+        "status": status,
+        "detail": detail,
         "version": version,
-        "executable": sys.executable,
+        "executable": executable,
+        "pyexpat_ok": pyexpat_ok,
+        "pyexpat_error": pyexpat_error,
+    }
+
+
+def inspect_tools() -> dict[str, Any]:
+    tools_status: dict[str, str] = {}
+    for tool_name in ("ruff", "mypy"):
+        path = shutil.which(tool_name)
+        if path:
+            try:
+                res = subprocess.run([tool_name, "--version"], capture_output=True, text=True, timeout=5)
+                tools_status[tool_name] = "PASS" if res.returncode == 0 else "FAIL"
+            except Exception:
+                tools_status[tool_name] = "FAIL"
+        else:
+            tools_status[tool_name] = "NOT_INSTALLED"
+
+    return {
+        "status": "PASS",
+        "detail": f"ruff: {tools_status.get('ruff')}, mypy: {tools_status.get('mypy')}",
+        "tools": tools_status,
     }
 
 
@@ -259,6 +300,7 @@ def diagnose(
     import tools.r02_audit_privacy as r02_audit_privacy
     inspections = {
         "python": inspect_python(),
+        "tools": inspect_tools(),
         "platform": inspect_platform(),
         "git": inspect_git(),
         "local_fixtures": inspect_local_fixtures(fixture_dir, ios_resources_dir),
