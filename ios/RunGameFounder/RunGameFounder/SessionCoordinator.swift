@@ -105,24 +105,36 @@ final class SessionCoordinator: ObservableObject {
     }
 
     private var lastCheckpointElapsed: TimeInterval = 0
+    private var lastSavedIncidentCount: Int = 0
 
     private func updatePublishedSnapshots() {
         currentRunState = stateMachine.state
         isRecording = recorder.isRecording
         recordedPointsCount = recorder.samples.count
         audioElapsedSeconds = audio.elapsed
-        activeIncidentCount = audio.incidents.count + recorder.incidents.count
+        let currentIncidents = audio.incidents.count + recorder.incidents.count
+        activeIncidentCount = currentIncidents
+
+        if (isRunning || isAcquiringGPS) && currentIncidents > lastSavedIncidentCount {
+            lastSavedIncidentCount = currentIncidents
+            _ = try? saveJournalCheckpoint()
+        }
 
         if isRunning && abs(audio.elapsed - lastCheckpointElapsed) >= 15.0 {
             lastCheckpointElapsed = audio.elapsed
-            saveJournalCheckpoint()
+            _ = try? saveJournalCheckpoint()
         }
     }
 
-    private func saveJournalCheckpoint() {
+    @discardableResult
+    func saveJournalCheckpoint() throws -> ActiveRunAttempt? {
+        let attempt: ActiveRunAttempt
         switch stateMachine.state {
         case .acquiringGPS(let runID, let startedAt, _):
-            let attempt = ActiveRunAttempt(
+            let audioIncidentStrings = audio.incidents.map {
+                "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
+            }
+            attempt = ActiveRunAttempt(
                 participantID: appModel.participantId,
                 runID: runID,
                 missionID: mission.missionID,
@@ -136,12 +148,14 @@ final class SessionCoordinator: ObservableObject {
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt,
                 audioElapsedSeconds: 0,
                 pauseCount: 0,
-                audioIncidents: audio.incidents.map { "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)" },
+                audioIncidents: audioIncidentStrings,
                 locationIncidents: recorder.incidents
             )
-            try? appModel.saveActiveAttempt(attempt)
         case .running(let runID, let startedAt, _, let pauseCount, _):
-            let attempt = ActiveRunAttempt(
+            let audioIncidentStrings = audio.incidents.map {
+                "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
+            }
+            attempt = ActiveRunAttempt(
                 participantID: appModel.participantId,
                 runID: runID,
                 missionID: mission.missionID,
@@ -155,12 +169,20 @@ final class SessionCoordinator: ObservableObject {
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt,
                 audioElapsedSeconds: audio.elapsed,
                 pauseCount: pauseCount,
-                audioIncidents: audio.incidents.map { "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)" },
+                audioIncidents: audioIncidentStrings,
                 locationIncidents: recorder.incidents
             )
-            try? appModel.saveActiveAttempt(attempt)
         default:
-            break
+            return nil
+        }
+
+        do {
+            try appModel.saveActiveAttempt(attempt)
+            return attempt
+        } catch {
+            statusMessage = "Ошибка сохранения журнала: \(error.localizedDescription)"
+            appModel.setJournalPersistenceFailed(true, message: statusMessage)
+            throw error
         }
     }
 
@@ -210,8 +232,8 @@ final class SessionCoordinator: ObservableObject {
                 let result = recorder.start(prefix: prefix)
                 if case .unavailable(let message) = result {
                     send(.gpsFailed(reason: message))
-                } else if case .started = result, recorder.partialGPXBasename != nil {
-                    saveJournalCheckpoint()
+                } else if case .started = result {
+                    _ = try? saveJournalCheckpoint()
                 }
             case .cancelGPSRecording:
                 recorder.cancelPendingStart()
@@ -246,7 +268,14 @@ final class SessionCoordinator: ObservableObject {
                     try appModel.saveActiveAttempt(updatedAttempt)
                 } catch {
                     statusMessage = "Ошибка сохранения журнала: \(error.localizedDescription)"
-                    appModel.setJournalErrorBanner(statusMessage)
+                    appModel.setJournalPersistenceFailed(true, message: statusMessage)
+                    if case .acquiringGPS = stateMachine.state {
+                        stateMachine = SessionStateMachine(initialState: .ready)
+                        updatePublishedSnapshots()
+                        return
+                    } else if isRunning {
+                        abortSession(reason: statusMessage ?? "Journal save failed")
+                    }
                 }
             case .clearJournal:
                 if debriefEnqueueFailed {
@@ -378,6 +407,7 @@ final class SessionCoordinator: ObservableObject {
             .compactMap { $0 }
             .sink { [weak self] incident in
                 guard let self, self.isRunning else { return }
+                _ = try? self.saveJournalCheckpoint()
                 switch incident.kind {
                 case .interruptionBegan:
                     let (summary, routeTraversal) = self.stopRecorderAndMakeEvidence(completed: false)

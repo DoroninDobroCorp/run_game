@@ -36,6 +36,9 @@ struct MissionRunView: View {
                         if let errorBanner = appModel.journalErrorBanner {
                             Text(errorBanner)
                                 .font(.footnote)
+                        } else if appModel.journalPersistenceFailed {
+                            Text("Ошибка сохранения журнала. Новая миссия заблокирована.")
+                                .font(.footnote)
                         } else if appModel.queueCorrupted {
                             Text("Очередь сессий повреждена. Захват evidence заблокирован.")
                                 .font(.footnote)

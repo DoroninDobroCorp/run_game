@@ -268,6 +268,131 @@ final class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(fakeRecorder.stopCallCount, 1)
     }
 
+    @MainActor
+    func testInitialJournalSaveFailure_HaltsSessionStartupResetsStateBlocksHardwareAndPresentsRecoverableErrorUI() throws {
+        let fakeAudio = FakeAudioController()
+        let fakeRecorder = FakeLocationRecorder()
+        fakeRecorder.startResult = .started
+
+        let coordinator = SessionCoordinator(
+            mission: sampleMission,
+            appModel: appModel,
+            audio: fakeAudio,
+            recorder: fakeRecorder
+        )
+
+        // Inject journal save failure via FileDurability failure injection
+        FileDurability.injectedFailure = .failStagingWrite
+        defer { FileDurability.injectedFailure = .none }
+
+        let runID = "fail-closed-start-run"
+        coordinator.send(.requestStart(runID: runID, now: Date()))
+
+        // Verify session startup halted, state reverted to ready
+        XCTAssertEqual(coordinator.state, .ready)
+        XCTAssertEqual(coordinator.currentRunState, .ready)
+
+        // Verify hardware controllers were NOT started
+        XCTAssertFalse(fakeRecorder.isRecording)
+        XCTAssertFalse(fakeAudio.isPlaying)
+
+        // Verify recoverable error UI / persistence failure flag set
+        XCTAssertTrue(appModel.journalPersistenceFailed)
+        XCTAssertTrue(appModel.evidenceCaptureLocked)
+        XCTAssertFalse(appModel.canBeginMission)
+        XCTAssertNotNil(coordinator.statusMessage)
+        XCTAssertNotNil(appModel.journalErrorBanner)
+    }
+
+    @MainActor
+    func testSaveJournalCheckpoint_ThrowingResultBasedAndSetsJournalPersistenceFailedOnFailure() throws {
+        let fakeAudio = FakeAudioController()
+        let fakeRecorder = FakeLocationRecorder()
+        fakeRecorder.startResult = .started
+
+        let coordinator = SessionCoordinator(
+            mission: sampleMission,
+            appModel: appModel,
+            audio: fakeAudio,
+            recorder: fakeRecorder
+        )
+
+        startRunning(coordinator)
+        XCTAssertTrue(coordinator.isRunning)
+
+        // Inject journal write failure via FileDurability failure injection
+        FileDurability.injectedFailure = .failPublication
+        defer { FileDurability.injectedFailure = .none }
+
+        // Save checkpoint throws error and sets journalPersistenceFailed
+        var didThrow = false
+        do {
+            _ = try coordinator.saveJournalCheckpoint()
+        } catch {
+            didThrow = true
+        }
+        XCTAssertTrue(didThrow, "saveJournalCheckpoint must throw error on save failure")
+        XCTAssertTrue(appModel.journalPersistenceFailed)
+        XCTAssertTrue(appModel.evidenceCaptureLocked)
+        XCTAssertFalse(appModel.canBeginMission)
+    }
+
+    @MainActor
+    func testImmediateJournalSaves_OnRecorderStartAudioStartPauseResumeIncidentAndCheckpoint() throws {
+        let fakeAudio = FakeAudioController()
+        let fakeRecorder = FakeLocationRecorder()
+        fakeRecorder.startResult = .started
+        fakeRecorder.partialGPXBasename = "test-immediate.partial.gpx"
+
+        let coordinator = SessionCoordinator(
+            mission: sampleMission,
+            appModel: appModel,
+            audio: fakeAudio,
+            recorder: fakeRecorder
+        )
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: tempDir)
+
+        // 1. requestStart & recorder start triggers immediate journal save
+        let runID = "immediate-triggers-run"
+        coordinator.send(.requestStart(runID: runID, now: Date()))
+        XCTAssertNotNil(journal.currentAttempt)
+        XCTAssertEqual(journal.currentAttempt?.phase, .acquiringGPS)
+        XCTAssertEqual(journal.currentAttempt?.partialGPXBasename, "test-immediate.partial.gpx")
+
+        // 2. Audio start triggers immediate journal save (running phase)
+        coordinator.send(.receiveGPSFix(accuracy: 10, distanceToStartMeters: 5))
+        coordinator.send(.receiveGPSFix(accuracy: 10, distanceToStartMeters: 5))
+        coordinator.send(.audioStarted())
+        XCTAssertEqual(journal.currentAttempt?.phase, .running)
+
+        // 3. Pause triggers immediate journal save (pauseCount = 1)
+        coordinator.send(.pauseRequested)
+        XCTAssertEqual(journal.currentAttempt?.pauseCount, 1)
+
+        // 4. Resume triggers immediate journal save
+        coordinator.send(.resumeRequested)
+        XCTAssertEqual(journal.currentAttempt?.pauseCount, 1)
+
+        // 5. Non-aborting audio incident triggers immediate journal save
+        let incident = AudioIncident(
+            kind: .interruptionEnded,
+            occurredAt: Date(),
+            elapsed: 10.0,
+            message: "Audio interruption ended"
+        )
+        fakeAudio.incidents.append(incident)
+        fakeAudio.latestIncidentSubject.send(incident)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        XCTAssertTrue(journal.currentAttempt?.audioIncidents.contains(where: { $0.contains("Audio interruption ended") }) == true)
+
+        // 6. 15s elapsed checkpoint triggers immediate journal save
+        fakeAudio.elapsed = 16.0
+        fakeAudio.objectWillChangeSubject.send()
+        RunLoop.main.run(until: Date().addingTimeInterval(0.05))
+        XCTAssertEqual(journal.currentAttempt?.audioElapsedSeconds, 16.0)
+    }
+
     // MARK: - Helpers
     @MainActor
     private func startRunning(_ coordinator: SessionCoordinator) {

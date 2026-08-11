@@ -20,6 +20,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var pendingRecalls: [PendingRecall] = []
     @Published private(set) var journalCorrupted = false
     @Published private(set) var queueCorrupted = false
+    @Published private(set) var journalPersistenceFailed = false
     @Published private(set) var journalErrorBanner: String?
 
     private let defaults: UserDefaults
@@ -63,11 +64,11 @@ final class AppModel: ObservableObject {
             readinessComplete: canStartMission,
             hasPendingDebrief: !pendingDebriefs.isEmpty,
             hasPendingRecall: !pendingRecalls.isEmpty
-        ) && !journalCorrupted && !queueCorrupted && loadError == nil
+        ) && !journalCorrupted && !queueCorrupted && !journalPersistenceFailed && loadError == nil
     }
 
     var evidenceCaptureLocked: Bool {
-        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil || journalCorrupted || queueCorrupted
+        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil || journalCorrupted || queueCorrupted || journalPersistenceFailed
     }
 
     nonisolated static func canBeginMission(
@@ -229,6 +230,13 @@ final class AppModel: ObservableObject {
         journalErrorBanner = message
     }
 
+    func setJournalPersistenceFailed(_ failed: Bool, message: String? = nil) {
+        journalPersistenceFailed = failed
+        if let message {
+            journalErrorBanner = message
+        }
+    }
+
     func resetJournalQuarantine() {
         let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory)
         do {
@@ -240,6 +248,7 @@ final class AppModel: ObservableObject {
                 return
             }
             journalCorrupted = false
+            journalPersistenceFailed = false
             journalErrorBanner = nil
         } catch {
             journalErrorBanner = "Failed to reset quarantine: \(error.localizedDescription)"
@@ -298,6 +307,7 @@ final class AppModel: ObservableObject {
                 try scheduleDebrief(for: recoveredContext)
                 try journal.clear()
                 journalCorrupted = false
+                journalPersistenceFailed = false
                 journalErrorBanner = nil
             } catch {
                 journalErrorBanner = "Relaunch recovery failed to persist debrief durably: \(error.localizedDescription)"
@@ -307,6 +317,7 @@ final class AppModel: ObservableObject {
             journalErrorBanner = "Corrupted active run journal: \(reason). Evidence capture is locked."
         case .none:
             journalCorrupted = false
+            journalPersistenceFailed = false
             journalErrorBanner = nil
         }
     }
