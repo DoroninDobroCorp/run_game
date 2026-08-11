@@ -1,6 +1,6 @@
 """Unit test suite for R04 Decision Template and Guardrails Verification.
 
-Fulfills assertions VAL-R04-001, VAL-R04-002, and VAL-R04-003.
+Fulfills assertions VAL-R04-001, VAL-R04-002, VAL-R04-003, VAL-R04-004, and VAL-R04-005.
 """
 
 import json
@@ -19,13 +19,29 @@ from tools.r04_validate_decision import (
 
 
 class TestR04DecisionTemplate(unittest.TestCase):
-    """Verifies that research/r04/decision_template.md and decision_template.json meet VAL-R04-001, VAL-R04-002, and VAL-R04-003 requirements."""
+    """Verifies that research/r04/decision_template.md and decision_template.json meet VAL-R04-001 through VAL-R04-005 requirements."""
 
     def setUp(self):
         self.r04_dir = ROOT / "research" / "r04"
         self.template_path = self.r04_dir / "decision_template.md"
         self.json_template_path = self.r04_dir / "decision_template.json"
         self.validator_path = ROOT / "tools" / "r04_validate_decision.py"
+
+    def _valid_template_data(self):
+        with open(self.json_template_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        data["founder_parameters"] = {key: "configured_val" for key in data["founder_parameters"]}
+        data["founder_parameters"]["go_threshold_pdcr_percent"] = 3.0
+        data["founder_parameters"]["conditional_pivot_min_pdcr_percent"] = 1.5
+        data["founder_parameters"]["no_go_threshold_pdcr_percent"] = 1.5
+
+        data["observed_metrics"] = {
+            "qualified_visitor_count": 1000,
+            "completed_refundable_deposits_count": 35,
+            "pdcr_actual_percent": 3.5,
+            "total_ad_spend_usd": 500.0,
+        }
+        return data
 
     def test_r04_directory_and_template_exist(self):
         self.assertTrue(self.r04_dir.is_dir(), "research/r04/ directory must exist")
@@ -138,15 +154,8 @@ class TestR04DecisionTemplate(unittest.TestCase):
 
     def test_evaluation_succeeds_when_fully_populated(self):
         """Verifies evaluation succeeds with valid outcome when all parameters and metrics are populated."""
-        with open(self.json_template_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        data["founder_parameters"] = {key: "configured_val" for key in data["founder_parameters"]}
-        data["founder_parameters"]["go_threshold_pdcr_percent"] = 3.0
-        data["founder_parameters"]["conditional_pivot_min_pdcr_percent"] = 1.5
-        data["founder_parameters"]["no_go_threshold_pdcr_percent"] = 1.5
-
-        data["observed_metrics"] = {key: "100" for key in data["observed_metrics"]}
+        data = self._valid_template_data()
+        data["observed_metrics"]["completed_refundable_deposits_count"] = 35
         data["observed_metrics"]["pdcr_actual_percent"] = 3.5
 
         result = evaluate_r04_decision_template(data)
@@ -154,15 +163,8 @@ class TestR04DecisionTemplate(unittest.TestCase):
 
     def test_production_validator_cli_succeeds_on_populated_template(self):
         """Verifies tools/r04_validate_decision.py returns exit code 0 when template is fully populated."""
-        with open(self.json_template_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-
-        data["founder_parameters"] = {key: "configured_val" for key in data["founder_parameters"]}
-        data["founder_parameters"]["go_threshold_pdcr_percent"] = 3.0
-        data["founder_parameters"]["conditional_pivot_min_pdcr_percent"] = 1.5
-        data["founder_parameters"]["no_go_threshold_pdcr_percent"] = 1.5
-
-        data["observed_metrics"] = {key: "100" for key in data["observed_metrics"]}
+        data = self._valid_template_data()
+        data["observed_metrics"]["completed_refundable_deposits_count"] = 40
         data["observed_metrics"]["pdcr_actual_percent"] = 4.0
 
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
@@ -175,6 +177,89 @@ class TestR04DecisionTemplate(unittest.TestCase):
         finally:
             if tmp_path.exists():
                 tmp_path.unlink()
+
+    def test_reject_physically_impossible_metrics_val_r04_004(self):
+        """VAL-R04-004: Verifies rejection of physically impossible metrics (visitors=0, deposits=-5, pdcr=200, spend=-100) with exit code 1."""
+        # 1. qualified_visitor_count = 0
+        data = self._valid_template_data()
+        data["observed_metrics"]["qualified_visitor_count"] = 0
+        data["observed_metrics"]["completed_refundable_deposits_count"] = 0
+        data["observed_metrics"]["pdcr_actual_percent"] = 0.0
+        with self.assertRaises(R04DecisionValidationError):
+            evaluate_r04_decision_template(data)
+
+        # 2. completed_refundable_deposits_count = -5
+        data = self._valid_template_data()
+        data["observed_metrics"]["completed_refundable_deposits_count"] = -5
+        with self.assertRaises(R04DecisionValidationError):
+            evaluate_r04_decision_template(data)
+
+        # 3. pdcr_actual_percent = 200
+        data = self._valid_template_data()
+        data["observed_metrics"]["pdcr_actual_percent"] = 200
+        with self.assertRaises(R04DecisionValidationError):
+            evaluate_r04_decision_template(data)
+
+        # 4. total_ad_spend_usd = -100
+        data = self._valid_template_data()
+        data["observed_metrics"]["total_ad_spend_usd"] = -100
+        with self.assertRaises(R04DecisionValidationError):
+            evaluate_r04_decision_template(data)
+
+        # CLI test verifying exit code 1 on impossible metric file
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
+            tmp_path = Path(tmp.name)
+            json.dump(data, tmp)
+
+        try:
+            exit_code = r04_validator_main(["--template", str(tmp_path)])
+            self.assertEqual(exit_code, 1, "Validator must return exit code 1 on impossible metrics")
+        finally:
+            if tmp_path.exists():
+                tmp_path.unlink()
+
+    def test_pdcr_recalculation_and_band_validation_val_r04_005(self):
+        """VAL-R04-005: Verifies PDCR recalculation matching, threshold ranges, and non-overlapping decision bands."""
+        # Supplied pdcr_actual_percent does not match recomputed deposits / visitors * 100
+        data = self._valid_template_data()
+        data["observed_metrics"]["pdcr_actual_percent"] = 10.0  # recomputed is 35/1000 * 100 = 3.5%
+        with self.assertRaises(R04DecisionValidationError) as ctx:
+            evaluate_r04_decision_template(data)
+        self.assertIn("does not match recomputed PDCR", str(ctx.exception))
+
+        # Deposits exceeding visitors
+        data = self._valid_template_data()
+        data["observed_metrics"]["qualified_visitor_count"] = 100
+        data["observed_metrics"]["completed_refundable_deposits_count"] = 150
+        data["observed_metrics"]["pdcr_actual_percent"] = 150.0
+        with self.assertRaises(R04DecisionValidationError) as ctx:
+            evaluate_r04_decision_template(data)
+        self.assertIn("cannot exceed qualified_visitor_count", str(ctx.exception))
+
+        # Out-of-range threshold (> 100)
+        data = self._valid_template_data()
+        data["founder_parameters"]["go_threshold_pdcr_percent"] = 150.0
+        with self.assertRaises(R04DecisionValidationError) as ctx:
+            evaluate_r04_decision_template(data)
+        self.assertIn("go_threshold_pdcr_percent must be in range [0, 100]", str(ctx.exception))
+
+        # Invalid threshold ordering / overlapping decision bands (no_go > pivot)
+        data = self._valid_template_data()
+        data["founder_parameters"]["no_go_threshold_pdcr_percent"] = 5.0
+        data["founder_parameters"]["conditional_pivot_min_pdcr_percent"] = 3.0
+        data["founder_parameters"]["go_threshold_pdcr_percent"] = 4.0
+        with self.assertRaises(R04DecisionValidationError) as ctx:
+            evaluate_r04_decision_template(data)
+        self.assertIn("Invalid threshold ordering", str(ctx.exception))
+
+        # Invalid threshold ordering (pivot > go)
+        data = self._valid_template_data()
+        data["founder_parameters"]["no_go_threshold_pdcr_percent"] = 1.0
+        data["founder_parameters"]["conditional_pivot_min_pdcr_percent"] = 5.0
+        data["founder_parameters"]["go_threshold_pdcr_percent"] = 3.0
+        with self.assertRaises(R04DecisionValidationError) as ctx:
+            evaluate_r04_decision_template(data)
+        self.assertIn("Invalid threshold ordering", str(ctx.exception))
 
     def test_execution_status_unaltered(self):
         """Verifies R04 status remains NOT_STARTED in docs/EXECUTION_STATUS.md."""
