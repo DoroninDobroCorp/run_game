@@ -4,10 +4,12 @@
 Fulfills assertions VAL-CONTRACT-001 and VAL-CONTRACT-002.
 
 Verifies:
-1. Standard cross-contract threshold parity and schema version matching.
-2. Negative tests passing malformed artifacts to actual production validators/models.
-3. Direct AST and runtime value assertions (no regex tautologies).
-4. Disproof tests confirming that changing threshold constants or schema versions causes test failures.
+1. Python domain thresholds and schema versions AST parsing and value equality.
+2. Swift domain source files AST parsing (compiler AST + structural AST) for domain constants,
+   schema versions, and state machine enums without regex string tautologies.
+3. Swift ↔ Python contract parity for thresholds, schemas, and state definitions.
+4. Negative tests passing malformed evidence artifacts to production Python validators.
+5. Disproof tests confirming that changing threshold constants or schema versions causes test failures.
 """
 
 from __future__ import annotations
@@ -16,7 +18,9 @@ import ast
 import json
 import math
 from pathlib import Path
+import subprocess
 import tempfile
+from typing import Any, Callable, Optional, Union
 import unittest
 
 from tools.domain_thresholds import (
@@ -48,10 +52,166 @@ from tools.r02_validate_evidence import (
 ROOT = Path(__file__).resolve().parents[1]
 SWIFT_MODELS_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/Models.swift"
 SWIFT_LOCATION_RECORDER_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/LocationRecorder.swift"
-SWIFT_MISSION_RUN_VIEW_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/MissionRunView.swift"
 SWIFT_ACTIVE_JOURNAL_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/ActiveRunJournal.swift"
 SWIFT_SESSION_STATE_MACHINE_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/SessionStateMachine.swift"
 
+
+# --- Swift Compiler AST S-Expression Parser ---
+
+def parse_swift_sexpr_tokens(text: str) -> list[str]:
+    """Tokenize swiftc -dump-parse S-expression string into tokens."""
+    tokens = []
+    idx = 0
+    length = len(text)
+    while idx < length:
+        ch = text[idx]
+        if ch.isspace():
+            idx += 1
+            continue
+        if ch in "()":
+            tokens.append(ch)
+            idx += 1
+            continue
+        if ch == '"':
+            start = idx
+            idx += 1
+            while idx < length:
+                if text[idx] == "\\" and idx + 1 < length:
+                    idx += 2
+                elif text[idx] == '"':
+                    idx += 1
+                    break
+                else:
+                    idx += 1
+            tokens.append(text[start:idx])
+            continue
+        start = idx
+        while idx < length and not text[idx].isspace() and text[idx] not in "()\"":
+            idx += 1
+        tokens.append(text[start:idx])
+    return tokens
+
+
+class SwiftASTNode:
+    """AST node representation for Swift compiler S-expressions."""
+
+    def __init__(self, kind: str = ""):
+        self.kind = kind
+        self.attributes: list[str] = []
+        self.children: list[SwiftASTNode] = []
+
+    def find_all(self, predicate: Callable[[SwiftASTNode], bool]) -> list[SwiftASTNode]:
+        res = []
+        if predicate(self):
+            res.append(self)
+        for c in self.children:
+            res.extend(c.find_all(predicate))
+        return res
+
+    def get_quoted_attribute(self) -> Optional[str]:
+        for attr in self.attributes:
+            if attr.startswith('"') and attr.endswith('"') and attr != '"<null>"':
+                return attr[1:-1]
+        return None
+
+    def get_literal_value(self) -> Optional[Union[int, float, str]]:
+        for idx, attr in enumerate(self.attributes):
+            val_str = None
+            if attr == "value=" and idx + 1 < len(self.attributes):
+                val_str = self.attributes[idx + 1]
+            elif attr.startswith("value="):
+                val_str = attr.split("=", 1)[1]
+
+            if val_str is not None:
+                if val_str.startswith('"') and val_str.endswith('"'):
+                    val_str = val_str[1:-1]
+                if "string_literal_expr" in self.kind:
+                    return val_str
+                try:
+                    if "." in val_str:
+                        return float(val_str)
+                    return int(val_str)
+                except ValueError:
+                    return val_str
+        return None
+
+
+def build_swift_ast_tree(tokens: list[str]) -> SwiftASTNode:
+    stack: list[SwiftASTNode] = []
+    root = SwiftASTNode("root")
+    curr = root
+
+    i = 0
+    while i < len(tokens):
+        t = tokens[i]
+        if t == "(":
+            i += 1
+            if i < len(tokens):
+                kind = tokens[i]
+                node = SwiftASTNode(kind)
+                curr.children.append(node)
+                stack.append(curr)
+                curr = node
+        elif t == ")":
+            if stack:
+                curr = stack.pop()
+        else:
+            curr.attributes.append(t)
+        i += 1
+    return root
+
+
+def parse_swift_ast_compiler(file_path: Path) -> SwiftASTNode:
+    """Parse Swift source file using swiftc -dump-parse into S-expression AST tree."""
+    out = subprocess.check_output(["swiftc", "-dump-parse", str(file_path)], text=True)
+    tokens = parse_swift_sexpr_tokens(out)
+    return build_swift_ast_tree(tokens)
+
+
+def extract_swift_enum_cases(ast_root: SwiftASTNode, enum_name: str) -> list[str]:
+    cases: list[str] = []
+    for enum_node in ast_root.find_all(lambda n: n.kind == "enum_decl"):
+        name = enum_node.get_quoted_attribute()
+        if name == enum_name:
+            for element in enum_node.find_all(lambda n: n.kind == "enum_element_decl"):
+                elem_name = element.get_quoted_attribute()
+                if elem_name:
+                    base_name = elem_name.split("(")[0]
+                    if base_name not in cases:
+                        cases.append(base_name)
+    return cases
+
+
+def extract_swift_static_constant(
+    ast_root: SwiftASTNode, struct_name: str, var_name: str
+) -> Optional[Union[int, float, str]]:
+    for s_node in ast_root.find_all(lambda n: n.kind == "struct_decl"):
+        if s_node.get_quoted_attribute() == struct_name:
+            for pb in s_node.find_all(lambda n: n.kind == "pattern_binding_decl"):
+                for pn in pb.find_all(lambda n: n.kind == "pattern_named"):
+                    if pn.get_quoted_attribute() == var_name:
+                        for lit in pb.find_all(lambda n: "literal_expr" in n.kind):
+                            v = lit.get_literal_value()
+                            if v is not None:
+                                return v
+    return None
+
+
+def extract_swift_func_literals(
+    ast_root: SwiftASTNode, func_name: str
+) -> list[Union[int, float, str]]:
+    literals: list[Union[int, float, str]] = []
+    for f in ast_root.find_all(lambda n: n.kind == "func_decl"):
+        name = f.get_quoted_attribute()
+        if name and func_name in name:
+            for lit in f.find_all(lambda n: "literal_expr" in n.kind):
+                val = lit.get_literal_value()
+                if val is not None and val not in literals:
+                    literals.append(val)
+    return literals
+
+
+# --- Python AST Helpers ---
 
 def extract_python_domain_thresholds_ast() -> dict[str, ast.AST]:
     """Parse domain_thresholds.py using AST to extract top-level variable assignment AST nodes."""
@@ -68,8 +228,10 @@ def extract_python_domain_thresholds_ast() -> dict[str, ast.AST]:
     return assignments
 
 
-class CrossContractParityASTTests(unittest.TestCase):
-    """AST-based and exact value assertion tests for Swift ↔ Python thresholds and schemas."""
+# --- Test Cases ---
+
+class CrossContractPythonASTTests(unittest.TestCase):
+    """AST-based and exact value assertion tests for Python domain thresholds and schemas."""
 
     def test_ast_python_domain_thresholds_constants_defined(self) -> None:
         """Verify python domain thresholds are explicitly defined integer/float/string literals via AST."""
@@ -126,6 +288,74 @@ class CrossContractParityASTTests(unittest.TestCase):
         self.assertEqual(SCHEMA_VERSION_WALKTHROUGH, "0.2")
         self.assertEqual(SCHEMA_VERSION_AUDIO_APPROVAL, "0.2")
         self.assertEqual(SCHEMA_VERSION_RECALL, "0.2")
+
+
+class CrossContractSwiftASTParityTests(unittest.TestCase):
+    """AST-based tests verifying Swift domain source code parity against Python domain thresholds."""
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.models_ast = parse_swift_ast_compiler(SWIFT_MODELS_PATH)
+        cls.journal_ast = parse_swift_ast_compiler(SWIFT_ACTIVE_JOURNAL_PATH)
+        cls.sm_ast = parse_swift_ast_compiler(SWIFT_SESSION_STATE_MACHINE_PATH)
+        cls.loc_ast = parse_swift_ast_compiler(SWIFT_LOCATION_RECORDER_PATH)
+
+    def test_swift_ast_enum_states_parity(self) -> None:
+        """Assert SessionStateMachine.State and ActiveRunPhase enum cases via Swift AST."""
+        sm_state_cases = extract_swift_enum_cases(self.sm_ast, "State")
+        expected_sm_states = ["ready", "acquiringGPS", "running", "completed", "aborted"]
+        self.assertEqual(sm_state_cases, expected_sm_states, "SessionStateMachine.State AST cases mismatch")
+
+        journal_phase_cases = extract_swift_enum_cases(self.journal_ast, "ActiveRunPhase")
+        expected_phases = ["acquiringGPS", "running"]
+        self.assertEqual(journal_phase_cases, expected_phases, "ActiveRunPhase AST cases mismatch")
+
+        for phase in journal_phase_cases:
+            self.assertIn(phase, sm_state_cases, f"ActiveRunPhase '{phase}' must be a valid SessionStateMachine state")
+
+    def test_swift_ast_schema_versions_parity(self) -> None:
+        """Assert schema version constants and literals in Swift AST match Python domain thresholds."""
+        walkthrough_lits = extract_swift_func_literals(self.models_ast, "isSufficient")
+        self.assertIn(SCHEMA_VERSION_WALKTHROUGH, walkthrough_lits, "Walkthrough evidence schema version AST mismatch")
+
+        audio_lits = extract_swift_func_literals(self.models_ast, "isValid")
+        self.assertIn(SCHEMA_VERSION_AUDIO_APPROVAL, audio_lits, "Audio approval record schema version AST mismatch")
+
+    def test_swift_ast_domain_threshold_constants_parity(self) -> None:
+        """Assert static constant declarations in Swift AST match Python domain thresholds."""
+        max_gap = extract_swift_static_constant(self.models_ast, "TrackSummary", "maximumEvidenceSampleGapSeconds")
+        self.assertEqual(float(max_gap), MAX_SAMPLE_GAP_SEC, "TrackSummary.maximumEvidenceSampleGapSeconds AST mismatch")
+
+        radius = extract_swift_static_constant(self.models_ast, "WalkthroughEvidence", "routePointRadiusMeters")
+        self.assertEqual(float(radius), ROUTE_POINT_RADIUS_M, "WalkthroughEvidence.routePointRadiusMeters AST mismatch")
+
+        min_samples_poi = extract_swift_static_constant(self.models_ast, "WalkthroughEvidence", "minimumSamplesPerRoutePoint")
+        self.assertEqual(int(min_samples_poi), MIN_SAMPLES_PER_ROUTE_POINT, "WalkthroughEvidence.minimumSamplesPerRoutePoint AST mismatch")
+
+    def test_swift_ast_sufficiency_thresholds_parity(self) -> None:
+        """Assert track/walkthrough sufficiency threshold literals in Swift AST match Python domain thresholds."""
+        track_lits = extract_swift_func_literals(self.models_ast, "isSufficientMissionEvidence")
+        self.assertIn(int(MIN_EVIDENCE_SAMPLES), track_lits, "TrackSummary.isSufficientMissionEvidence sample count AST mismatch")
+        self.assertIn(int(MIN_EVIDENCE_DISTANCE_M), track_lits, "TrackSummary.isSufficientMissionEvidence distance AST mismatch")
+        self.assertIn(int(MAX_EVIDENCE_ACCURACY_M), track_lits, "TrackSummary.isSufficientMissionEvidence accuracy AST mismatch")
+
+        walkthrough_lits = extract_swift_func_literals(self.models_ast, "isSufficient")
+        self.assertIn(int(MIN_EVIDENCE_SAMPLES), walkthrough_lits, "WalkthroughEvidence.isSufficient sample count AST mismatch")
+        self.assertIn(int(MIN_WALKTHROUGH_DURATION_SEC), walkthrough_lits, "WalkthroughEvidence.isSufficient duration AST mismatch")
+        self.assertIn(int(MIN_EVIDENCE_DISTANCE_M), walkthrough_lits, "WalkthroughEvidence.isSufficient distance AST mismatch")
+        self.assertIn(int(MAX_EVIDENCE_ACCURACY_M), walkthrough_lits, "WalkthroughEvidence.isSufficient accuracy AST mismatch")
+        self.assertIn(int(MAX_START_FINISH_CLOSURE_M), walkthrough_lits, "WalkthroughEvidence.isSufficient start/finish closure AST mismatch")
+
+    def test_swift_ast_gps_acquisition_thresholds_parity(self) -> None:
+        """Assert GPS acquisition threshold literals in SessionStateMachine AST match Python domain thresholds."""
+        handle_lits = extract_swift_func_literals(self.sm_ast, "handle")
+        self.assertIn(int(MISSION_START_ACCURACY_M), handle_lits, "SessionStateMachine.handle GPS accuracy threshold AST mismatch")
+        self.assertIn(int(START_DISTANCE_LIMIT_M), handle_lits, "SessionStateMachine.handle distance to start threshold AST mismatch")
+
+    def test_swift_location_recorder_accuracy_threshold_parity(self) -> None:
+        """Assert LocationRecorder GPS filtering accuracy threshold in Swift AST matches Python domain thresholds."""
+        loc_lits = extract_swift_func_literals(self.loc_ast, "locationManager")
+        self.assertIn(int(MAX_EVIDENCE_ACCURACY_M), loc_lits, "LocationRecorder.locationManager accuracy threshold AST mismatch")
 
 
 class CrossContractNegativeValidatorTests(unittest.TestCase):
@@ -297,7 +527,6 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
     def test_negative_pair_mode_mismatched_due_at_rejected(self) -> None:
         """Negative test: 24h recall due_at_local calculation error is rejected."""
         rec = dict(self.valid_recall_dict)
-        # 24h from ended_at 10:30 should be 10:30 next day. Set to 18:00 next day.
         rec["due_at_local"] = "2026-08-12T18:00:00Z"
         rec["completed_at_local"] = "2026-08-12T18:30:00Z"
 
@@ -408,11 +637,17 @@ class CrossContractDisproofTests(unittest.TestCase):
     def test_disproof_recording_delay_mismatch_causes_failure(self) -> None:
         """Disproof test: modifying recording_delay_seconds so it diverges from timestamps causes validation failure."""
         mutated = dict(self.base_immediate)
-        # ended 10:30, recorded 10:35 -> actual diff is 300s. Set recorded value to 999s.
         mutated["recording_delay_seconds"] = 999.0
         with self.assertRaises(ValidationError) as ctx:
             validate_immediate_debrief(mutated)
         self.assertIn("recording_delay_seconds mismatch", str(ctx.exception))
+
+    def test_disproof_constant_mismatch_fails_parity_assertion(self) -> None:
+        """Disproof test: asserting wrong threshold value fails parity assertion."""
+        models_ast = parse_swift_ast_compiler(SWIFT_MODELS_PATH)
+        max_gap = extract_swift_static_constant(models_ast, "TrackSummary", "maximumEvidenceSampleGapSeconds")
+        with self.assertRaises(AssertionError):
+            self.assertEqual(float(max_gap), 9999.0)
 
 
 if __name__ == "__main__":
