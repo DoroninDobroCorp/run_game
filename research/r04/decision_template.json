@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "template_id": "R04_DEMAND_DECISION_TEMPLATE",
+  "status": "NOT_STARTED",
+  "fail_closed_guardrails": {
+    "require_explicit_founder_choices": true,
+    "no_landing_published": true,
+    "no_payments_accepted": true,
+    "no_funds_collected": true
+  },
+  "founder_parameters": {
+    "target_audience_profile": "UNSET",
+    "geographic_focus": "UNSET",
+    "traffic_channels": "UNSET",
+    "offer_structure": "UNSET",
+    "price_point_usd": "UNSET",
+    "deposit_escrow_method": "UNSET",
+    "fulfillment_window_days": "UNSET",
+    "refund_policy": "UNSET",
+    "refund_processing_sla_days": "UNSET",
+    "fees_covered_by_founder": "UNSET",
+    "qualified_visitor_definition": "UNSET",
+    "max_campaign_budget_usd": "UNSET",
+    "hard_stop_trigger_days": "UNSET",
+    "max_cost_per_qualified_visitor_usd": "UNSET",
+    "primary_kpi_name": "UNSET",
+    "secondary_kpi_name": "UNSET",
+    "go_threshold_pdcr_percent": "UNSET",
+    "conditional_pivot_min_pdcr_percent": "UNSET",
+    "no_go_threshold_pdcr_percent": "UNSET"
+  }
+}
