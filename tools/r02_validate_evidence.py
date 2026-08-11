@@ -113,7 +113,11 @@ def _parse_iso_timestamp(value: Any, label: str) -> str:
     iso_str = value.replace("Z", "+00:00")
     try:
         dt = datetime.fromisoformat(iso_str)
+        if dt.tzinfo is None:
+            raise ValidationError(f"naive timestamp lacking timezone offset or Z for {label}: {value!r}")
         return value
+    except ValidationError:
+        raise
     except Exception as exc:
         raise ValidationError(f"invalid ISO-8601 timestamp for {label}: {value!r} ({exc})") from exc
 
@@ -158,14 +162,24 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
     t_started = _timestamp_to_seconds(started_at)
     t_ended = _timestamp_to_seconds(ended_at)
     t_recorded = _timestamp_to_seconds(recorded_at)
+    t_precommitted = _timestamp_to_seconds(precommitted_at)
 
     if t_ended < t_started:
         raise ValidationError(f"ended_at_local ({ended_at}) is before started_at_local ({started_at})")
+
+    if t_recorded < t_ended:
+        raise ValidationError(f"recorded_at_local ({recorded_at}) is before ended_at_local ({ended_at})")
+
+    if t_precommitted < t_ended:
+        raise ValidationError(f"precommitted_next_workout_at_local ({precommitted_at}) is before ended_at_local ({ended_at})")
 
     # Recording delay seconds verification
     rec_delay = data.get("recording_delay_seconds")
     if not isinstance(rec_delay, (int, float)) or not math.isfinite(rec_delay):
         raise ValidationError(f"recording_delay_seconds must be a finite number: {rec_delay!r}")
+
+    if rec_delay < 0:
+        raise ValidationError(f"recording_delay_seconds cannot be negative: {rec_delay}")
 
     expected_delay = t_recorded - t_ended
     if abs(rec_delay - expected_delay) > 1.0:
@@ -195,14 +209,31 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(imm.get("next_workout_still_scheduled"), bool):
             raise ValidationError("next_workout_still_scheduled must be a boolean")
 
-    # Safety
+    # Safety & Runtime consistency
     safety = data.get("safety")
     if not isinstance(safety, dict):
         raise ValidationError("missing or invalid safety object")
     if not isinstance(safety.get("route_manually_checked"), bool):
         raise ValidationError("safety.route_manually_checked must be a boolean")
-    if not isinstance(safety.get("abort"), bool):
+    safety_abort = safety.get("abort")
+    if not isinstance(safety_abort, bool):
         raise ValidationError("safety.abort must be a boolean")
+
+    runtime = data.get("runtime")
+    if not isinstance(runtime, dict):
+        raise ValidationError("missing or invalid runtime object")
+    runtime_completed = runtime.get("completed")
+    if not isinstance(runtime_completed, bool):
+        raise ValidationError("runtime.completed must be a boolean")
+
+    if safety_abort and runtime_completed:
+        raise ValidationError("run cannot be both aborted (safety.abort=True) and completed (runtime.completed=True)")
+
+    if record_status == "immediate_complete":
+        if not runtime_completed:
+            raise ValidationError("record_status 'immediate_complete' requires runtime.completed to be True")
+        if safety_abort:
+            raise ValidationError("record_status 'immediate_complete' requires safety.abort to be False")
 
     # Device
     device = data.get("device")
@@ -217,12 +248,32 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
         if not isinstance(device.get("lock_screen_answer_recorded"), bool):
             raise ValidationError("device.lock_screen_answer_recorded must be a boolean")
 
-    # Track Summary check if present
+    # Track Summary check
     track = data.get("track")
+    if record_status == "immediate_complete" or runtime_completed:
+        if track is None or not isinstance(track, dict):
+            raise ValidationError("completed record requires a valid track summary object")
+        if safety_abort:
+            raise ValidationError("completed record cannot be marked as aborted (safety.abort=True)")
+
     if track is not None:
         if not isinstance(track, dict):
             raise ValidationError("track must be an object if present")
         _validate_sha256(track.get("file_sha256"), "track.file_sha256")
+        file_name = track.get("file_name")
+        if not isinstance(file_name, str) or not file_name.strip():
+            raise ValidationError("missing or empty track.file_name")
+        sample_count = track.get("sample_count")
+        if isinstance(sample_count, bool) or not isinstance(sample_count, int) or sample_count <= 0:
+            raise ValidationError(f"track.sample_count must be a positive integer: {sample_count!r}")
+        for num_field in ["duration_seconds", "distance_meters", "mean_horizontal_accuracy_meters", "maximum_sample_gap_seconds"]:
+            val = track.get(num_field)
+            if isinstance(val, bool) or not isinstance(val, (int, float)) or not math.isfinite(val) or val < 0:
+                raise ValidationError(f"track.{num_field} must be a non-negative number: {val!r}")
+        if "started_at" in track:
+            _parse_iso_timestamp(track["started_at"], "track.started_at")
+        if "ended_at" in track:
+            _parse_iso_timestamp(track["ended_at"], "track.ended_at")
 
     # Check delayed debrief confound
     confound_flagged = rec_delay > DEBRIEF_DELAY_CONFOUND_THRESHOLD_SEC
@@ -272,6 +323,9 @@ def validate_recall_record(data: dict[str, Any]) -> dict[str, Any]:
 
     if t_due < t_ended:
         raise ValidationError(f"due_at_local ({due_at}) is before run_ended_at_local ({run_ended_at})")
+
+    if t_completed < t_ended:
+        raise ValidationError(f"completed_at_local ({completed_at}) is before run_ended_at_local ({run_ended_at})")
 
     # Reject recall completed before dueAt
     if record_status == "recall_24h_complete":
@@ -333,6 +387,11 @@ def validate_evidence_pair(immediate_path: Path, recall_path: Path) -> dict[str,
     rec_res = validate_evidence_file(recall_path)
     if rec_res["type"] != "recall_24h":
         raise ValidationError(f"recall evidence file {recall_path.name} is not a 24h recall record (got {rec_res['type']})")
+
+    if imm_res["record_status"] != "immediate_complete" or rec_res["record_status"] != "recall_24h_complete":
+        raise ValidationError(
+            f"pair mode requires complete records, got immediate record_status={imm_res['record_status']!r} and recall record_status={rec_res['record_status']!r}"
+        )
 
     imm_data = imm_res["raw_data"]
     rec_data = rec_res["raw_data"]

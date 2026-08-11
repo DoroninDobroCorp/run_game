@@ -404,6 +404,96 @@ class TestR02ValidateEvidence(unittest.TestCase):
             path_imm.unlink()
             path_rec.unlink()
 
+    def test_pair_mode_rejects_draft_combinations(self) -> None:
+        draft_imm = dict(self.valid_immediate_dict)
+        draft_imm["record_status"] = "draft_incomplete"
+
+        draft_rec = dict(self.valid_recall_dict)
+        draft_rec["record_status"] = "recall_24h_draft"
+
+        complete_imm = dict(self.valid_immediate_dict)
+        complete_rec = dict(self.valid_recall_dict)
+
+        combinations = [
+            (draft_imm, draft_rec),
+            (complete_imm, draft_rec),
+            (draft_imm, complete_rec),
+        ]
+
+        for imm_data, rec_data in combinations:
+            with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+                 tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+                json.dump(imm_data, f_imm)
+                json.dump(rec_data, f_rec)
+                path_imm = Path(f_imm.name)
+                path_rec = Path(f_rec.name)
+
+            try:
+                with self.assertRaises(ValidationError) as ctx:
+                    validate_evidence_pair(path_imm, path_rec)
+                self.assertIn("pair mode requires complete records", str(ctx.exception))
+            finally:
+                path_imm.unlink()
+                path_rec.unlink()
+
+    def test_reject_negative_recording_delay(self) -> None:
+        data = dict(self.valid_immediate_dict)
+        data["recording_delay_seconds"] = -10.0
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("recording_delay_seconds cannot be negative", str(ctx.exception))
+
+    def test_reject_recorded_before_ended(self) -> None:
+        data = dict(self.valid_immediate_dict)
+        data["ended_at_local"] = "2026-08-11T10:30:00Z"
+        data["recorded_at_local"] = "2026-08-11T10:25:00Z"
+        data["recording_delay_seconds"] = -300.0
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("recorded_at_local", str(ctx.exception))
+
+    def test_reject_naive_timestamp_lacking_timezone_or_z(self) -> None:
+        data = dict(self.valid_immediate_dict)
+        data["started_at_local"] = "2026-08-11T10:00:00"
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("naive timestamp lacking timezone offset or Z", str(ctx.exception))
+
+        rec_data = dict(self.valid_recall_dict)
+        rec_data["due_at_local"] = "2026-08-12T10:30:00"
+        with self.assertRaises(ValidationError) as ctx:
+            validate_recall_record(rec_data)
+        self.assertIn("naive timestamp lacking timezone offset or Z", str(ctx.exception))
+
+    def test_validate_precommitted_next_workout_at_local_format_and_ordering(self) -> None:
+        # Invalid format (naive)
+        data = dict(self.valid_immediate_dict)
+        data["precommitted_next_workout_at_local"] = "2026-08-12T10:30:00"
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("naive timestamp lacking timezone offset or Z", str(ctx.exception))
+
+        # Ordering violation (before ended_at_local)
+        data["precommitted_next_workout_at_local"] = "2026-08-11T09:00:00Z"
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("precommitted_next_workout_at_local", str(ctx.exception))
+
+    def test_reject_completed_record_lacking_track_summary(self) -> None:
+        data = dict(self.valid_immediate_dict)
+        data["track"] = None
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("completed record requires a valid track summary object", str(ctx.exception))
+
+    def test_reject_completed_record_marked_as_aborted(self) -> None:
+        data = dict(self.valid_immediate_dict)
+        data["safety"] = dict(self.valid_immediate_dict["safety"])
+        data["safety"]["abort"] = True
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("run cannot be both aborted", str(ctx.exception))
+
 
 if __name__ == "__main__":
     unittest.main()
