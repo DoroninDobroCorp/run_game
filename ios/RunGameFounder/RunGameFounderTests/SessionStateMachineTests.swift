@@ -38,7 +38,7 @@ final class SessionStateMachineTests: XCTestCase {
             bindingID: sampleMission.bindingID,
             audioSHA256: sampleMission.audioSHA256,
             routeWorkoutFingerprint: sampleMission.routeWorkoutFingerprint,
-            partialGPXBasename: "\(sampleMission.gpxPrefix)-run-test-run-1.partial.gpx",
+            partialGPXBasename: nil,
             condition: "A",
             phase: .acquiringGPS,
             startedAt: now,
@@ -102,7 +102,7 @@ final class SessionStateMachineTests: XCTestCase {
             bindingID: sampleMission.bindingID,
             audioSHA256: sampleMission.audioSHA256,
             routeWorkoutFingerprint: sampleMission.routeWorkoutFingerprint,
-            partialGPXBasename: "\(sampleMission.gpxPrefix)-run-test-run-1.partial.gpx",
+            partialGPXBasename: nil,
             condition: "A",
             phase: .running,
             startedAt: now,
@@ -185,7 +185,25 @@ final class SessionStateMachineTests: XCTestCase {
 
         // Pause 1
         let actionsPause1 = sm.handle(event: .pauseRequested, mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
-        XCTAssertEqual(actionsPause1, [.pauseAudioPlayback])
+        XCTAssertEqual(actionsPause1, [
+            .pauseAudioPlayback,
+            .saveJournal(ActiveRunAttempt(
+                runID: "pause-test",
+                missionID: sampleMission.missionID,
+                bindingID: sampleMission.bindingID,
+                audioSHA256: sampleMission.audioSHA256,
+                routeWorkoutFingerprint: sampleMission.routeWorkoutFingerprint,
+                partialGPXBasename: nil,
+                condition: "A",
+                phase: .running,
+                startedAt: now,
+                precommittedNextWorkoutAt: defaultPrecommittedDate,
+                audioElapsedSeconds: 0,
+                pauseCount: 1,
+                audioIncidents: [],
+                locationIncidents: []
+            ))
+        ])
 
         // Second pause while already paused should be ignored
         let actionsPause2 = sm.handle(event: .pauseRequested, mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
@@ -193,7 +211,25 @@ final class SessionStateMachineTests: XCTestCase {
 
         // Resume 1
         let actionsResume1 = sm.handle(event: .resumeRequested, mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
-        XCTAssertEqual(actionsResume1, [.startAudioPlayback])
+        XCTAssertEqual(actionsResume1, [
+            .startAudioPlayback,
+            .saveJournal(ActiveRunAttempt(
+                runID: "pause-test",
+                missionID: sampleMission.missionID,
+                bindingID: sampleMission.bindingID,
+                audioSHA256: sampleMission.audioSHA256,
+                routeWorkoutFingerprint: sampleMission.routeWorkoutFingerprint,
+                partialGPXBasename: nil,
+                condition: "A",
+                phase: .running,
+                startedAt: now,
+                precommittedNextWorkoutAt: defaultPrecommittedDate,
+                audioElapsedSeconds: 0,
+                pauseCount: 1,
+                audioIncidents: [],
+                locationIncidents: []
+            ))
+        ])
 
         // Second resume while playing should be ignored
         let actionsResume2 = sm.handle(event: .resumeRequested, mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
@@ -201,7 +237,25 @@ final class SessionStateMachineTests: XCTestCase {
 
         // Pause 2
         let actionsPause3 = sm.handle(event: .pauseRequested, mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
-        XCTAssertEqual(actionsPause3, [.pauseAudioPlayback])
+        XCTAssertEqual(actionsPause3, [
+            .pauseAudioPlayback,
+            .saveJournal(ActiveRunAttempt(
+                runID: "pause-test",
+                missionID: sampleMission.missionID,
+                bindingID: sampleMission.bindingID,
+                audioSHA256: sampleMission.audioSHA256,
+                routeWorkoutFingerprint: sampleMission.routeWorkoutFingerprint,
+                partialGPXBasename: nil,
+                condition: "A",
+                phase: .running,
+                startedAt: now,
+                precommittedNextWorkoutAt: defaultPrecommittedDate,
+                audioElapsedSeconds: 0,
+                pauseCount: 2,
+                audioIncidents: [],
+                locationIncidents: []
+            ))
+        ])
 
         // Verify natural finish preserves pauseCount = 2
         let finishNow = now.addingTimeInterval(sampleMission.durationSeconds)

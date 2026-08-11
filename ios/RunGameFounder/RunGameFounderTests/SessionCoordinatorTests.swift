@@ -59,7 +59,7 @@ final class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(coordinator.currentRunState, coordinator.state)
 
         // Verify active journal was saved via AppModel
-        let journal = ActiveRunJournal(defaults: defaults)
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: tempDir)
         if case .attempt(let attempt) = journal.loadJournal() {
             XCTAssertEqual(attempt.runID, runID)
             XCTAssertEqual(attempt.phase, .acquiringGPS)

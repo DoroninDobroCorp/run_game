@@ -90,14 +90,30 @@ final class FileDurabilityTests: XCTestCase {
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
 
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
         let queueKeyBytes: [UInt8] = [102, 111, 117, 110, 100, 101, 114, 46, 118, 50, 46, 112, 101, 110, 100, 105, 110, 103, 68, 101, 98, 114, 105, 101, 102, 115]
         let debriefKey = String(bytes: queueKeyBytes, encoding: .utf8)!
         defaults.set(Data("corrupted json data".utf8), forKey: debriefKey)
 
-        let model = AppModel(defaults: defaults)
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
 
         XCTAssertTrue(model.queueCorrupted)
         XCTAssertTrue(model.evidenceCaptureLocked)
+
+        // Also verify corrupted file on disk sets queueCorrupted
+        let docDir2 = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir2, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir2) }
+
+        let fileURL = docDir2.appendingPathComponent("pending_debriefs.json")
+        try Data("corrupted json data".utf8).write(to: fileURL)
+
+        let model2 = AppModel(defaults: defaults, documentsDirectory: docDir2)
+        XCTAssertTrue(model2.queueCorrupted)
+        XCTAssertTrue(model2.evidenceCaptureLocked)
     }
 
     func testConcurrentAtomicWrites() throws {

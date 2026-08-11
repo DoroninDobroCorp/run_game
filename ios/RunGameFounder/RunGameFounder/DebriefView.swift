@@ -421,9 +421,9 @@ struct DebriefView: View {
             try? FileManager.default.removeItem(at: draft)
         }
         if context.completed && !context.aborted {
-            appModel.scheduleRecall(for: context)
+            try? appModel.scheduleRecall(for: context)
         }
-        appModel.completeDebrief(runID: context.runID)
+        try? appModel.completeDebrief(runID: context.runID)
         appModel.refreshRecoveredTracks()
         exportedURL = url
         errorMessage = nil
@@ -664,7 +664,7 @@ struct RecallView: View {
         }
         exportedURL = url
         errorMessage = nil
-        appModel.completeRecall(runID: record.runID)
+        try? appModel.completeRecall(runID: record.runID)
         appModel.refreshRecoveredTracks()
     }
 

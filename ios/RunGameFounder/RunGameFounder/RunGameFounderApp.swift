@@ -33,7 +33,7 @@ struct RunGameFounderApp: App {
                     audioIncidents: [],
                     locationIncidents: []
                 )
-                model.scheduleDebrief(for: context)
+                try? model.scheduleDebrief(for: context)
             }
         }
         if ProcessInfo.processInfo.arguments.contains("--ui-testing-pending-recall") {
@@ -59,7 +59,7 @@ struct RunGameFounderApp: App {
                     audioIncidents: [],
                     locationIncidents: []
                 )
-                model.scheduleRecall(for: context)
+                try? model.scheduleRecall(for: context)
             }
         }
         _appModel = StateObject(wrappedValue: model)

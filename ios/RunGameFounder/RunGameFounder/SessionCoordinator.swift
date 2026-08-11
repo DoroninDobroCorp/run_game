@@ -104,12 +104,88 @@ final class SessionCoordinator: ObservableObject {
         ))
     }
 
+    private var lastCheckpointElapsed: TimeInterval = 0
+
     private func updatePublishedSnapshots() {
         currentRunState = stateMachine.state
         isRecording = recorder.isRecording
         recordedPointsCount = recorder.samples.count
         audioElapsedSeconds = audio.elapsed
         activeIncidentCount = audio.incidents.count + recorder.incidents.count
+
+        if isRunning && abs(audio.elapsed - lastCheckpointElapsed) >= 15.0 {
+            lastCheckpointElapsed = audio.elapsed
+            saveJournalCheckpoint()
+        }
+    }
+
+    private func saveJournalCheckpoint() {
+        switch stateMachine.state {
+        case .acquiringGPS(let runID, let startedAt, _):
+            let attempt = ActiveRunAttempt(
+                participantID: appModel.participantId,
+                runID: runID,
+                missionID: mission.missionID,
+                bindingID: mission.bindingID,
+                audioSHA256: mission.audioSHA256,
+                routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                partialGPXBasename: recorder.partialGPXBasename,
+                condition: "A",
+                phase: .acquiringGPS,
+                startedAt: startedAt,
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                audioElapsedSeconds: 0,
+                pauseCount: 0,
+                audioIncidents: audio.incidents.map { "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)" },
+                locationIncidents: recorder.incidents
+            )
+            try? appModel.saveActiveAttempt(attempt)
+        case .running(let runID, let startedAt, _, let pauseCount, _):
+            let attempt = ActiveRunAttempt(
+                participantID: appModel.participantId,
+                runID: runID,
+                missionID: mission.missionID,
+                bindingID: mission.bindingID,
+                audioSHA256: mission.audioSHA256,
+                routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                partialGPXBasename: recorder.partialGPXBasename,
+                condition: "A",
+                phase: .running,
+                startedAt: startedAt,
+                precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                audioElapsedSeconds: audio.elapsed,
+                pauseCount: pauseCount,
+                audioIncidents: audio.incidents.map { "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)" },
+                locationIncidents: recorder.incidents
+            )
+            try? appModel.saveActiveAttempt(attempt)
+        default:
+            break
+        }
+    }
+
+    private func makeAttemptWithCurrentState(_ attempt: ActiveRunAttempt) -> ActiveRunAttempt {
+        let audioIncidentStrings = audio.incidents.map {
+            "\($0.kind.rawValue) @ \(Formatters.clock($0.elapsed)): \($0.message)"
+        }
+        return ActiveRunAttempt(
+            schemaVersion: attempt.schemaVersion,
+            participantID: attempt.participantID,
+            runID: attempt.runID,
+            missionID: attempt.missionID,
+            bindingID: attempt.bindingID,
+            audioSHA256: attempt.audioSHA256,
+            routeWorkoutFingerprint: attempt.routeWorkoutFingerprint,
+            partialGPXBasename: recorder.partialGPXBasename ?? attempt.partialGPXBasename,
+            condition: attempt.condition,
+            phase: attempt.phase,
+            startedAt: attempt.startedAt,
+            precommittedNextWorkoutAt: attempt.precommittedNextWorkoutAt,
+            audioElapsedSeconds: audio.elapsed > 0 ? audio.elapsed : attempt.audioElapsedSeconds,
+            pauseCount: attempt.pauseCount,
+            audioIncidents: audioIncidentStrings.isEmpty ? attempt.audioIncidents : audioIncidentStrings,
+            locationIncidents: recorder.incidents.isEmpty ? attempt.locationIncidents : recorder.incidents
+        )
     }
 
     private func stopRecorderAndMakeEvidence(completed: Bool) -> (summary: TrackSummary?, routeTraversal: WalkthroughEvidence?) {
@@ -127,12 +203,15 @@ final class SessionCoordinator: ObservableObject {
 
     // MARK: - Actions Execution
     private func execute(_ actions: [SessionStateMachine.Action]) {
+        var debriefEnqueueFailed = false
         for action in actions {
             switch action {
             case .startGPSRecording(let prefix):
                 let result = recorder.start(prefix: prefix)
                 if case .unavailable(let message) = result {
                     send(.gpsFailed(reason: message))
+                } else if case .started = result, recorder.partialGPXBasename != nil {
+                    saveJournalCheckpoint()
                 }
             case .cancelGPSRecording:
                 recorder.cancelPendingStart()
@@ -162,13 +241,40 @@ final class SessionCoordinator: ObservableObject {
             case .stopAudioPlayback:
                 audio.stop()
             case .saveJournal(let attempt):
-                appModel.saveActiveAttempt(attempt)
+                let updatedAttempt = makeAttemptWithCurrentState(attempt)
+                do {
+                    try appModel.saveActiveAttempt(updatedAttempt)
+                } catch {
+                    statusMessage = "Ошибка сохранения журнала: \(error.localizedDescription)"
+                    appModel.setJournalErrorBanner(statusMessage)
+                }
             case .clearJournal:
-                appModel.clearActiveJournal()
+                if debriefEnqueueFailed {
+                    statusMessage = "Очистка журнала пропущена из-за ошибки сохранения debrief."
+                    appModel.setJournalErrorBanner(statusMessage)
+                    break
+                }
+                do {
+                    try appModel.clearActiveJournal()
+                } catch {
+                    statusMessage = "Ошибка очистки журнала: \(error.localizedDescription)"
+                    appModel.setJournalErrorBanner(statusMessage)
+                }
             case .scheduleDebrief(let context):
-                appModel.scheduleDebrief(for: context)
+                do {
+                    try appModel.scheduleDebrief(for: context)
+                } catch {
+                    debriefEnqueueFailed = true
+                    statusMessage = "Не удалось сохранить debrief: \(error.localizedDescription)"
+                    appModel.setJournalErrorBanner(statusMessage)
+                }
             case .scheduleRecall(let context):
-                appModel.scheduleRecall(for: context)
+                do {
+                    try appModel.scheduleRecall(for: context)
+                } catch {
+                    statusMessage = "Не удалось сохранить recall: \(error.localizedDescription)"
+                    appModel.setJournalErrorBanner(statusMessage)
+                }
             case .setStatusMessage(let message):
                 self.statusMessage = message
             }

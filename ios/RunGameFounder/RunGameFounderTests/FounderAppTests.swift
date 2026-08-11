@@ -381,7 +381,11 @@ final class FounderAppTests: XCTestCase {
         let suiteName = "FounderAppTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
         let endedAt = Date(timeIntervalSince1970: 1_800_000_000)
         let context = RunSessionContext(
@@ -405,16 +409,16 @@ final class FounderAppTests: XCTestCase {
             locationIncidents: []
         )
 
-        model.scheduleRecall(for: context)
-        model.scheduleRecall(for: context)
+        try model.scheduleRecall(for: context)
+        try model.scheduleRecall(for: context)
         XCTAssertEqual(model.pendingRecalls.count, 1)
         XCTAssertEqual(model.pendingRecalls[0].dueAt, endedAt.addingTimeInterval(24 * 60 * 60))
 
-        let restored = AppModel(defaults: defaults)
+        let restored = AppModel(defaults: defaults, documentsDirectory: docDir)
         XCTAssertEqual(restored.pendingRecalls.map(\.runID), [context.runID])
-        restored.completeRecall(runID: context.runID)
+        try restored.completeRecall(runID: context.runID)
         XCTAssertTrue(restored.pendingRecalls.isEmpty)
-        XCTAssertTrue(AppModel(defaults: defaults).pendingRecalls.isEmpty)
+        XCTAssertTrue(AppModel(defaults: defaults, documentsDirectory: docDir).pendingRecalls.isEmpty)
     }
 
     @MainActor
@@ -422,7 +426,11 @@ final class FounderAppTests: XCTestCase {
         let suiteName = "FounderAppTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
         let endedAt = Date(timeIntervalSince1970: 1_800_000_000)
         let context = RunSessionContext(
@@ -446,15 +454,15 @@ final class FounderAppTests: XCTestCase {
             locationIncidents: []
         )
 
-        model.scheduleDebrief(for: context)
-        model.scheduleDebrief(for: context)
+        try model.scheduleDebrief(for: context)
+        try model.scheduleDebrief(for: context)
         XCTAssertEqual(model.pendingDebriefs, [context])
 
-        let restored = AppModel(defaults: defaults)
+        let restored = AppModel(defaults: defaults, documentsDirectory: docDir)
         XCTAssertEqual(restored.pendingDebriefs, [context])
-        restored.completeDebrief(runID: context.runID)
+        try restored.completeDebrief(runID: context.runID)
         XCTAssertTrue(restored.pendingDebriefs.isEmpty)
-        XCTAssertTrue(AppModel(defaults: defaults).pendingDebriefs.isEmpty)
+        XCTAssertTrue(AppModel(defaults: defaults, documentsDirectory: docDir).pendingDebriefs.isEmpty)
     }
 
     @MainActor

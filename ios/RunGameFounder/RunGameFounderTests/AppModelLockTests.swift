@@ -8,7 +8,11 @@ final class AppModelLockTests: XCTestCase {
         let suiteName = "AppModelLockTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
 
         XCTAssertFalse(model.evidenceCaptureLocked)
@@ -35,11 +39,11 @@ final class AppModelLockTests: XCTestCase {
             locationIncidents: []
         )
 
-        model.scheduleDebrief(for: context)
+        try model.scheduleDebrief(for: context)
         XCTAssertTrue(model.evidenceCaptureLocked)
         XCTAssertFalse(model.canBeginMission)
 
-        model.completeDebrief(runID: context.runID)
+        try model.completeDebrief(runID: context.runID)
         XCTAssertFalse(model.evidenceCaptureLocked)
     }
 
@@ -48,7 +52,11 @@ final class AppModelLockTests: XCTestCase {
         let suiteName = "AppModelLockTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
 
         XCTAssertFalse(model.evidenceCaptureLocked)
@@ -75,11 +83,11 @@ final class AppModelLockTests: XCTestCase {
             locationIncidents: []
         )
 
-        model.scheduleRecall(for: context)
+        try model.scheduleRecall(for: context)
         XCTAssertTrue(model.evidenceCaptureLocked)
         XCTAssertFalse(model.canBeginMission)
 
-        model.completeRecall(runID: context.runID)
+        try model.completeRecall(runID: context.runID)
         XCTAssertFalse(model.evidenceCaptureLocked)
     }
 
@@ -88,7 +96,11 @@ final class AppModelLockTests: XCTestCase {
         let suiteName = "AppModelLockTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
 
         let endedAt = Date()
@@ -113,7 +125,7 @@ final class AppModelLockTests: XCTestCase {
             locationIncidents: []
         )
 
-        model.scheduleRecall(for: abortedContext)
+        try model.scheduleRecall(for: abortedContext)
         XCTAssertTrue(model.pendingRecalls.isEmpty)
     }
 
@@ -181,7 +193,7 @@ final class AppModelLockTests: XCTestCase {
         )
 
         // Schedule recall -> recall becomes pending
-        model.scheduleRecall(for: context)
+        try model.scheduleRecall(for: context)
         XCTAssertTrue(model.evidenceCaptureLocked)
 
         // During pending recall: localEvidenceURLs suppresses immediate & draft JSON, exposing only raw GPX files
@@ -189,7 +201,7 @@ final class AppModelLockTests: XCTestCase {
         XCTAssertEqual(model.recoveredTrackURLs.map(\.lastPathComponent), ["run.partial.gpx"])
 
         // Complete recall -> localEvidenceURLs shows immediate.json again
-        model.completeRecall(runID: context.runID)
+        try model.completeRecall(runID: context.runID)
         XCTAssertFalse(model.evidenceCaptureLocked)
         XCTAssertEqual(model.localEvidenceURLs.map(\.lastPathComponent), ["m01-run1-immediate.json", "m01-walkthrough.gpx"])
     }
@@ -199,7 +211,11 @@ final class AppModelLockTests: XCTestCase {
         let suiteName = "AppModelLockTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        let model = AppModel(defaults: defaults)
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
         let mission = try XCTUnwrap(model.mission)
 
         let endedAt = Date()
@@ -225,14 +241,14 @@ final class AppModelLockTests: XCTestCase {
         )
 
         // 1. Session finishes -> only scheduleDebrief is called
-        model.scheduleDebrief(for: context)
+        try model.scheduleDebrief(for: context)
         XCTAssertEqual(model.pendingDebriefs.count, 1)
         XCTAssertTrue(model.pendingRecalls.isEmpty)
         XCTAssertTrue(model.evidenceCaptureLocked)
 
         // 2. Immediate debrief saved durably -> scheduleRecall is called and debrief completed
-        model.scheduleRecall(for: context)
-        model.completeDebrief(runID: context.runID)
+        try model.scheduleRecall(for: context)
+        try model.completeDebrief(runID: context.runID)
         XCTAssertTrue(model.pendingDebriefs.isEmpty)
         XCTAssertEqual(model.pendingRecalls.count, 1)
         XCTAssertTrue(model.evidenceCaptureLocked)

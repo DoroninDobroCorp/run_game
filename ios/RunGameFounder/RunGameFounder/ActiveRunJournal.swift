@@ -18,6 +18,7 @@ struct ActiveRunAttempt: Codable, Equatable {
     let phase: ActiveRunPhase
     let startedAt: Date
     let precommittedNextWorkoutAt: Date
+    let audioElapsedSeconds: TimeInterval
     let pauseCount: Int
     let audioIncidents: [String]
     let locationIncidents: [String]
@@ -35,6 +36,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         case phase
         case startedAt = "started_at"
         case precommittedNextWorkoutAt = "precommitted_next_workout_at"
+        case audioElapsedSeconds = "audio_elapsed_seconds"
         case pauseCount = "pause_count"
         case audioIncidents = "audio_incidents"
         case locationIncidents = "location_incidents"
@@ -53,6 +55,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         phase: ActiveRunPhase,
         startedAt: Date,
         precommittedNextWorkoutAt: Date = Date().addingTimeInterval(48 * 3600),
+        audioElapsedSeconds: TimeInterval = 0,
         pauseCount: Int = 0,
         audioIncidents: [String] = [],
         locationIncidents: [String] = []
@@ -69,6 +72,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         self.phase = phase
         self.startedAt = startedAt
         self.precommittedNextWorkoutAt = precommittedNextWorkoutAt
+        self.audioElapsedSeconds = audioElapsedSeconds
         self.pauseCount = pauseCount
         self.audioIncidents = audioIncidents
         self.locationIncidents = locationIncidents
@@ -123,15 +127,18 @@ final class ActiveRunJournal {
     func loadJournal() -> ActiveRunJournalResult {
         let fileManager = FileManager.default
         let data: Data
+        let fromLegacy: Bool
         if fileManager.fileExists(atPath: journalFileURL.path) {
+            fromLegacy = false
             do {
                 data = try Data(contentsOf: journalFileURL)
             } catch {
                 let reason = "Failed to read active journal file: \(error.localizedDescription)"
-                quarantineCorruptedJournal(reason: reason, rawData: Data())
+                _ = try? quarantineCorruptedJournal(reason: reason, rawData: Data())
                 return .corrupted(reason)
             }
         } else if let legacyData = defaults.data(forKey: Self.journalKey) {
+            fromLegacy = true
             data = legacyData
         } else {
             return .none
@@ -141,57 +148,57 @@ final class ActiveRunJournal {
             let attempt = try decoder.decode(ActiveRunAttempt.self, from: data)
             guard attempt.schemaVersion == "0.1" else {
                 let reason = "Unsupported active journal schema version \(attempt.schemaVersion)"
-                quarantineCorruptedJournal(reason: reason, rawData: data)
+                _ = try? quarantineCorruptedJournal(reason: reason, rawData: data)
                 return .corrupted(reason)
+            }
+            if fromLegacy {
+                try? save(attempt)
             }
             return .attempt(attempt)
         } catch {
             let reason = "Corrupted active journal data: \(error.localizedDescription)"
-            quarantineCorruptedJournal(reason: reason, rawData: data)
+            _ = try? quarantineCorruptedJournal(reason: reason, rawData: data)
             return .corrupted(reason)
         }
     }
 
-    func save(_ attempt: ActiveRunAttempt) {
-        do {
-            let data = try encoder.encode(attempt)
-            try FileDurability.writeAtomicStaging(data: data, to: journalFileURL, overwrite: true)
-            defaults.set(data, forKey: Self.journalKey)
-        } catch {
-            // Fail closed log or handling
+    func save(_ attempt: ActiveRunAttempt) throws {
+        let data = try encoder.encode(attempt)
+        try FileDurability.writeAtomicStaging(data: data, to: journalFileURL, overwrite: true)
+        if defaults.object(forKey: Self.journalKey) != nil {
+            defaults.removeObject(forKey: Self.journalKey)
         }
     }
 
-    func clear() {
-        defaults.removeObject(forKey: Self.journalKey)
-        try? FileManager.default.removeItem(at: journalFileURL)
-    }
-
-    @discardableResult
-    func quarantineCorruptedJournal(reason: String, rawData: Data) -> URL? {
-        defaults.removeObject(forKey: Self.journalKey)
-        try? FileManager.default.removeItem(at: journalFileURL)
-
-        do {
-            try FileManager.default.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
-            let isoDate = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
-            let filename = "corrupted-journal-\(isoDate)-\(UUID().uuidString.prefix(6)).json"
-            let destination = quarantineDirectoryURL.appendingPathComponent(filename)
-            try FileDurability.writeAtomicStaging(data: rawData, to: destination, overwrite: true)
-            return destination
-        } catch {
-            return nil
+    func clear() throws {
+        if defaults.object(forKey: Self.journalKey) != nil {
+            defaults.removeObject(forKey: Self.journalKey)
+        }
+        if FileManager.default.fileExists(atPath: journalFileURL.path) {
+            try FileManager.default.removeItem(at: journalFileURL)
         }
     }
 
     @discardableResult
-    func resetQuarantine() -> Bool {
+    func quarantineCorruptedJournal(reason: String, rawData: Data) throws -> URL {
+        if defaults.object(forKey: Self.journalKey) != nil {
+            defaults.removeObject(forKey: Self.journalKey)
+        }
+        try FileManager.default.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
+        let isoDate = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
+        let filename = "corrupted-journal-\(isoDate)-\(UUID().uuidString.prefix(6)).json"
+        let destination = quarantineDirectoryURL.appendingPathComponent(filename)
+        try FileDurability.writeAtomicStaging(data: rawData, to: destination, overwrite: true)
+        if FileManager.default.fileExists(atPath: journalFileURL.path) {
+            try FileManager.default.removeItem(at: journalFileURL)
+        }
+        return destination
+    }
+
+    @discardableResult
+    func resetQuarantine() throws -> Bool {
         guard FileManager.default.fileExists(atPath: quarantineDirectoryURL.path) else { return true }
-        do {
-            try FileManager.default.removeItem(at: quarantineDirectoryURL)
-            return true
-        } catch {
-            return false
-        }
+        try FileManager.default.removeItem(at: quarantineDirectoryURL)
+        return true
     }
 }

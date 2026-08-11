@@ -109,11 +109,12 @@ struct SessionStateMachine: Equatable, Sendable {
                 bindingID: mission.bindingID,
                 audioSHA256: mission.audioSHA256,
                 routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
-                partialGPXBasename: "\(gpxPrefix).partial.gpx",
+                partialGPXBasename: nil,
                 condition: "A",
                 phase: .acquiringGPS,
                 startedAt: now,
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                audioElapsedSeconds: 0,
                 pauseCount: 0,
                 audioIncidents: [],
                 locationIncidents: []
@@ -144,7 +145,6 @@ struct SessionStateMachine: Equatable, Sendable {
 
         case (.acquiringGPS(let runID, let startedAt, _), .audioStarted(let now)):
             state = .running(runID: runID, startedAt: startedAt, runStartedAt: now, pauseCount: 0, isPlaying: true)
-            let gpxPrefix = "\(mission.gpxPrefix)-run-\(runID)"
             let attempt = ActiveRunAttempt(
                 participantID: participantID,
                 runID: runID,
@@ -152,11 +152,12 @@ struct SessionStateMachine: Equatable, Sendable {
                 bindingID: mission.bindingID,
                 audioSHA256: mission.audioSHA256,
                 routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
-                partialGPXBasename: "\(gpxPrefix).partial.gpx",
+                partialGPXBasename: nil,
                 condition: "A",
                 phase: .running,
                 startedAt: startedAt,
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                audioElapsedSeconds: 0,
                 pauseCount: 0,
                 audioIncidents: [],
                 locationIncidents: []
@@ -194,12 +195,48 @@ struct SessionStateMachine: Equatable, Sendable {
                 let newPauseCount = pauseCount + 1
                 state = .running(runID: runID, startedAt: startedAt, runStartedAt: runStartedAt, pauseCount: newPauseCount, isPlaying: false)
                 actions.append(.pauseAudioPlayback)
+                let attempt = ActiveRunAttempt(
+                    participantID: participantID,
+                    runID: runID,
+                    missionID: mission.missionID,
+                    bindingID: mission.bindingID,
+                    audioSHA256: mission.audioSHA256,
+                    routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                    partialGPXBasename: nil,
+                    condition: "A",
+                    phase: .running,
+                    startedAt: startedAt,
+                    precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                    audioElapsedSeconds: 0,
+                    pauseCount: newPauseCount,
+                    audioIncidents: [],
+                    locationIncidents: []
+                )
+                actions.append(.saveJournal(attempt))
             }
 
         case (.running(let runID, let startedAt, let runStartedAt, let pauseCount, let isPlaying), .resumeRequested):
             if !isPlaying {
                 state = .running(runID: runID, startedAt: startedAt, runStartedAt: runStartedAt, pauseCount: pauseCount, isPlaying: true)
                 actions.append(.startAudioPlayback)
+                let attempt = ActiveRunAttempt(
+                    participantID: participantID,
+                    runID: runID,
+                    missionID: mission.missionID,
+                    bindingID: mission.bindingID,
+                    audioSHA256: mission.audioSHA256,
+                    routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                    partialGPXBasename: nil,
+                    condition: "A",
+                    phase: .running,
+                    startedAt: startedAt,
+                    precommittedNextWorkoutAt: precommittedNextWorkoutAt,
+                    audioElapsedSeconds: 0,
+                    pauseCount: pauseCount,
+                    audioIncidents: [],
+                    locationIncidents: []
+                )
+                actions.append(.saveJournal(attempt))
             }
 
         case (.running, .audioInterrupted(let reason, let elapsed, let summary, let routeTraversal)):

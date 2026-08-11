@@ -176,6 +176,7 @@ final class AppModel: ObservableObject {
                 let ext = url.pathExtension.lowercased()
                 if name.hasSuffix(".partial.gpx") { return false }
                 if name.hasSuffix("-draft.json") { return false }
+                if name == "pending_debriefs.json" || name == "pending_recalls.json" || name == ActiveRunJournal.journalFilename { return false }
                 if isRecallPending && ext == "json" { return false }
                 return ["gpx", "json"].contains(ext)
             }
@@ -186,47 +187,57 @@ final class AppModel: ObservableObject {
             }
     }
 
-    func scheduleRecall(for context: RunSessionContext) {
+    func scheduleRecall(for context: RunSessionContext) throws {
         guard context.completed && !context.aborted else { return }
         let pending = PendingRecall.make(context: context)
         pendingRecalls.removeAll { $0.runID == pending.runID }
         pendingRecalls.append(pending)
         pendingRecalls.sort { $0.dueAt < $1.dueAt }
-        persistPendingRecalls()
+        try persistPendingRecallsAndVerify(expectedRunID: pending.runID)
         refreshRecoveredTracks()
     }
 
-    func scheduleDebrief(for context: RunSessionContext) {
+    func scheduleDebrief(for context: RunSessionContext) throws {
         pendingDebriefs.removeAll { $0.runID == context.runID }
         pendingDebriefs.append(context)
         pendingDebriefs.sort { $0.endedAt < $1.endedAt }
-        persistPendingDebriefs()
+        try persistPendingDebriefsAndVerify(expectedRunID: context.runID)
         refreshRecoveredTracks()
     }
 
-    func completeDebrief(runID: String) {
+    func completeDebrief(runID: String) throws {
         pendingDebriefs.removeAll { $0.runID == runID }
-        persistPendingDebriefs()
+        try persistPendingDebriefs()
         refreshRecoveredTracks()
     }
 
-    func completeRecall(runID: String) {
+    func completeRecall(runID: String) throws {
         pendingRecalls.removeAll { $0.runID == runID }
-        persistPendingRecalls()
+        try persistPendingRecalls()
         refreshRecoveredTracks()
     }
 
-    func saveActiveAttempt(_ attempt: ActiveRunAttempt) {
-        ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory).save(attempt)
+    func saveActiveAttempt(_ attempt: ActiveRunAttempt) throws {
+        try ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory).save(attempt)
     }
 
-    func clearActiveJournal() {
-        ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory).clear()
+    func clearActiveJournal() throws {
+        try ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory).clear()
+    }
+
+    func setJournalErrorBanner(_ message: String?) {
+        journalErrorBanner = message
     }
 
     func resetJournalQuarantine() {
         let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory)
-        journal.resetQuarantine()
+        do {
+            try journal.resetQuarantine()
+            journalCorrupted = false
+            journalErrorBanner = nil
+        } catch {
+            journalErrorBanner = "Failed to reset quarantine: \(error.localizedDescription)"
+        }
         recoverActiveJournal()
     }
 
@@ -249,17 +260,21 @@ final class AppModel: ObservableObject {
                 completed: false,
                 aborted: true,
                 abortReason: "App relaunch recovery: session interrupted in \(attempt.phase.rawValue) phase",
-                audioElapsedSeconds: 0,
+                audioElapsedSeconds: attempt.audioElapsedSeconds,
                 pauseCount: attempt.pauseCount,
                 track: nil,
                 routeTraversalEvidence: nil,
                 audioIncidents: attempt.audioIncidents + ["Interrupted by unexpected process termination"],
                 locationIncidents: attempt.locationIncidents
             )
-            scheduleDebrief(for: recoveredContext)
-            journal.clear()
-            journalCorrupted = false
-            journalErrorBanner = nil
+            do {
+                try scheduleDebrief(for: recoveredContext)
+                try journal.clear()
+                journalCorrupted = false
+                journalErrorBanner = nil
+            } catch {
+                journalErrorBanner = "Relaunch recovery failed to persist debrief durably: \(error.localizedDescription)"
+            }
         case .corrupted(let reason):
             journalCorrupted = true
             journalErrorBanner = "Corrupted active run journal: \(reason). Evidence capture is locked."
@@ -269,16 +284,40 @@ final class AppModel: ObservableObject {
         }
     }
 
+    var pendingDebriefsFileURL: URL {
+        documentsDirectory.appendingPathComponent("pending_debriefs.json")
+    }
+
+    var pendingRecallsFileURL: URL {
+        documentsDirectory.appendingPathComponent("pending_recalls.json")
+    }
+
     private func restorePendingRecalls() {
-        guard let data = defaults.data(forKey: Self.pendingRecallsKey) else {
+        let fm = FileManager.default
+        let data: Data
+        if fm.fileExists(atPath: pendingRecallsFileURL.path) {
+            do {
+                data = try Data(contentsOf: pendingRecallsFileURL)
+            } catch {
+                queueCorrupted = true
+                pendingRecalls = []
+                return
+            }
+        } else if let legacyData = defaults.data(forKey: Self.pendingRecallsKey) {
+            data = legacyData
+        } else {
             pendingRecalls = []
             return
         }
+
         do {
             let records = try decoder.decode([PendingRecall].self, from: data)
             pendingRecalls = Dictionary(grouping: records, by: \.runID)
                 .compactMap { $0.value.last }
                 .sorted { $0.dueAt < $1.dueAt }
+            if !fm.fileExists(atPath: pendingRecallsFileURL.path) {
+                try? persistPendingRecalls()
+            }
         } catch {
             queueCorrupted = true
             pendingRecalls = []
@@ -286,30 +325,68 @@ final class AppModel: ObservableObject {
     }
 
     private func restorePendingDebriefs() {
-        guard let data = defaults.data(forKey: Self.pendingDebriefsKey) else {
+        let fm = FileManager.default
+        let data: Data
+        if fm.fileExists(atPath: pendingDebriefsFileURL.path) {
+            do {
+                data = try Data(contentsOf: pendingDebriefsFileURL)
+            } catch {
+                queueCorrupted = true
+                pendingDebriefs = []
+                return
+            }
+        } else if let legacyData = defaults.data(forKey: Self.pendingDebriefsKey) {
+            data = legacyData
+        } else {
             pendingDebriefs = []
             return
         }
+
         do {
             let records = try decoder.decode([RunSessionContext].self, from: data)
             pendingDebriefs = Dictionary(grouping: records, by: \.runID)
                 .compactMap { $0.value.last }
                 .sorted { $0.endedAt < $1.endedAt }
+            if !fm.fileExists(atPath: pendingDebriefsFileURL.path) {
+                try? persistPendingDebriefs()
+            }
         } catch {
             queueCorrupted = true
             pendingDebriefs = []
         }
     }
 
-    private func persistPendingDebriefs() {
-        if let data = try? encoder.encode(pendingDebriefs) {
-            defaults.set(data, forKey: Self.pendingDebriefsKey)
+    private func persistPendingDebriefs() throws {
+        let data = try encoder.encode(pendingDebriefs)
+        try FileDurability.writeAtomicStaging(data: data, to: pendingDebriefsFileURL, overwrite: true)
+        if defaults.object(forKey: Self.pendingDebriefsKey) != nil {
+            defaults.removeObject(forKey: Self.pendingDebriefsKey)
         }
     }
 
-    private func persistPendingRecalls() {
-        if let data = try? encoder.encode(pendingRecalls) {
-            defaults.set(data, forKey: Self.pendingRecallsKey)
+    private func persistPendingDebriefsAndVerify(expectedRunID: String) throws {
+        try persistPendingDebriefs()
+        let readBackData = try Data(contentsOf: pendingDebriefsFileURL)
+        let verifiedRecords = try decoder.decode([RunSessionContext].self, from: readBackData)
+        guard verifiedRecords.contains(where: { $0.runID == expectedRunID }) else {
+            throw FounderAppError.invalidTrack("Pending debrief read-back verification failed for \(expectedRunID)")
+        }
+    }
+
+    private func persistPendingRecalls() throws {
+        let data = try encoder.encode(pendingRecalls)
+        try FileDurability.writeAtomicStaging(data: data, to: pendingRecallsFileURL, overwrite: true)
+        if defaults.object(forKey: Self.pendingRecallsKey) != nil {
+            defaults.removeObject(forKey: Self.pendingRecallsKey)
+        }
+    }
+
+    private func persistPendingRecallsAndVerify(expectedRunID: String) throws {
+        try persistPendingRecalls()
+        let readBackData = try Data(contentsOf: pendingRecallsFileURL)
+        let verifiedRecords = try decoder.decode([PendingRecall].self, from: readBackData)
+        guard verifiedRecords.contains(where: { $0.runID == expectedRunID }) else {
+            throw FounderAppError.invalidTrack("Pending recall read-back verification failed for \(expectedRunID)")
         }
     }
 

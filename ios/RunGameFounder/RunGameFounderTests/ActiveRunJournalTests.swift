@@ -35,7 +35,7 @@ final class ActiveRunJournalTests: XCTestCase {
             locationIncidents: []
         )
 
-        journal.save(attempt)
+        try journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
 
         // Inspect file-backed active_run_journal.json on disk
@@ -86,7 +86,7 @@ final class ActiveRunJournalTests: XCTestCase {
             locationIncidents: []
         )
         let preJournal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
-        preJournal.save(attempt)
+        try preJournal.save(attempt)
         XCTAssertTrue(FileManager.default.fileExists(atPath: preJournal.journalFileURL.path))
 
         // 2. Initialize AppModel (simulating app relaunch)
@@ -208,14 +208,130 @@ final class ActiveRunJournalTests: XCTestCase {
             audioIncidents: [],
             locationIncidents: []
         )
-        journal.save(attempt)
+        try journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
         XCTAssertTrue(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
 
-        journal.clear()
+        try journal.clear()
         XCTAssertNil(journal.currentAttempt)
         XCTAssertFalse(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
         XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
+    }
+
+    @MainActor
+    func testPendingDebriefsAndPendingRecallsUseFileBackedStorage() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
+        let mission = try XCTUnwrap(model.mission)
+
+        let context = RunSessionContext(
+            runID: "file-backed-run",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            condition: "A",
+            startedAt: Date(),
+            endedAt: Date().addingTimeInterval(300),
+            precommittedNextWorkoutAt: Date().addingTimeInterval(48 * 3600),
+            completed: true,
+            aborted: false,
+            abortReason: "",
+            audioElapsedSeconds: 300,
+            pauseCount: 0,
+            track: nil,
+            routeTraversalEvidence: nil,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+
+        try model.scheduleDebrief(for: context)
+        try model.scheduleRecall(for: context)
+
+        // Verify JSON files exist on disk in documentsDirectory
+        XCTAssertTrue(FileManager.default.fileExists(atPath: model.pendingDebriefsFileURL.path))
+        XCTAssertTrue(FileManager.default.fileExists(atPath: model.pendingRecallsFileURL.path))
+
+        let restoredModel = AppModel(defaults: defaults, documentsDirectory: docDir)
+        XCTAssertEqual(restoredModel.pendingDebriefs.count, 1)
+        XCTAssertEqual(restoredModel.pendingDebriefs.first?.runID, "file-backed-run")
+        XCTAssertEqual(restoredModel.pendingRecalls.count, 1)
+        XCTAssertEqual(restoredModel.pendingRecalls.first?.runID, "file-backed-run")
+    }
+
+    @MainActor
+    func testSaveFailureThrowsAndPreservesJournalState() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        let fileURL = journal.journalFileURL
+
+        // Create a directory at fileURL so writeAtomicStaging throws when trying to write a file
+        try FileManager.default.createDirectory(at: fileURL, withIntermediateDirectories: true)
+
+        let attempt = ActiveRunAttempt(
+            runID: "test-save-failure",
+            missionID: "m01",
+            bindingID: "b01",
+            audioSHA256: "sha256",
+            routeWorkoutFingerprint: "fp",
+            phase: .running,
+            startedAt: Date()
+        )
+
+        XCTAssertThrowsError(try journal.save(attempt))
+    }
+
+    @MainActor
+    func testDebriefEnqueueFailurePreservesActiveJournalAndDisplaysRecoverableError() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
+        let mission = try XCTUnwrap(model.mission)
+
+        let fakeAudio = FakeAudioController()
+        let fakeRecorder = FakeLocationRecorder()
+        fakeRecorder.startResult = .started
+
+        let coordinator = SessionCoordinator(mission: mission, appModel: model, audio: fakeAudio, recorder: fakeRecorder)
+        coordinator.send(.requestStart(runID: "failure-run-1", now: Date()))
+        coordinator.send(.receiveGPSFix(accuracy: 10, distanceToStartMeters: 5))
+        coordinator.send(.receiveGPSFix(accuracy: 10, distanceToStartMeters: 5))
+        coordinator.send(.audioStarted())
+        XCTAssertTrue(coordinator.isRunning)
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
+
+        // Create a directory at pendingDebriefsFileURL so scheduleDebrief fails when saving
+        let debriefsURL = model.pendingDebriefsFileURL
+        try FileManager.default.createDirectory(at: debriefsURL, withIntermediateDirectories: true)
+
+        coordinator.abortSession(reason: "Trigger failure injection")
+
+        // Debrief enqueue fails -> clearJournal is skipped -> active journal remains intact
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
+        XCTAssertNotNil(model.journalErrorBanner)
+        XCTAssertTrue(model.journalErrorBanner?.contains("debrief") == true || model.journalErrorBanner?.contains("Не удалось") == true)
     }
 
     @MainActor
