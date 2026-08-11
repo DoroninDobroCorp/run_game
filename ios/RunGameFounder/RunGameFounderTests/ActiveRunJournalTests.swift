@@ -615,4 +615,40 @@ final class ActiveRunJournalTests: XCTestCase {
         XCTAssertEqual(debrief.runID, "traversal-run-789")
         XCTAssertNil(debrief.track, "Path traversal in partialGPXBasename must be rejected")
     }
+
+    @MainActor
+    func testQuarantineMigrationValidatesBytesBeforeDeletingLegacyUserDefaultsKey() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        let legacyCorruptedData = Data("legacy corrupted data".utf8)
+        defaults.set(legacyCorruptedData, forKey: ActiveRunJournal.journalKey)
+
+        // 1. Inject failure during staging/publication
+        FileDurability.injectedFailure = .failPublication
+
+        // 2. Quarantine migration fails due to injected error
+        XCTAssertThrowsError(try journal.quarantineCorruptedJournal(reason: "legacy test error"))
+
+        // 3. Verify legacy key WAS NOT removed from defaults when quarantine writing failed
+        XCTAssertNotNil(defaults.data(forKey: ActiveRunJournal.journalKey))
+
+        // 4. Clear injected failure and retry quarantine migration
+        FileDurability.injectedFailure = .none
+        let quarantinedURL = try journal.quarantineCorruptedJournal(reason: "legacy test error")
+
+        // 5. Verify published quarantine file exists and byte content matches legacy data
+        XCTAssertTrue(FileManager.default.fileExists(atPath: quarantinedURL.path))
+        let publishedData = try Data(contentsOf: quarantinedURL)
+        XCTAssertEqual(publishedData, legacyCorruptedData)
+
+        // 6. Verify legacy key was deleted ONLY after byte verification succeeded
+        XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
+    }
 }

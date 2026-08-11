@@ -272,14 +272,34 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on staging sync failure")
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
 
-        // 3. Fail publication
+        // 3. Fail fallback fsync
+        FileDurability.injectedFailure = .failFallbackFsync
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on fallback fsync failure")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+
+        // 4. Fail backup exclusion
+        FileDurability.injectedFailure = .failBackupExclusion
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on backup exclusion failure")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+
+        // 5. Fail publication
         FileDurability.injectedFailure = .failPublication
         XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
         files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
         XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on publication failure")
         XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
 
-        // 4. Fail parent sync
+        // 6. Fail parent open
+        FileDurability.injectedFailure = .failParentOpen
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on parent open failure")
+
+        // 7. Fail parent sync
         FileDurability.injectedFailure = .failParentSync
         XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
         FileDurability.injectedFailure = .none

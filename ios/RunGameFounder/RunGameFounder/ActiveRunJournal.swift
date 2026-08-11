@@ -165,6 +165,16 @@ final class ActiveRunJournal {
     func save(_ attempt: ActiveRunAttempt) throws {
         let data = try encoder.encode(attempt)
         try FileDurability.writeAtomicStaging(data: data, to: journalFileURL, overwrite: true)
+
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: journalFileURL.path) else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Journal save unverified: file missing"])
+        }
+        let publishedData = try Data(contentsOf: journalFileURL)
+        guard publishedData == data else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Journal save unverified: byte content mismatch"])
+        }
+
         if defaults.object(forKey: Self.journalKey) != nil {
             defaults.removeObject(forKey: Self.journalKey)
         }
@@ -183,6 +193,8 @@ final class ActiveRunJournal {
     func quarantineCorruptedJournal(reason: String, rawData: Data? = nil) throws -> URL {
         let fileManager = FileManager.default
         let bytesToSave: Data
+        let hasLegacyData = defaults.object(forKey: Self.journalKey) != nil
+
         if let rawData, !rawData.isEmpty {
             bytesToSave = rawData
         } else if fileManager.fileExists(atPath: journalFileURL.path) {
@@ -193,9 +205,6 @@ final class ActiveRunJournal {
             throw CocoaError(.fileReadNoSuchFile, userInfo: [NSLocalizedDescriptionKey: "No journal data available to quarantine"])
         }
 
-        if defaults.object(forKey: Self.journalKey) != nil {
-            defaults.removeObject(forKey: Self.journalKey)
-        }
         try fileManager.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
         let isoDate = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
         let filename = "corrupted-journal-\(isoDate)-\(UUID().uuidString.prefix(6)).json"
@@ -211,6 +220,9 @@ final class ActiveRunJournal {
             throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Quarantine file unverified: byte content mismatch"])
         }
 
+        if hasLegacyData {
+            defaults.removeObject(forKey: Self.journalKey)
+        }
         if fileManager.fileExists(atPath: journalFileURL.path) {
             try fileManager.removeItem(at: journalFileURL)
         }

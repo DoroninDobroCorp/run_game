@@ -7,7 +7,10 @@ enum FileDurability {
         case none
         case failStagingWrite
         case failStagingSync
+        case failFallbackFsync
+        case failBackupExclusion
         case failPublication
+        case failParentOpen
         case failParentSync
     }
     nonisolated(unsafe) static var injectedFailure: FailureInjection = .none
@@ -89,12 +92,57 @@ enum FileDurability {
 
             // 2. Sync file handle to physical storage via F_FULLFSYNC
             if fcntl(fileHandle.fileDescriptor, F_FULLFSYNC) != 0 {
-                _ = fsync(fileHandle.fileDescriptor)
+                #if DEBUG
+                if injectedFailure == .failFallbackFsync {
+                    throw NSError(
+                        domain: NSPOSIXErrorDomain,
+                        code: Int(EIO),
+                        userInfo: [NSFilePathErrorKey: stagingURL.path, NSLocalizedDescriptionKey: "Injected fallback fsync failure"]
+                    )
+                }
+                #endif
+                if fsync(fileHandle.fileDescriptor) != 0 {
+                    let err = errno
+                    throw NSError(
+                        domain: NSPOSIXErrorDomain,
+                        code: Int(err),
+                        userInfo: [NSFilePathErrorKey: stagingURL.path, NSLocalizedDescriptionKey: "Fallback fsync failed"]
+                    )
+                }
+            } else {
+                #if DEBUG
+                if injectedFailure == .failFallbackFsync {
+                    throw NSError(
+                        domain: NSPOSIXErrorDomain,
+                        code: Int(EIO),
+                        userInfo: [NSFilePathErrorKey: stagingURL.path, NSLocalizedDescriptionKey: "Injected fallback fsync failure"]
+                    )
+                }
+                #endif
             }
             try fileHandle.close()
         } catch {
             try? fileHandle.close()
             throw error
+        }
+
+        // 3. Mark temporary staging file as excluded from backup BEFORE publication
+        #if DEBUG
+        if injectedFailure == .failBackupExclusion {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileWriteUnknownError,
+                userInfo: [NSFilePathErrorKey: stagingURL.path, NSLocalizedDescriptionKey: "Injected backup exclusion failure"]
+            )
+        }
+        #endif
+
+        guard markExcludedFromBackup(url: stagingURL) else {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileWriteUnknownError,
+                userInfo: [NSFilePathErrorKey: stagingURL.path, NSLocalizedDescriptionKey: "Failed to mark staging file as excluded from backup"]
+            )
         }
 
         #if DEBUG
@@ -107,7 +155,7 @@ enum FileDurability {
         }
         #endif
 
-        // 3. Darwin kernel atomic publication (renameatx_np with RENAME_EXCL for no-clobber)
+        // 4. Darwin kernel atomic publication (renameatx_np with RENAME_EXCL for no-clobber)
         let flags: UInt32 = overwrite ? 0 : UInt32(RENAME_EXCL)
         let renameResult = renameatx_np(AT_FDCWD, stagingURL.path, AT_FDCWD, url.path, flags)
         if renameResult != 0 {
@@ -128,6 +176,30 @@ enum FileDurability {
         }
 
         #if DEBUG
+        if injectedFailure == .failParentOpen {
+            throw NSError(
+                domain: NSPOSIXErrorDomain,
+                code: Int(ENOENT),
+                userInfo: [NSFilePathErrorKey: parentDir.path, NSLocalizedDescriptionKey: "Injected parent dir open failure"]
+            )
+        }
+        #endif
+
+        // 5. Parent directory fsync via F_FULLFSYNC
+        let parentFD = open(parentDir.path, O_RDONLY)
+        if parentFD < 0 {
+            let err = errno
+            throw NSError(
+                domain: NSPOSIXErrorDomain,
+                code: Int(err),
+                userInfo: [NSFilePathErrorKey: parentDir.path, NSLocalizedDescriptionKey: "Failed to open parent directory for fsync"]
+            )
+        }
+        defer {
+            close(parentFD)
+        }
+
+        #if DEBUG
         if injectedFailure == .failParentSync {
             throw NSError(
                 domain: NSCocoaErrorDomain,
@@ -137,17 +209,25 @@ enum FileDurability {
         }
         #endif
 
-        // 4. Parent directory fsync via F_FULLFSYNC
-        let parentFD = open(parentDir.path, O_RDONLY)
-        if parentFD >= 0 {
-            if fcntl(parentFD, F_FULLFSYNC) != 0 {
-                _ = fsync(parentFD)
+        if fcntl(parentFD, F_FULLFSYNC) != 0 {
+            if fsync(parentFD) != 0 {
+                let err = errno
+                throw NSError(
+                    domain: NSPOSIXErrorDomain,
+                    code: Int(err),
+                    userInfo: [NSFilePathErrorKey: parentDir.path, NSLocalizedDescriptionKey: "Failed to sync parent directory"]
+                )
             }
-            close(parentFD)
         }
 
-        // 5. Backup exclusion attribute
-        _ = markExcludedFromBackup(url: url)
+        // 6. Backup exclusion attribute
+        guard markExcludedFromBackup(url: url) else {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileWriteUnknownError,
+                userInfo: [NSFilePathErrorKey: url.path, NSLocalizedDescriptionKey: "Failed to mark published file as excluded from backup"]
+            )
+        }
     }
 
     static func writeAtomicDraft(data: Data, to url: URL) throws {
