@@ -6,12 +6,14 @@ final class FileDurabilityTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
+        FileDurability.injectedFailure = .none
         tempDirectory = FileManager.default.temporaryDirectory
             .appendingPathComponent("FileDurabilityTests-\(UUID().uuidString)", isDirectory: true)
         try FileManager.default.createDirectory(at: tempDirectory, withIntermediateDirectories: true)
     }
 
     override func tearDownWithError() throws {
+        FileDurability.injectedFailure = .none
         if tempDirectory != nil {
             try? FileManager.default.removeItem(at: tempDirectory)
         }
@@ -158,6 +160,57 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertTrue(tmpFiles.isEmpty, "Leftover staging files found: \(tmpFiles)")
     }
 
+    func test20ConcurrentWritersToUncreatedDestinationURL() throws {
+        let fileURL = tempDirectory.appendingPathComponent("concurrent-uncreated-target.json")
+        let iterations = 20
+        let expectation = expectation(description: "20 concurrent writers to uncreated destination complete")
+        expectation.expectedFulfillmentCount = iterations
+
+        var successCount = 0
+        var fileExistsRejections = 0
+        var unexpectedErrors: [String] = []
+        var winningPayload: Data?
+        let lock = NSLock()
+
+        DispatchQueue.concurrentPerform(iterations: iterations) { index in
+            let payload = Data("{\"writer_index\": \(index)}".utf8)
+            do {
+                try FileDurability.writeFinalEvidence(data: payload, to: fileURL)
+                lock.withLock {
+                    successCount += 1
+                    winningPayload = payload
+                }
+            } catch {
+                let nsError = error as NSError
+                if nsError.domain == NSCocoaErrorDomain && nsError.code == NSFileWriteFileExistsError {
+                    lock.withLock {
+                        fileExistsRejections += 1
+                    }
+                } else {
+                    lock.withLock {
+                        unexpectedErrors.append("Index \(index) failed with unexpected error: \(error)")
+                    }
+                }
+            }
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 10.0)
+
+        XCTAssertEqual(unexpectedErrors, [], "No unexpected errors should occur")
+        XCTAssertEqual(successCount, 1, "Exactly 1 writer should succeed")
+        XCTAssertEqual(fileExistsRejections, 19, "Exactly 19 writers should receive file-exists rejection")
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path), "Destination file must exist")
+        let readData = try Data(contentsOf: fileURL)
+        XCTAssertEqual(readData, winningPayload, "Destination file content must match winning payload")
+        XCTAssertTrue(FileDurability.isExcludedFromBackup(url: fileURL), "Destination file must be excluded from backup")
+
+        let files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
+        XCTAssertTrue(tmpFiles.isEmpty, "Zero temporary staging files should remain, found: \(tmpFiles)")
+    }
+
     func testOverwriteFailureCleansStagingAndPreservesOriginal() throws {
         let fileURL = tempDirectory.appendingPathComponent("overwrite-failure.json")
         let initialData = Data("{\"status\": \"original\"}".utf8)
@@ -179,5 +232,36 @@ final class FileDurabilityTests: XCTestCase {
         let files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
         let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
         XCTAssertTrue(tmpFiles.isEmpty, "Staging file was not cleaned up after overwrite failure")
+    }
+
+    func testFilesystemFailureInjectionCleanUp() throws {
+        let fileURL = tempDirectory.appendingPathComponent("failure-injection.json")
+        let testData = Data("{\"status\": \"failure_test\"}".utf8)
+
+        // 1. Fail staging write
+        FileDurability.injectedFailure = .failStagingWrite
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        var files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on staging write failure")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+
+        // 2. Fail staging sync
+        FileDurability.injectedFailure = .failStagingSync
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on staging sync failure")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+
+        // 3. Fail publication
+        FileDurability.injectedFailure = .failPublication
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        XCTAssertTrue(files.filter { $0.hasPrefix(".tmp.") }.isEmpty, "Staging file must be cleaned up on publication failure")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: fileURL.path))
+
+        // 4. Fail parent sync
+        FileDurability.injectedFailure = .failParentSync
+        XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
+        FileDurability.injectedFailure = .none
     }
 }
