@@ -59,7 +59,7 @@ class TestR04DecisionTemplate(unittest.TestCase):
 
     def test_template_contains_required_founder_parameters(self):
         content = self.template_path.read_text(encoding="utf-8")
-        
+
         # Check required parameter fields / sections
         required_fields = [
             "Target Audience & Scope",

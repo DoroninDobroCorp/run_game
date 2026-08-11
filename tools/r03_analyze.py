@@ -114,7 +114,7 @@ def generate_synthetic_ab_dataset(
 ) -> Dict[str, Any]:
     """Generate a synthetic, randomized A/B trial dataset adhering to preregistration schema."""
     rng = random.Random(seed)
-    
+
     participants = []
     for idx in range(n_total):
         participant_id = f"synth_user_{idx+1:03d}"

@@ -85,4 +85,3 @@ verify: r02-preflight
 	$(PYTHON) tools/r02_story.py validate
 	$(PYTHON) tools/r02_verify_field.py --audio-dir $(R02_FIXTURE)/audio
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py' -v
-

@@ -109,7 +109,7 @@ def probe_afinfo(m4a_path: Path) -> dict[str, Any]:
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=PROBE_TIMEOUT_SEC)
     if result.returncode != 0:
         raise QAProbeError(f"afinfo failed: {result.stderr.strip()}")
-    
+
     stdout = result.stdout
     match_dur = re.search(r"estimated duration:\s*([0-9.]+)\s*sec", stdout)
     if not match_dur:

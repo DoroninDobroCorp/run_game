@@ -102,4 +102,3 @@
 * **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
 * **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
 * **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 180 Python-тестов и 45 Swift/UI-тестов (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
-

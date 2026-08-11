@@ -1,7 +1,7 @@
 # Run Game — Geo-Narrative Running Companion
 
-> **Current Project Phase:** `R02` — Pre-First-Test Hardened (`READY_FOR_DEVICE_SMOKE`)  
-> **Active Fixture:** Valparaíso Central, Chile (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins)  
+> **Current Project Phase:** `R02` — Pre-First-Test Hardened (`READY_FOR_DEVICE_SMOKE`)
+> **Active Fixture:** Valparaíso Central, Chile (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins)
 > **Master Readiness Standard:** 18/18 Readiness Lanes verified clean (`docs/PRE_FIRST_TEST_READINESS.md`)
 
 ---

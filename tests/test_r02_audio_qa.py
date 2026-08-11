@@ -18,7 +18,7 @@ class TestR02AudioQA(unittest.TestCase):
     def test_probe_condition_a_master_if_present(self):
         if not MASTER_M4A.exists() or not MANIFEST_PATH.exists():
             self.skipTest("Local Condition A master audio or manifest not present")
-        
+
         report = r02_audio_qa.probe_audio(
             m4a_path=MASTER_M4A,
             manifest_path=MANIFEST_PATH
@@ -104,14 +104,14 @@ class TestR02AudioQA(unittest.TestCase):
     def test_corrupted_sha_fails_closed(self):
         if not MASTER_M4A.exists() or not MANIFEST_PATH.exists():
             self.skipTest("Local Condition A master audio or manifest not present")
-        
+
         manifest_data = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
         manifest_data["m4a_sha256"] = "0" * 64
-        
+
         with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as tmp:
             json.dump(manifest_data, tmp)
             tmp_path = Path(tmp.name)
-        
+
         try:
             report = r02_audio_qa.probe_audio(
                 m4a_path=MASTER_M4A,

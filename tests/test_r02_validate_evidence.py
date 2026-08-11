@@ -169,7 +169,7 @@ class TestR02ValidateEvidence(unittest.TestCase):
     def test_reject_out_of_range_likert_scores(self) -> None:
         data = dict(self.valid_immediate_dict)
         data["immediate_debrief_before_edits"] = dict(self.valid_immediate_dict["immediate_debrief_before_edits"])
-        
+
         # Test 0
         data["immediate_debrief_before_edits"]["desire_for_m02_1_to_7"] = 0
         with self.assertRaises(ValidationError) as ctx:

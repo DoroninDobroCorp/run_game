@@ -164,7 +164,7 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
     rec_delay = data.get("recording_delay_seconds")
     if not isinstance(rec_delay, (int, float)) or not math.isfinite(rec_delay):
         raise ValidationError(f"recording_delay_seconds must be a finite number: {rec_delay!r}")
-    
+
     expected_delay = t_recorded - t_ended
     if abs(rec_delay - expected_delay) > 1.0:
         raise ValidationError(f"recording_delay_seconds mismatch: recorded {rec_delay}, expected {expected_delay:.2f}")

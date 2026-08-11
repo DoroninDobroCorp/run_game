@@ -48,7 +48,7 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         dataset = r03_analyze.generate_synthetic_ab_dataset(n_total=50, seed=123)
         self.assertEqual(dataset.get("dataset_type"), "synthetic_ab_trial")
         self.assertEqual(len(dataset.get("participants", [])), 50)
-        
+
         report = r03_analyze.analyze_dataset(dataset)
         self.assertEqual(report["status"], "PASS")
         self.assertEqual(report["execution_status_claim"], "NOT_STARTED")
@@ -123,4 +123,3 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

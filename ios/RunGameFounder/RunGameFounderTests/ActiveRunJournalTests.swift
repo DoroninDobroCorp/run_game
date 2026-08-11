@@ -8,13 +8,13 @@ final class ActiveRunJournalTests: XCTestCase {
         let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        
+
         let model = AppModel(defaults: defaults)
         let mission = try XCTUnwrap(model.mission)
-        
+
         let journal = ActiveRunJournal(defaults: defaults)
         XCTAssertNil(journal.currentAttempt)
-        
+
         let attempt = ActiveRunAttempt(
             schemaVersion: "0.1",
             runID: "test-run-123",
@@ -30,14 +30,14 @@ final class ActiveRunJournalTests: XCTestCase {
             audioIncidents: ["Audio paused"],
             locationIncidents: []
         )
-        
+
         journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
-        
+
         // Inspect raw UserDefaults data to ensure NO coordinate keys exist and partial_gpx_basename is present
         let data = try XCTUnwrap(defaults.data(forKey: ActiveRunJournal.journalKey))
         let jsonDict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
-        
+
         XCTAssertEqual(jsonDict["run_id"] as? String, "test-run-123")
         XCTAssertEqual(jsonDict["schema_version"] as? String, "0.1")
         XCTAssertEqual(jsonDict["partial_gpx_basename"] as? String, "test-run-123.partial.gpx")
@@ -54,10 +54,10 @@ final class ActiveRunJournalTests: XCTestCase {
         let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        
+
         let initialModel = AppModel(defaults: defaults)
         let mission = try XCTUnwrap(initialModel.mission)
-        
+
         // 1. Create an active run attempt in defaults prior to AppModel init
         let attempt = ActiveRunAttempt(
             schemaVersion: "0.1",
@@ -77,20 +77,20 @@ final class ActiveRunJournalTests: XCTestCase {
         encoder.dateEncodingStrategy = .iso8601
         let attemptData = try encoder.encode(attempt)
         defaults.set(attemptData, forKey: ActiveRunJournal.journalKey)
-        
+
         // 2. Initialize AppModel (simulating app relaunch)
         let model = AppModel(defaults: defaults)
-        
+
         // 3. Verify evidence lock and restored aborted context
         XCTAssertTrue(model.evidenceCaptureLocked)
         XCTAssertEqual(model.pendingDebriefs.count, 1)
-        
+
         let restored = try XCTUnwrap(model.pendingDebriefs.first)
         XCTAssertEqual(restored.runID, "crashed-run-789")
         XCTAssertTrue(restored.aborted)
         XCTAssertFalse(restored.completed)
         XCTAssertTrue(restored.abortReason.contains("App relaunch recovery"))
-        
+
         // 4. Verify active journal key in defaults was cleared
         XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
     }
@@ -104,13 +104,13 @@ final class ActiveRunJournalTests: XCTestCase {
         let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: docDir) }
-        
+
         // Set invalid data in active journal key
         let corruptedData = Data("corrupted json data".utf8)
         defaults.set(corruptedData, forKey: ActiveRunJournal.journalKey)
-        
+
         let model = AppModel(defaults: defaults, documentsDirectory: docDir)
-        
+
         XCTAssertTrue(model.evidenceCaptureLocked)
         XCTAssertTrue(model.journalCorrupted)
         XCTAssertNotNil(model.journalErrorBanner)
@@ -132,12 +132,12 @@ final class ActiveRunJournalTests: XCTestCase {
         let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        
+
         // Set invalid data in active journal key
         defaults.set(Data("corrupted json data".utf8), forKey: ActiveRunJournal.journalKey)
-        
+
         let model = AppModel(defaults: defaults)
-        
+
         XCTAssertTrue(model.evidenceCaptureLocked)
         XCTAssertTrue(model.journalCorrupted)
         XCTAssertNotNil(model.journalErrorBanner)
@@ -148,10 +148,10 @@ final class ActiveRunJournalTests: XCTestCase {
         let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
         let defaults = UserDefaults(suiteName: suiteName)!
         defer { defaults.removePersistentDomain(forName: suiteName) }
-        
+
         let model = AppModel(defaults: defaults)
         let mission = try XCTUnwrap(model.mission)
-        
+
         let journal = ActiveRunJournal(defaults: defaults)
         let attempt = ActiveRunAttempt(
             schemaVersion: "0.1",
@@ -169,7 +169,7 @@ final class ActiveRunJournalTests: XCTestCase {
         )
         journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
-        
+
         journal.clear()
         XCTAssertNil(journal.currentAttempt)
         XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
