@@ -4,6 +4,7 @@ research/r02/build/
 ios/RunGameFounder/Resources/Local/
 
 ios/RunGameFounder/DerivedData/
+ios/RunGameFounder/DerivedDataReview/
 ios/RunGameFounder/*.xcresult
 
 __pycache__/
