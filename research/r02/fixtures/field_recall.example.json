@@ -1,6 +1,7 @@
 {
   "schema_version": "0.2",
   "record_status": "recall_24h_complete",
+  "participant_id": "participant_founder_001",
   "run_id": "run_example_001",
   "binding_id": "valparaiso_central",
   "mission_id": "m01",

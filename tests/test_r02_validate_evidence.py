@@ -28,6 +28,7 @@ class TestR02ValidateEvidence(unittest.TestCase):
         self.valid_immediate_dict = {
             "schema_version": "0.3",
             "record_status": "immediate_complete",
+            "participant_id": "participant_founder_001",
             "run_id": "run-12345",
             "binding_id": "valparaiso_central",
             "mission_id": "m01",
@@ -106,6 +107,7 @@ class TestR02ValidateEvidence(unittest.TestCase):
         self.valid_recall_dict = {
             "schema_version": "0.2",
             "record_status": "recall_24h_complete",
+            "participant_id": "participant_founder_001",
             "run_id": "run-12345",
             "binding_id": "valparaiso_central",
             "mission_id": "m01",
@@ -131,6 +133,30 @@ class TestR02ValidateEvidence(unittest.TestCase):
         res = validate_recall_record(self.valid_recall_dict)
         self.assertTrue(res["valid"])
         self.assertEqual(res["type"], "recall_24h")
+
+    def test_reject_missing_participant_id_in_immediate(self) -> None:
+        data = dict(self.valid_immediate_dict)
+        data.pop("participant_id")
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("missing or empty required field 'participant_id'", str(ctx.exception))
+
+        data["participant_id"] = "   "
+        with self.assertRaises(ValidationError) as ctx:
+            validate_immediate_debrief(data)
+        self.assertIn("missing or empty required field 'participant_id'", str(ctx.exception))
+
+    def test_reject_missing_participant_id_in_recall(self) -> None:
+        data = dict(self.valid_recall_dict)
+        data.pop("participant_id")
+        with self.assertRaises(ValidationError) as ctx:
+            validate_recall_record(data)
+        self.assertIn("missing or empty required field 'participant_id'", str(ctx.exception))
+
+        data["participant_id"] = ""
+        with self.assertRaises(ValidationError) as ctx:
+            validate_recall_record(data)
+        self.assertIn("missing or empty required field 'participant_id'", str(ctx.exception))
 
     def test_reject_duplicate_keys(self) -> None:
         json_str = '{"schema_version": "0.3", "schema_version": "0.3", "run_id": "123"}'
@@ -253,6 +279,43 @@ class TestR02ValidateEvidence(unittest.TestCase):
         finally:
             path_imm.unlink()
             path_rec.unlink()
+
+    def test_pair_mode_rejects_participant_id_mismatch(self) -> None:
+        rec_data = dict(self.valid_recall_dict)
+        rec_data["participant_id"] = "participant_other_002"
+
+        with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_imm, \
+             tempfile.NamedTemporaryFile("w", suffix=".json", delete=False) as f_rec:
+            json.dump(self.valid_immediate_dict, f_imm)
+            json.dump(rec_data, f_rec)
+            path_imm = Path(f_imm.name)
+            path_rec = Path(f_rec.name)
+
+        try:
+            with self.assertRaises(ValidationError) as ctx:
+                validate_evidence_pair(path_imm, path_rec)
+            self.assertIn("pair identity mismatch for participant_id", str(ctx.exception))
+        finally:
+            path_imm.unlink()
+            path_rec.unlink()
+
+    def test_validate_example_fixtures_single_and_pair(self) -> None:
+        root_dir = Path(__file__).resolve().parents[1]
+        run_fixture = root_dir / "research/r02/fixtures/field_run.example.json"
+        recall_fixture = root_dir / "research/r02/fixtures/field_recall.example.json"
+
+        imm_res = validate_evidence_file(run_fixture)
+        self.assertTrue(imm_res["valid"])
+        self.assertEqual(imm_res["type"], "immediate_debrief")
+
+        rec_res = validate_evidence_file(recall_fixture)
+        self.assertTrue(rec_res["valid"])
+        self.assertEqual(rec_res["type"], "recall_24h")
+
+        pair_res = validate_evidence_pair(run_fixture, recall_fixture)
+        self.assertTrue(pair_res["valid"])
+        self.assertEqual(pair_res["type"], "evidence_pair")
+        self.assertEqual(pair_res["run_id"], "run_example_001")
 
     def test_pair_mode_rejects_identity_mismatch(self) -> None:
         rec_data = dict(self.valid_recall_dict)

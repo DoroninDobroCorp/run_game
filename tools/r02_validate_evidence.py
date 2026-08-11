@@ -130,6 +130,8 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValidationError("root payload must be a JSON object")
 
+    _check_no_raw_coordinate_leakage(data)
+
     schema_version = data.get("schema_version")
     if schema_version != SCHEMA_VERSION_DEBRIEF:
         raise ValidationError(f"expected schema_version {SCHEMA_VERSION_DEBRIEF!r}, got {schema_version!r}")
@@ -140,7 +142,7 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
         raise ValidationError(f"invalid record_status {record_status!r}; expected one of {allowed_statuses}")
 
     # Check required top-level string fields
-    for field in ["run_id", "binding_id", "mission_id", "condition", "participant_role", "route_workout_fingerprint"]:
+    for field in ["participant_id", "run_id", "binding_id", "mission_id", "condition", "participant_role", "route_workout_fingerprint"]:
         val = data.get(field)
         if not isinstance(val, str) or not val.strip():
             raise ValidationError(f"missing or empty required field {field!r}")
@@ -242,6 +244,8 @@ def validate_recall_record(data: dict[str, Any]) -> dict[str, Any]:
     if not isinstance(data, dict):
         raise ValidationError("root payload must be a JSON object")
 
+    _check_no_raw_coordinate_leakage(data)
+
     schema_version = data.get("schema_version")
     if schema_version != SCHEMA_VERSION_RECALL:
         raise ValidationError(f"expected schema_version {SCHEMA_VERSION_RECALL!r}, got {schema_version!r}")
@@ -251,7 +255,7 @@ def validate_recall_record(data: dict[str, Any]) -> dict[str, Any]:
     if record_status not in allowed_statuses:
         raise ValidationError(f"invalid record_status {record_status!r}; expected one of {allowed_statuses}")
 
-    for field in ["run_id", "binding_id", "mission_id", "condition", "route_workout_fingerprint"]:
+    for field in ["participant_id", "run_id", "binding_id", "mission_id", "condition", "route_workout_fingerprint"]:
         val = data.get(field)
         if not isinstance(val, str) or not val.strip():
             raise ValidationError(f"missing or empty required field {field!r}")
@@ -334,7 +338,7 @@ def validate_evidence_pair(immediate_path: Path, recall_path: Path) -> dict[str,
     rec_data = rec_res["raw_data"]
 
     # 1. Identity equality checks
-    for key in ["run_id", "binding_id", "mission_id", "condition"]:
+    for key in ["participant_id", "run_id", "binding_id", "mission_id", "condition"]:
         imm_val = imm_data.get(key)
         rec_val = rec_data.get(key)
         if imm_val != rec_val:

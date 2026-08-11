@@ -135,6 +135,7 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
         self.valid_immediate_dict = {
             "schema_version": "0.3",
             "record_status": "immediate_complete",
+            "participant_id": "participant_founder_001",
             "run_id": "run-parity-001",
             "binding_id": "valparaiso_central",
             "mission_id": "m01",
@@ -213,6 +214,7 @@ class CrossContractNegativeValidatorTests(unittest.TestCase):
         self.valid_recall_dict = {
             "schema_version": "0.2",
             "record_status": "recall_24h_complete",
+            "participant_id": "participant_founder_001",
             "run_id": "run-parity-001",
             "binding_id": "valparaiso_central",
             "mission_id": "m01",
@@ -322,6 +324,7 @@ class CrossContractDisproofTests(unittest.TestCase):
         self.base_immediate = {
             "schema_version": "0.3",
             "record_status": "immediate_complete",
+            "participant_id": "participant_founder_001",
             "run_id": "run-disproof-001",
             "binding_id": "valparaiso_central",
             "mission_id": "m01",
