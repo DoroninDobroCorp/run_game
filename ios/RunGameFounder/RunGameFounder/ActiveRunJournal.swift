@@ -134,7 +134,7 @@ final class ActiveRunJournal {
                 data = try Data(contentsOf: journalFileURL)
             } catch {
                 let reason = "Failed to read active journal file: \(error.localizedDescription)"
-                _ = try? quarantineCorruptedJournal(reason: reason, rawData: Data())
+                _ = try? quarantineCorruptedJournal(reason: reason, rawData: nil)
                 return .corrupted(reason)
             }
         } else if let legacyData = defaults.data(forKey: Self.journalKey) {
@@ -180,25 +180,51 @@ final class ActiveRunJournal {
     }
 
     @discardableResult
-    func quarantineCorruptedJournal(reason: String, rawData: Data) throws -> URL {
+    func quarantineCorruptedJournal(reason: String, rawData: Data? = nil) throws -> URL {
+        let fileManager = FileManager.default
+        let bytesToSave: Data
+        if let rawData, !rawData.isEmpty {
+            bytesToSave = rawData
+        } else if fileManager.fileExists(atPath: journalFileURL.path) {
+            bytesToSave = try Data(contentsOf: journalFileURL)
+        } else if let legacyData = defaults.data(forKey: Self.journalKey) {
+            bytesToSave = legacyData
+        } else {
+            throw CocoaError(.fileReadNoSuchFile, userInfo: [NSLocalizedDescriptionKey: "No journal data available to quarantine"])
+        }
+
         if defaults.object(forKey: Self.journalKey) != nil {
             defaults.removeObject(forKey: Self.journalKey)
         }
-        try FileManager.default.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
         let isoDate = ISO8601DateFormatter().string(from: Date()).replacingOccurrences(of: ":", with: "-")
         let filename = "corrupted-journal-\(isoDate)-\(UUID().uuidString.prefix(6)).json"
         let destination = quarantineDirectoryURL.appendingPathComponent(filename)
-        try FileDurability.writeAtomicStaging(data: rawData, to: destination, overwrite: true)
-        if FileManager.default.fileExists(atPath: journalFileURL.path) {
-            try FileManager.default.removeItem(at: journalFileURL)
+
+        try FileDurability.writeAtomicStaging(data: bytesToSave, to: destination, overwrite: true)
+
+        guard fileManager.fileExists(atPath: destination.path) else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Quarantine file unverified: destination file missing"])
+        }
+        let publishedData = try Data(contentsOf: destination)
+        guard publishedData == bytesToSave else {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Quarantine file unverified: byte content mismatch"])
+        }
+
+        if fileManager.fileExists(atPath: journalFileURL.path) {
+            try fileManager.removeItem(at: journalFileURL)
         }
         return destination
     }
 
     @discardableResult
     func resetQuarantine() throws -> Bool {
-        guard FileManager.default.fileExists(atPath: quarantineDirectoryURL.path) else { return true }
-        try FileManager.default.removeItem(at: quarantineDirectoryURL)
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: quarantineDirectoryURL.path) else { return true }
+        try fileManager.removeItem(at: quarantineDirectoryURL)
+        if fileManager.fileExists(atPath: quarantineDirectoryURL.path) {
+            throw CocoaError(.fileWriteUnknown, userInfo: [NSLocalizedDescriptionKey: "Quarantine directory deletion unverified"])
+        }
         return true
     }
 }

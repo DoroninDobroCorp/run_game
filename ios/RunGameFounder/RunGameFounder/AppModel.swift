@@ -232,7 +232,13 @@ final class AppModel: ObservableObject {
     func resetJournalQuarantine() {
         let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory)
         do {
-            try journal.resetQuarantine()
+            let success = try journal.resetQuarantine()
+            let fm = FileManager.default
+            guard success && !fm.fileExists(atPath: journal.quarantineDirectoryURL.path) else {
+                journalErrorBanner = "Failed to reset quarantine: Directory deletion unverified"
+                recoverActiveJournal()
+                return
+            }
             journalCorrupted = false
             journalErrorBanner = nil
         } catch {
@@ -246,6 +252,27 @@ final class AppModel: ObservableObject {
         switch journal.loadJournal() {
         case .attempt(let attempt):
             let endedAt = Date()
+            var recoveredTrack: TrackSummary? = nil
+            if let basename = attempt.partialGPXBasename,
+               !basename.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               URL(fileURLWithPath: basename).lastPathComponent == basename,
+               !basename.contains("/"),
+               !basename.contains("\\"),
+               !basename.contains("..") {
+                let trackURL = documentsDirectory.appendingPathComponent(basename)
+                if FileManager.default.fileExists(atPath: trackURL.path),
+                   let fileData = try? Data(contentsOf: trackURL),
+                   let samples = try? GPXDocument.parseSamples(from: fileData),
+                   !samples.isEmpty {
+                    let sha = try? BundleIntegrity.sha256(of: trackURL)
+                    recoveredTrack = try? TrackSummary.make(
+                        fileName: basename,
+                        samples: samples,
+                        fileSHA256: sha
+                    )
+                }
+            }
+
             let recoveredContext = RunSessionContext(
                 participantID: attempt.participantID,
                 runID: attempt.runID,
@@ -262,7 +289,7 @@ final class AppModel: ObservableObject {
                 abortReason: "App relaunch recovery: session interrupted in \(attempt.phase.rawValue) phase",
                 audioElapsedSeconds: attempt.audioElapsedSeconds,
                 pauseCount: attempt.pauseCount,
-                track: nil,
+                track: recoveredTrack,
                 routeTraversalEvidence: nil,
                 audioIncidents: attempt.audioIncidents + ["Interrupted by unexpected process termination"],
                 locationIncidents: attempt.locationIncidents

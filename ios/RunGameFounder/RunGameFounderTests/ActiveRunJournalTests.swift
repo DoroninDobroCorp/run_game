@@ -448,4 +448,170 @@ final class ActiveRunJournalTests: XCTestCase {
         XCTAssertNotNil(clearIndex3)
         XCTAssertTrue(debriefIndex3! < clearIndex3!, "scheduleDebrief must occur before clearJournal on crash recovery")
     }
+
+    @MainActor
+    func testQuarantineOrderingReadsBytesWritesStagingVerifiesAndDeletesOriginal() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        let corruptedBytes = Data("corrupted active journal content".utf8)
+        try corruptedBytes.write(to: journal.journalFileURL)
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
+
+        let quarantinedURL = try journal.quarantineCorruptedJournal(reason: "test corruption", rawData: corruptedBytes)
+
+        // 1. Verify published quarantine file exists and contains exact original bytes
+        XCTAssertTrue(FileManager.default.fileExists(atPath: quarantinedURL.path))
+        let publishedData = try Data(contentsOf: quarantinedURL)
+        XCTAssertEqual(publishedData, corruptedBytes)
+
+        // 2. Verify original source journal file was deleted only after quarantine verification
+        XCTAssertFalse(FileManager.default.fileExists(atPath: journal.journalFileURL.path))
+    }
+
+    @MainActor
+    func testQuarantineReadFailureDoesNotWriteEmptyData() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+
+        // Create a directory at journalFileURL path so Data(contentsOf:) throws a read error
+        try FileManager.default.createDirectory(at: journal.journalFileURL, withIntermediateDirectories: true)
+
+        XCTAssertThrowsError(try journal.quarantineCorruptedJournal(reason: "read error", rawData: nil))
+
+        // Verify no quarantine file containing empty Data was written
+        if FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path) {
+            let files = try FileManager.default.contentsOfDirectory(atPath: journal.quarantineDirectoryURL.path)
+            XCTAssertTrue(files.isEmpty, "No empty quarantine files should be written on read failure")
+        }
+    }
+
+    @MainActor
+    func testResetQuarantineValidatesDeletionBeforeClearingLockState() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        let corruptedData = Data("corrupted data".utf8)
+        try corruptedData.write(to: journal.journalFileURL)
+
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
+        XCTAssertTrue(model.journalCorrupted)
+        XCTAssertNotNil(model.journalErrorBanner)
+
+        model.resetJournalQuarantine()
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path))
+        XCTAssertFalse(model.journalCorrupted)
+        XCTAssertNil(model.journalErrorBanner)
+    }
+
+    @MainActor
+    func testRelaunchRecoveryBindsPartialGPXByExactBasename() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let initialModel = AppModel(defaults: defaults, documentsDirectory: docDir)
+        let mission = try XCTUnwrap(initialModel.mission)
+
+        let partialBasename = "recovered-run-456.partial.gpx"
+        let partialURL = docDir.appendingPathComponent(partialBasename)
+        let baseDate = Date().addingTimeInterval(-600)
+        let samples = [
+            TrackSample(latitude: -33.0472, longitude: -71.6127, elevation: 10.0, horizontalAccuracy: 5.0, timestamp: baseDate),
+            TrackSample(latitude: -33.0473, longitude: -71.6128, elevation: 11.0, horizontalAccuracy: 5.0, timestamp: baseDate.addingTimeInterval(30))
+        ]
+        let gpxData = try GPXDocument.data(samples: samples)
+        try gpxData.write(to: partialURL)
+
+        let attempt = ActiveRunAttempt(
+            schemaVersion: "0.1",
+            runID: "recovered-run-456",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            partialGPXBasename: partialBasename,
+            condition: "A",
+            phase: .running,
+            startedAt: baseDate,
+            pauseCount: 0,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+        let preJournal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        try preJournal.save(attempt)
+
+        let relaunchModel = AppModel(defaults: defaults, documentsDirectory: docDir)
+
+        XCTAssertEqual(relaunchModel.pendingDebriefs.count, 1)
+        let debrief = try XCTUnwrap(relaunchModel.pendingDebriefs.first)
+        XCTAssertEqual(debrief.runID, "recovered-run-456")
+        XCTAssertNotNil(debrief.track)
+        XCTAssertEqual(debrief.track?.fileName, partialBasename)
+        XCTAssertEqual(debrief.track?.sampleCount, 2)
+    }
+
+    @MainActor
+    func testRelaunchRecoveryPathTraversalCheckRejectsInvalidBasename() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+
+        let initialModel = AppModel(defaults: defaults, documentsDirectory: docDir)
+        let mission = try XCTUnwrap(initialModel.mission)
+
+        let attempt = ActiveRunAttempt(
+            schemaVersion: "0.1",
+            runID: "traversal-run-789",
+            missionID: mission.missionID,
+            bindingID: mission.bindingID,
+            audioSHA256: mission.audioSHA256,
+            routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            partialGPXBasename: "../../etc/passwd",
+            condition: "A",
+            phase: .running,
+            startedAt: Date().addingTimeInterval(-300),
+            pauseCount: 0,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+        let preJournal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        try preJournal.save(attempt)
+
+        let relaunchModel = AppModel(defaults: defaults, documentsDirectory: docDir)
+
+        XCTAssertEqual(relaunchModel.pendingDebriefs.count, 1)
+        let debrief = try XCTUnwrap(relaunchModel.pendingDebriefs.first)
+        XCTAssertEqual(debrief.runID, "traversal-run-789")
+        XCTAssertNil(debrief.track, "Path traversal in partialGPXBasename must be rejected")
+    }
 }

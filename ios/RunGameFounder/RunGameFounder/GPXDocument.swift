@@ -51,6 +51,16 @@ enum GPXDocument {
         return url
     }
 
+    static func parseSamples(from data: Data) throws -> [TrackSample] {
+        let parser = XMLParser(data: data)
+        let delegate = GPXParserDelegate()
+        parser.delegate = delegate
+        guard parser.parse() else {
+            throw FounderAppError.invalidTrack("XMLParser failed to parse GPX data: \(parser.parserError?.localizedDescription ?? "unknown error")")
+        }
+        return delegate.samples
+    }
+
     private static func fileTimestamp() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -73,5 +83,70 @@ enum GPXDocument {
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
             .replacingOccurrences(of: "'", with: "&apos;")
+    }
+}
+
+private final class GPXParserDelegate: NSObject, XMLParserDelegate {
+    private(set) var samples: [TrackSample] = []
+    private var currentElement = ""
+    private var currentLat: Double?
+    private var currentLon: Double?
+    private var currentEle: Double?
+    private var currentTime: Date?
+    private var currentAcc: Double?
+    private var currentText = ""
+
+    private static let isoFormatterFractional: ISO8601DateFormatter = {
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fmt
+    }()
+
+    private static let isoFormatterStandard: ISO8601DateFormatter = {
+        let fmt = ISO8601DateFormatter()
+        fmt.formatOptions = [.withInternetDateTime]
+        return fmt
+    }()
+
+    func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String : String] = [:]) {
+        currentElement = elementName
+        currentText = ""
+        if elementName == "trkpt" {
+            currentLat = Double(attributeDict["lat"] ?? "")
+            currentLon = Double(attributeDict["lon"] ?? "")
+            currentEle = nil
+            currentTime = nil
+            currentAcc = nil
+        }
+    }
+
+    func parser(_ parser: XMLParser, foundCharacters string: String) {
+        currentText += string
+    }
+
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        let trimmed = currentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if elementName == "ele" {
+            currentEle = Double(trimmed)
+        } else if elementName == "time" {
+            currentTime = Self.isoFormatterFractional.date(from: trimmed) ?? Self.isoFormatterStandard.date(from: trimmed)
+        } else if elementName == "rg:horizontalAccuracy" || elementName == "horizontalAccuracy" {
+            currentAcc = Double(trimmed)
+        } else if elementName == "trkpt" {
+            if let lat = currentLat, let lon = currentLon, let ele = currentEle, let time = currentTime {
+                let acc = currentAcc ?? 5.0
+                let sample = TrackSample(
+                    latitude: lat,
+                    longitude: lon,
+                    elevation: ele,
+                    horizontalAccuracy: acc,
+                    timestamp: time
+                )
+                if sample.isValid {
+                    samples.append(sample)
+                }
+            }
+        }
+        currentText = ""
     }
 }
