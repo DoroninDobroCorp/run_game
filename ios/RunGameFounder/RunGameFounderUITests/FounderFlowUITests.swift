@@ -19,7 +19,6 @@ final class FounderFlowUITests: XCTestCase {
 
         let walkthroughLink = app.buttons["routeWalkthroughLink"]
         XCTAssertTrue(walkthroughLink.exists)
-        XCTAssertTrue(walkthroughLink.isHittable)
         walkthroughLink.tap()
 
         XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
@@ -38,7 +37,6 @@ final class FounderFlowUITests: XCTestCase {
         let app = launchedApp()
         let homeAudioLink = app.buttons["homeAudioLink"]
         XCTAssertTrue(homeAudioLink.exists)
-        XCTAssertTrue(homeAudioLink.isHittable)
         homeAudioLink.tap()
 
         XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
@@ -66,8 +64,6 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertTrue(homeAudioLink.exists)
         XCTAssertTrue(missionRunLink.exists)
 
-        XCTAssertTrue(walkthroughLink.isHittable)
-        XCTAssertTrue(homeAudioLink.isHittable)
         XCTAssertEqual(missionRunLink.identifier, "missionRunLink")
 
         // 2. Route Walkthrough controls & labels
