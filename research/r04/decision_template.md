@@ -55,6 +55,13 @@ A landing page visitor is classified as a **Qualified Visitor** iff:
 - **Primary KPI:** **Preorder Deposit Conversion Rate (PDCR)** = `(Completed Refundable Deposits / Qualified Visitors) * 100%` (Target: `UNSET`)
 - **Secondary KPI:** **Email Intent Conversion Rate (EICR)** = `(Qualified Email Submissions / Qualified Visitors) * 100%` (Target: `UNSET`)
 
+### 2.7 Observed Operational Metrics
+*All observed metrics recorded during test execution default to UNSET baseline prior to test execution.*
+- **Qualified Visitor Count:** `UNSET`
+- **Completed Refundable Deposits Count:** `UNSET`
+- **Actual Preorder Deposit Conversion Rate (PDCR):** `UNSET`
+- **Total Ad Spend USD:** `UNSET`
+
 ---
 
 ## 3. GO / NO-GO Decision Rules

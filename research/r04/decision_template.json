@@ -28,5 +28,11 @@
     "go_threshold_pdcr_percent": "UNSET",
     "conditional_pivot_min_pdcr_percent": "UNSET",
     "no_go_threshold_pdcr_percent": "UNSET"
+  },
+  "observed_metrics": {
+    "qualified_visitor_count": "UNSET",
+    "completed_refundable_deposits_count": "UNSET",
+    "pdcr_actual_percent": "UNSET",
+    "total_ad_spend_usd": "UNSET"
   }
 }
