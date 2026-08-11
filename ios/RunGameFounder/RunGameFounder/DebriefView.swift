@@ -419,7 +419,9 @@ struct DebriefView: View {
         if FileManager.default.fileExists(atPath: draft.path) {
             try? FileManager.default.removeItem(at: draft)
         }
-        appModel.scheduleRecall(for: context)
+        if context.completed && !context.aborted {
+            appModel.scheduleRecall(for: context)
+        }
         appModel.completeDebrief(runID: context.runID)
         appModel.refreshRecoveredTracks()
         exportedURL = url

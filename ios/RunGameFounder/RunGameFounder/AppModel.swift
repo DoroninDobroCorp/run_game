@@ -159,6 +159,7 @@ final class AppModel: ObservableObject {
         localEvidenceURLs = urls
             .filter {
                 !$0.lastPathComponent.hasSuffix(".partial.gpx")
+                    && !$0.lastPathComponent.hasSuffix("-draft.json")
                     && ["gpx", "json"].contains($0.pathExtension.lowercased())
             }
             .sorted {
@@ -169,6 +170,7 @@ final class AppModel: ObservableObject {
     }
 
     func scheduleRecall(for context: RunSessionContext) {
+        guard context.completed && !context.aborted else { return }
         let pending = PendingRecall.make(context: context)
         pendingRecalls.removeAll { $0.runID == pending.runID }
         pendingRecalls.append(pending)

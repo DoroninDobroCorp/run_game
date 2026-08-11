@@ -53,8 +53,10 @@ struct MissionRunView: View {
                     .accessibilityIdentifier("evidenceLockBanner")
                 }
 
-                statusHeader
-                timelineCard
+                if !appModel.evidenceCaptureLocked {
+                    statusHeader
+                    timelineCard
+                }
                 if state == .ready { preRunChecklist }
                 primaryControls
                 safetyCard

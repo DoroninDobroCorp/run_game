@@ -31,9 +31,11 @@ struct RouteWalkthroughView: View {
                     .accessibilityIdentifier("walkthroughLockBanner")
                 }
 
-                map
+                if !appModel.evidenceCaptureLocked {
+                    map
+                    points
+                }
                 routeSummary
-                points
                 recording
                 approvalChecklist
             }

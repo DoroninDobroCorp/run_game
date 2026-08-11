@@ -36,13 +36,16 @@ struct HomeAudioCheckView: View {
                 }
                 .frame(width: 250, height: 250)
 
-                VStack(spacing: 14) {
-                    Text("Домашняя проверка master")
-                        .font(.title2.bold())
-                    Text("Запусти аудио, заблокируй экран и убедись, что реплики и NAV продолжают звучать. Проверка отметится автоматически после полного воспроизведения.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .multilineTextAlignment(.center)
+                if appModel.evidenceCaptureLocked {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label("Evidence Capture Locked", systemImage: "lock.fill")
+                            .font(.headline)
+                            .foregroundStyle(RunGameTheme.warning)
+                        Text("Домашнее прослушивание заблокировано до очистки pending-очередей.")
+                            .font(.footnote)
+                    }
+                    .runGamePanel()
+                    .accessibilityIdentifier("homeAudioLockBanner")
                 }
 
                 Button {
@@ -60,6 +63,7 @@ struct HomeAudioCheckView: View {
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.violet)
                 .accessibilityIdentifier("homeAudioPlayPause")
+                .disabled(appModel.evidenceCaptureLocked)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("После полного окончания").font(.headline)
@@ -144,5 +148,6 @@ struct HomeAudioCheckView: View {
             && noCriticalIncidentsConfirmed
             && audio.incidents.isEmpty
             && !appModel.homeAudioCompleted
+            && !appModel.evidenceCaptureLocked
     }
 }
