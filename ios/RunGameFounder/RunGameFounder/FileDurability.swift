@@ -25,7 +25,33 @@ enum FileDurability {
     }
 
     static func writeFinalEvidence(data: Data, to url: URL) throws {
-        try data.write(to: url, options: .withoutOverwriting)
+        // Enforce fail-closed overwrite protection
+        let fileManager = FileManager.default
+        guard !fileManager.fileExists(atPath: url.path) else {
+            throw NSError(
+                domain: NSCocoaErrorDomain,
+                code: NSFileWriteFileExistsError,
+                userInfo: [NSFilePathErrorKey: url.path]
+            )
+        }
+
+        let parentDir = url.deletingLastPathComponent()
+        let stagingURL = parentDir.appendingPathComponent(".tmp.\(UUID().uuidString)")
+
+        // 1. Write staging file
+        fileManager.createFile(atPath: stagingURL.path, contents: nil, attributes: nil)
+        let fileHandle = try FileHandle(forWritingTo: stagingURL)
+        defer {
+            try? fileHandle.close()
+        }
+
+        try fileHandle.write(contentsOf: data)
+        // 2. Sync to physical storage
+        try fileHandle.synchronize()
+
+        // 3. Atomic rename / replace
+        _ = try fileManager.replaceItemAt(url, withItemAt: stagingURL)
+
         _ = markExcludedFromBackup(url: url)
     }
 

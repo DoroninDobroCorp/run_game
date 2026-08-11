@@ -22,6 +22,7 @@ final class ActiveRunJournalTests: XCTestCase {
             bindingID: mission.bindingID,
             audioSHA256: mission.audioSHA256,
             routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+            partialGPXBasename: "test-run-123.partial.gpx",
             condition: "A",
             phase: .running,
             startedAt: Date(),
@@ -33,12 +34,13 @@ final class ActiveRunJournalTests: XCTestCase {
         journal.save(attempt)
         XCTAssertNotNil(journal.currentAttempt)
         
-        // Inspect raw UserDefaults data to ensure NO coordinate keys exist
+        // Inspect raw UserDefaults data to ensure NO coordinate keys exist and partial_gpx_basename is present
         let data = try XCTUnwrap(defaults.data(forKey: ActiveRunJournal.journalKey))
         let jsonDict = try JSONSerialization.jsonObject(with: data) as! [String: Any]
         
         XCTAssertEqual(jsonDict["run_id"] as? String, "test-run-123")
         XCTAssertEqual(jsonDict["schema_version"] as? String, "0.1")
+        XCTAssertEqual(jsonDict["partial_gpx_basename"] as? String, "test-run-123.partial.gpx")
         XCTAssertNil(jsonDict["latitude"])
         XCTAssertNil(jsonDict["longitude"])
         XCTAssertNil(jsonDict["coordinates"])
@@ -91,6 +93,38 @@ final class ActiveRunJournalTests: XCTestCase {
         
         // 4. Verify active journal key in defaults was cleared
         XCTAssertNil(defaults.data(forKey: ActiveRunJournal.journalKey))
+    }
+
+    @MainActor
+    func testCorruptedJournalFailsClosedAndQuarantinesFileWithResetOption() throws {
+        let suiteName = "ActiveRunJournalTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let docDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: docDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: docDir) }
+        
+        // Set invalid data in active journal key
+        let corruptedData = Data("corrupted json data".utf8)
+        defaults.set(corruptedData, forKey: ActiveRunJournal.journalKey)
+        
+        let model = AppModel(defaults: defaults, documentsDirectory: docDir)
+        
+        XCTAssertTrue(model.evidenceCaptureLocked)
+        XCTAssertTrue(model.journalCorrupted)
+        XCTAssertNotNil(model.journalErrorBanner)
+
+        // Verify corrupted file was quarantined
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: docDir)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path))
+        let files = try FileManager.default.contentsOfDirectory(atPath: journal.quarantineDirectoryURL.path)
+        XCTAssertEqual(files.count, 1)
+
+        // Reset quarantine
+        model.resetJournalQuarantine()
+        XCTAssertFalse(FileManager.default.fileExists(atPath: journal.quarantineDirectoryURL.path))
+        XCTAssertFalse(model.journalCorrupted)
     }
 
     @MainActor

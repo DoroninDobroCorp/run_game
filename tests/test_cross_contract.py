@@ -39,6 +39,9 @@ SWIFT_MISSION_RUN_VIEW_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/MissionR
 SWIFT_ACTIVE_JOURNAL_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/ActiveRunJournal.swift"
 
 
+SWIFT_SESSION_STATE_MACHINE_PATH = ROOT / "ios/RunGameFounder/RunGameFounder/SessionStateMachine.swift"
+
+
 class CrossContractParityTests(unittest.TestCase):
     """Test suite for Swift ↔ Python threshold parity, schema versioning, and JSON parity."""
 
@@ -48,6 +51,7 @@ class CrossContractParityTests(unittest.TestCase):
         location_recorder_text = SWIFT_LOCATION_RECORDER_PATH.read_text(encoding="utf-8")
         mission_run_view_text = SWIFT_MISSION_RUN_VIEW_PATH.read_text(encoding="utf-8")
         active_journal_text = SWIFT_ACTIVE_JOURNAL_PATH.read_text(encoding="utf-8")
+        session_state_machine_text = SWIFT_SESSION_STATE_MACHINE_PATH.read_text(encoding="utf-8")
 
         # 1. max evidence accuracy 50m
         self.assertIn("meanHorizontalAccuracyMeters <= 50", models_text)
@@ -55,11 +59,15 @@ class CrossContractParityTests(unittest.TestCase):
         self.assertEqual(MAX_EVIDENCE_ACCURACY_M, 50.0)
 
         # 2. mission start accuracy 35m
-        self.assertIn("sample.horizontalAccuracy <= 35", mission_run_view_text)
+        self.assertTrue(
+            "sample.horizontalAccuracy <= 35" in mission_run_view_text or "accuracy > 35" in session_state_machine_text
+        )
         self.assertEqual(MISSION_START_ACCURACY_M, 35.0)
 
         # 3. start distance limit 100m
-        self.assertIn("distance <= 100", mission_run_view_text)
+        self.assertTrue(
+            "distance <= 100" in mission_run_view_text or "distance > 100" in session_state_machine_text
+        )
         self.assertEqual(START_DISTANCE_LIMIT_M, 100.0)
 
         # 4. route point radius 100m

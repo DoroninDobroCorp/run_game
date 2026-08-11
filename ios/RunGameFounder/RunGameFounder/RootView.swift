@@ -57,12 +57,19 @@ private struct DashboardView: View {
     @ViewBuilder
     private var recoveryErrorBanner: some View {
         if appModel.journalCorrupted || appModel.queueCorrupted {
-            VStack(alignment: .leading, spacing: 6) {
+            VStack(alignment: .leading, spacing: 8) {
                 Label("Recovery Error / Evidence Locked", systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
                     .foregroundStyle(RunGameTheme.warning)
                 Text(appModel.journalErrorBanner ?? "Очередь сессий или журнал активности повреждены. Захват evidence заблокирован.")
                     .font(.footnote)
+                if appModel.journalCorrupted {
+                    Button("Сбросить карантин журнала", role: .destructive) {
+                        appModel.resetJournalQuarantine()
+                    }
+                    .font(.caption.bold())
+                    .accessibilityIdentifier("resetQuarantineButton")
+                }
             }
             .runGamePanel()
             .accessibilityIdentifier("recoveryErrorBanner")

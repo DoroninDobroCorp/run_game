@@ -196,15 +196,21 @@ final class AppModel: ObservableObject {
     }
 
     func saveActiveAttempt(_ attempt: ActiveRunAttempt) {
-        ActiveRunJournal(defaults: defaults).save(attempt)
+        ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory).save(attempt)
     }
 
     func clearActiveJournal() {
-        ActiveRunJournal(defaults: defaults).clear()
+        ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory).clear()
+    }
+
+    func resetJournalQuarantine() {
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory)
+        journal.resetQuarantine()
+        recoverActiveJournal()
     }
 
     func recoverActiveJournal() {
-        let journal = ActiveRunJournal(defaults: defaults)
+        let journal = ActiveRunJournal(defaults: defaults, documentsDirectory: documentsDirectory)
         switch journal.loadJournal() {
         case .attempt(let attempt):
             let endedAt = Date()

@@ -12,6 +12,7 @@ struct ActiveRunAttempt: Codable, Equatable {
     let bindingID: String
     let audioSHA256: String
     let routeWorkoutFingerprint: String
+    let partialGPXBasename: String?
     let condition: String
     let phase: ActiveRunPhase
     let startedAt: Date
@@ -27,6 +28,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         case bindingID = "binding_id"
         case audioSHA256 = "audio_sha256"
         case routeWorkoutFingerprint = "route_workout_fingerprint"
+        case partialGPXBasename = "partial_gpx_basename"
         case condition
         case phase
         case startedAt = "started_at"
@@ -43,6 +45,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         bindingID: String,
         audioSHA256: String,
         routeWorkoutFingerprint: String,
+        partialGPXBasename: String? = nil,
         condition: String = "A",
         phase: ActiveRunPhase,
         startedAt: Date,
@@ -57,6 +60,7 @@ struct ActiveRunAttempt: Codable, Equatable {
         self.bindingID = bindingID
         self.audioSHA256 = audioSHA256
         self.routeWorkoutFingerprint = routeWorkoutFingerprint
+        self.partialGPXBasename = partialGPXBasename
         self.condition = condition
         self.phase = phase
         self.startedAt = startedAt
@@ -76,11 +80,18 @@ enum ActiveRunJournalResult {
 final class ActiveRunJournal {
     static let journalKey = "founder.activeRunJournal"
     private let defaults: UserDefaults
+    private let documentsDirectory: URL
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    init(defaults: UserDefaults = .standard) {
+    init(
+        defaults: UserDefaults = .standard,
+        documentsDirectory: URL? = nil
+    ) {
         self.defaults = defaults
+        self.documentsDirectory = documentsDirectory
+            ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+
         let enc = JSONEncoder()
         enc.dateEncodingStrategy = .iso8601
         self.encoder = enc
@@ -88,6 +99,10 @@ final class ActiveRunJournal {
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
         self.decoder = dec
+    }
+
+    var quarantineDirectoryURL: URL {
+        documentsDirectory.appendingPathComponent(".quarantine", isDirectory: true)
     }
 
     var currentAttempt: ActiveRunAttempt? {
@@ -102,10 +117,12 @@ final class ActiveRunJournal {
         do {
             let attempt = try decoder.decode(ActiveRunAttempt.self, from: data)
             guard attempt.schemaVersion == "0.1" else {
+                quarantineCorruptedJournal(reason: "Unsupported active journal schema version \(attempt.schemaVersion)", rawData: data)
                 return .corrupted("Unsupported active journal schema version \(attempt.schemaVersion)")
             }
             return .attempt(attempt)
         } catch {
+            quarantineCorruptedJournal(reason: "Corrupted active journal data: \(error.localizedDescription)", rawData: data)
             return .corrupted("Corrupted active journal data: \(error.localizedDescription)")
         }
     }
@@ -118,5 +135,31 @@ final class ActiveRunJournal {
 
     func clear() {
         defaults.removeObject(forKey: Self.journalKey)
+    }
+
+    @discardableResult
+    func quarantineCorruptedJournal(reason: String, rawData: Data) -> URL? {
+        // Relocate corrupted journal data to .quarantine directory
+        defaults.removeObject(forKey: Self.journalKey)
+        do {
+            try FileManager.default.createDirectory(at: quarantineDirectoryURL, withIntermediateDirectories: true)
+            let filename = "corrupted-journal-\(ISO8601DateFormatter().string(from: Date())).json"
+            let destination = quarantineDirectoryURL.appendingPathComponent(filename)
+            try FileDurability.writeFinalEvidence(data: rawData, to: destination)
+            return destination
+        } catch {
+            return nil
+        }
+    }
+
+    @discardableResult
+    func resetQuarantine() -> Bool {
+        guard FileManager.default.fileExists(atPath: quarantineDirectoryURL.path) else { return true }
+        do {
+            try FileManager.default.removeItem(at: quarantineDirectoryURL)
+            return true
+        } catch {
+            return false
+        }
     }
 }

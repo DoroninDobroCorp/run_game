@@ -51,6 +51,24 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertEqual(preservedData, initialData)
     }
 
+    func testFinalEvidenceStagingSyncAndAtomicRename() throws {
+        let fileURL = tempDirectory.appendingPathComponent("test-staging-final.json")
+        let finalData = Data("{\"status\": \"staged_and_synced\"}".utf8)
+
+        try FileDurability.writeFinalEvidence(data: finalData, to: fileURL)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: fileURL.path))
+
+        // Check content
+        let readData = try Data(contentsOf: fileURL)
+        XCTAssertEqual(readData, finalData)
+        XCTAssertTrue(FileDurability.isExcludedFromBackup(url: fileURL))
+
+        // Verify temporary staging file (.tmp.<uuid>) is no longer present in directory
+        let files = try FileManager.default.contentsOfDirectory(atPath: tempDirectory.path)
+        let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
+        XCTAssertTrue(tmpFiles.isEmpty)
+    }
+
     func testSHA256VerificationBeforeApproval() throws {
         let fileURL = tempDirectory.appendingPathComponent("test-track.gpx")
         let trackData = Data("<gpx><trk></trk></gpx>".utf8)

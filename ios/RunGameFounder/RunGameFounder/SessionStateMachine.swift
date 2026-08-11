@@ -100,12 +100,14 @@ struct SessionStateMachine: Equatable, Sendable {
         // MARK: - 1. GPS Acquisition
         case (.ready, .requestStart(let runID, let now)):
             state = .acquiringGPS(runID: runID, startedAt: now, qualifyingFixes: 0)
+            let gpxPrefix = "\(mission.gpxPrefix)-run-\(runID)"
             let attempt = ActiveRunAttempt(
                 runID: runID,
                 missionID: mission.missionID,
                 bindingID: mission.bindingID,
                 audioSHA256: mission.audioSHA256,
                 routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                partialGPXBasename: "\(gpxPrefix).partial.gpx",
                 condition: "A",
                 phase: .acquiringGPS,
                 startedAt: now,
@@ -115,7 +117,7 @@ struct SessionStateMachine: Equatable, Sendable {
                 locationIncidents: []
             )
             actions.append(.saveJournal(attempt))
-            actions.append(.startGPSRecording(prefix: "\(mission.gpxPrefix)-run-\(runID)"))
+            actions.append(.startGPSRecording(prefix: gpxPrefix))
             actions.append(.startFirstFixTimer(seconds: 30))
             actions.append(.setStatusMessage(nil))
 
@@ -140,12 +142,14 @@ struct SessionStateMachine: Equatable, Sendable {
 
         case (.acquiringGPS(let runID, let startedAt, _), .audioStarted(let now)):
             state = .running(runID: runID, startedAt: startedAt, runStartedAt: now, pauseCount: 0, isPlaying: true)
+            let gpxPrefix = "\(mission.gpxPrefix)-run-\(runID)"
             let attempt = ActiveRunAttempt(
                 runID: runID,
                 missionID: mission.missionID,
                 bindingID: mission.bindingID,
                 audioSHA256: mission.audioSHA256,
                 routeWorkoutFingerprint: mission.routeWorkoutFingerprint,
+                partialGPXBasename: "\(gpxPrefix).partial.gpx",
                 condition: "A",
                 phase: .running,
                 startedAt: startedAt,
