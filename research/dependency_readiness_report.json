@@ -1,0 +1,142 @@
+{
+  "timestamp": "2025-08-10T05:30:00Z",
+  "environment": {
+    "os": "macOS (darwin 25.0.0)",
+    "arch": "arm64"
+  },
+  "python": {
+    "version": "3.14.6",
+    "executable": "/opt/homebrew/bin/python3",
+    "modules": {
+      "py_compile": true,
+      "ruff": false,
+      "mypy": false,
+      "unittest": true
+    }
+  },
+  "audio_tools": {
+    "ffprobe": {
+      "available": true,
+      "path": "/opt/homebrew/bin/ffprobe"
+    },
+    "afinfo": {
+      "available": true,
+      "path": "/usr/bin/afinfo"
+    },
+    "ffmpeg": {
+      "available": true,
+      "path": "/opt/homebrew/bin/ffmpeg"
+    }
+  },
+  "ios_xcode_tools": {
+    "xcodebuild": {
+      "available": true,
+      "path": "/usr/bin/xcodebuild"
+    },
+    "xcodegen": {
+      "available": true,
+      "path": "/opt/homebrew/bin/xcodegen"
+    },
+    "plutil": {
+      "available": true,
+      "path": "/usr/bin/plutil"
+    },
+    "simctl": {
+      "available": true,
+      "path": "/usr/bin/xcrun"
+    },
+    "available_simulators": [
+      {
+        "os": "iOS 18.3",
+        "devices": [
+          {"name": "iPhone 16 Pro", "udid": "F7DCC61A-2825-423D-AC0F-8BB06AFA80BC", "state": "Shutdown"},
+          {"name": "iPhone 16 Pro Max", "udid": "E220FDAD-FE34-4A03-8951-FD4BB5DF7FCE", "state": "Shutdown"},
+          {"name": "iPhone 16e", "udid": "F95BC8F5-7EE3-43CF-9631-B0C215115012", "state": "Shutdown"},
+          {"name": "iPhone 16", "udid": "00034C79-816E-4CC9-AF33-7A7BC26E8E97", "state": "Shutdown"},
+          {"name": "iPhone 16 Plus", "udid": "47FF1EC1-D1DE-43E6-9167-4A6AFF509A70", "state": "Shutdown"},
+          {"name": "iPhone SE (3rd generation)", "udid": "6CA67B32-3809-48CE-83F0-66FB14C59CA5", "state": "Shutdown"},
+          {"name": "iPad Pro 11-inch (M4)", "udid": "1D8D0FE1-DAA8-464D-AB44-DBA2DA32F803", "state": "Shutdown"},
+          {"name": "iPad Pro 13-inch (M4)", "udid": "17E6C7CB-9565-4218-B8EC-C1791C5A446E", "state": "Shutdown"},
+          {"name": "iPad (A16)", "udid": "21084A52-0595-4C78-907B-59948E89FC82", "state": "Shutdown"},
+          {"name": "iPad Air 13-inch (M3)", "udid": "D1CA3792-F089-4BD0-B87A-7DEA2EC1938E", "state": "Shutdown"},
+          {"name": "iPad Air 11-inch (M3)", "udid": "30180C2A-54B7-4478-B69D-1038B1BAC12F", "state": "Shutdown"},
+          {"name": "iPad Air 11-inch (M2)", "udid": "55FBE979-E192-4E9B-9F9B-5877EBFF5FEA", "state": "Shutdown"},
+          {"name": "iPad Air 13-inch (M2)", "udid": "929C355C-AECE-4412-9A79-15D1BB2D336C", "state": "Shutdown"},
+          {"name": "iPad mini (A17 Pro)", "udid": "3055F557-6DCF-4768-8E91-899EFF26FD7E", "state": "Shutdown"},
+          {"name": "iPad (10th generation)", "udid": "C1FDA69B-56F1-4395-8E88-A0E16DD8C103", "state": "Shutdown"}
+        ]
+      },
+      {
+        "os": "iOS 18.5",
+        "devices": [
+          {"name": "iPhone 16 Pro", "udid": "28BB9E86-FBCF-4F19-9B2C-F13611B8E1BA", "state": "Booted"},
+          {"name": "iPhone 16 Pro Max", "udid": "5B7CB09B-549B-45D0-A705-376017D34857", "state": "Shutdown"},
+          {"name": "iPhone 16e", "udid": "68DD0D04-12E3-431D-86C5-4E196AE84D3E", "state": "Shutdown"},
+          {"name": "iPhone 16", "udid": "04258881-013C-4346-A547-6BA8FD2FF7B2", "state": "Shutdown"},
+          {"name": "iPhone 16 Plus", "udid": "AE34157F-B9D3-40DE-9B20-DDB3D2781388", "state": "Shutdown"},
+          {"name": "iPad Pro 11-inch (M4)", "udid": "F05EF06E-99EF-4812-8D1D-A40CA351BEB3", "state": "Shutdown"},
+          {"name": "iPad Pro 13-inch (M4)", "udid": "5276DBFC-C358-48C3-A66F-28298492992C", "state": "Shutdown"},
+          {"name": "iPad mini (A17 Pro)", "udid": "7C9DA0DB-D6BF-48C5-BCFB-82A4867E74AA", "state": "Shutdown"},
+          {"name": "iPad (A16)", "udid": "D65659D2-CF31-44A7-B955-9743749ACA45", "state": "Shutdown"},
+          {"name": "iPad Air 13-inch (M3)", "udid": "CD7F5FB7-5460-4C39-88EE-E6B349B95395", "state": "Shutdown"},
+          {"name": "iPad Air 11-inch (M3)", "udid": "FD131133-0C85-4095-8D05-8DBA46AC8593", "state": "Shutdown"}
+        ]
+      },
+      {
+        "os": "iOS 26.2",
+        "devices": [
+          {"name": "iPhone 17 Pro", "udid": "1D11EE95-3761-4C09-A37E-E1ABB6603077", "state": "Shutdown"},
+          {"name": "iPhone 17 Pro Max", "udid": "C2CADC42-AF81-4DDF-A136-4E3BA8D1097E", "state": "Shutdown"},
+          {"name": "iPhone Air", "udid": "1E73E82B-98E8-4C69-9E3D-84026B6FCB47", "state": "Shutdown"},
+          {"name": "iPhone 17", "udid": "620B7111-8893-49DA-8DB0-07C8A70F8E3C", "state": "Shutdown"},
+          {"name": "iPhone 16e", "udid": "E737C835-3C8E-4900-A48C-CD4166C846C7", "state": "Shutdown"},
+          {"name": "iPad Pro 13-inch (M5)", "udid": "FA998349-1F15-4C5D-8116-75BA9B6BEAE7", "state": "Shutdown"},
+          {"name": "iPad Pro 11-inch (M5)", "udid": "40FBDDB5-4199-480E-9202-103D4121EA43", "state": "Shutdown"},
+          {"name": "iPad mini (A17 Pro)", "udid": "FE8EE47B-86AE-453F-89CB-B6C6946FFCE4", "state": "Shutdown"},
+          {"name": "iPad (A16)", "udid": "19CEF553-DB2C-494A-949F-E32E285E6D7D", "state": "Shutdown"},
+          {"name": "iPad Air 13-inch (M3)", "udid": "5F7EC0C9-8E87-44B0-AC28-9A94BE3F3928", "state": "Shutdown"},
+          {"name": "iPad Air 11-inch (M3)", "udid": "36D98D27-2AD9-4EF2-8852-2EC2FF2E1C2F", "state": "Shutdown"}
+        ]
+      }
+    ]
+  },
+  "project_structure": {
+    "makefile_targets": [
+      "ios-prepare",
+      "ios-open",
+      "ios-build",
+      "ios-unit-test",
+      "ios-ui-test",
+      "ios-test",
+      "r02-preflight",
+      "r02-analyze-gpx",
+      "verify"
+    ],
+    "tools": [
+      "__init__.py",
+      "r02_analyze_gpx.py",
+      "r02_build_master.py",
+      "r02_preflight.py",
+      "r02_prepare_ios.py",
+      "r02_story.py",
+      "r02_verify_field.py",
+      "r02_verify_geo.py"
+    ],
+    "ios_project": {
+      "path": "ios/RunGameFounder/",
+      "contents": [
+        "DerivedData",
+        "Resources",
+        "RunGameFounder",
+        "RunGameFounder.xcodeproj",
+        "RunGameFounderTests",
+        "RunGameFounderUITests",
+        "project.yml"
+      ]
+    }
+  },
+  "readiness_status": {
+    "overall": "READY",
+    "notes": "All required CLI tools (xcodebuild, xcodegen, plutil, simctl, ffprobe, ffmpeg, afinfo) are installed. Python standard libraries (py_compile, unittest) are present; optional tools (ruff, mypy) are absent. iPhone 16 Pro on iOS 18.5 is active/booted."
+  }
+}

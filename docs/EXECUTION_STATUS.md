@@ -1,7 +1,8 @@
 # Журнал выполнения Run Game (EXECUTION_STATUS)
 
-**Последнее обновление:** 10 августа 2026 года
-**Текущая фаза:** Research Phase (`R02` — `IN_PROGRESS`, narrative foundation реализована)
+**Последнее обновление:** 11 августа 2026 года
+**Текущая фаза:** Research Phase (`R02` — `READY_FOR_DEVICE_SMOKE`, pre-first-test hardening завершён)
+**Текущий коммит:** `7193d5cbe191a5b4537646c937a010ee6b24c775` (ветка `executor/pre-first-test-max-eddea8e`)
 
 ---
 
@@ -55,9 +56,9 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft и stdlib validator. Активная founder fixture — центральный Вальпараисо: Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins. Есть fixed-time 1800s master, offline bundle/preflight tooling, privacy-safe GPX analyzer и локальный founder-only SwiftUI research slice. 27 `NAV` cues являются workout transitions, не turn-by-turn; geo/fallback не запускаются по runtime location. Текущий local binding сохраняет route/workout/human approvals `false`. Консолидированные automated counts для текущего shared worktree будут записаны только после отдельного фактического прогона; physical-device/audio/walk/run evidence отсутствует. | 10.08.2026 | Offline preflight ➔ physical-device smoke ➔ дневной walk-through/derived report ➔ human route approval ➔ полный lock-screen audio check ➔ GPS-gated solo founder run ➔ immediate JSON/queued 24h recall ➔ R02C parity. |
-| **R03** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02. |
-| **R04** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02 (может идти параллельно с R03). |
+| **R02** | `READY_FOR_DEVICE_SMOKE`| `R01` | Pre-First-Test Max Hardening завершён. Созданы `docs/PRE_FIRST_TEST_READINESS.md` (18 readiness lanes), `tools/r02_doctor.py`, `tools/r02_validate_evidence.py`, `tools/r02_audio_qa.py`, `tools/r03_analyze.py` и `research/r04/decision_template.md`. Пройден `make verify-pretest` (156 Python unittest, 42 Xcode unit tests, 3 Xcode UI tests). Активная founder fixture — центральный Вальпараисо (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins). Вся синтетическая и симуляционная часть готова. | 11.08.2026 | Physical-device smoke ➔ дневной walk-through/derived report ➔ human route approval ➔ полный lock-screen audio check ➔ GPS-gated solo founder run ➔ immediate JSON/queued 24h recall. |
+| **R03** | `NOT_STARTED`| `R02` | Созданы `research/r03/preregistration.v0.1.json`, `tools/r03_analyze.py` и `tests/test_r03_analyze.py` для офлайн-анализа синтетических A/B данных. | 11.08.2026 | Ожидает завершения физического этапа R02. |
+| **R04** | `NOT_STARTED`| `R02` | Создан `research/r04/decision_template.md` (decision-ready шаблон с описанием аудитории, оффера, stop-loss и метрик конверсии). | 11.08.2026 | Ожидает основательского решения по запуску тестов спроса (может идти параллельно с R03). |
 
 *(Этапы P01–P22 находятся в статусе `NOT_STARTED` и ожидают прохождения ворот G0).*
 
@@ -65,36 +66,29 @@
 
 ## 5. Command Evidence
 
-Исторические engineering checkpoints до текущего hardening включали story
-validation, Valparaíso OSM identity check, master SHA/duration verification,
-iOS resource preparation и simulator build/tests. Эти записи не являются
-physical field evidence и не доказывают текущий shared worktree после новых
-изменений.
+Сводный результат автоматизированного прогона для текущего состояния (`commit 7193d5c`):
 
-Финальные команды и counts текущего consolidated run будут внесены сюда только
-после их фактического запуска. Entry point его offline-части — `make verify`;
-simulator build/tests фиксируются отдельно. Отдельный bundle gate —
-`make r02-preflight`. После реального walk-through raw GPX анализируется локально через
-`make r02-analyze-gpx GPX=/absolute/local/path/to/walkthrough.gpx`; в LLM по
-умолчанию передаётся только privacy-safe derived JSON.
+* `make verify-pretest`:
+  - `tools/r02_doctor.py`: `PASS` (9 проверок, 1 WARN по uncommitted изменениям).
+  - `tools/r02_audit_privacy.py`: `PASS` (4/4 проверки приватности, 0 утечек координат/секретов).
+  - `tools/r02_preflight.py`: `READY_FOR_DEVICE_SMOKE` (12/12 проверок пройдены).
+  - `tools/r02_audio_qa.py`: `PASS` (1800.0s exact AAC master, peak -0.12dB, SHA совпадает).
+  - `/usr/bin/python3 -m unittest discover -s tests`: `PASS` (156 тестов пройдено, 0 ошибок).
+  - `xcodebuild ... RunGameFounderTests`: `PASS` (42 юнита-теста Swift пройдено).
+  - `xcodebuild ... RunGameFounderUITests`: `PASS` (3 UI-теста пройдено на iPhone 16 Pro iOS 18.5 Simulator).
+
+Все 18 полос готовности задокументированы в `docs/PRE_FIRST_TEST_READINESS.md`.
 
 ---
 
 ## 6. Open Blockers
-После успешного offline preflight нет известного инженерного блокера для начала
-device smoke. Для завершения R02 всё ещё отсутствуют:
+После успешного offline preflight (`make verify-pretest`) нет инженерных блокеров для начала physical device smoke. Активными остаются исключительно человеческие блокеры (human gates):
 
-- physical-device install/background audio/GPS/partial-recovery evidence;
-- дневной walk-through, derived route/timing analysis и ручной route/workout
-  approval;
-- полное lock-screen прослушивание фактического audio SHA;
-- GPS-gated founder run, immediate debrief и отдельный queued 24-hour unaided
-  recall JSON;
-- R02C A/B parity evidence и закрытие критичных defects.
-
-Точная fitness-сетка остаётся личной narrative fixture до review профильного
-специалиста. Неудачный preflight, плохой маршрут, непригодные cue deltas или
-device/audio incident являются stop condition, а не поводом выдать approval.
+1. **Human Route Approval (`binding.human_route_approved`):** Требуется физический дневной обход маршрута основателем в Вальпараисо.
+2. **Workout Approval (`binding.workout_approved`):** Требуется физическая проверка интервалов бега/ходьбы и покрытия.
+3. **M1-A Human Approval (`binding.human_approved`):** Требуется явное подтверждение основателя после обхода.
+4. **Public Start Confirmation (`binding.public_start`):** Требуется проверка публичной доступности точки старта.
+5. **Full Audio Lock-Screen Review:** Требуется полное 30-минутное прослушивание M4A мастера на физическом iPhone при заблокированном экране.
 
 ---
 
@@ -102,14 +96,10 @@ device/audio incident являются stop condition, а не поводом в
 * **15.07.2026 (P00):** Принято решение использовать код `TerraIncognita` (а именно парсеры OSM/Overpass и логику коридорной маршрутизации) как основу для адаптеров `PoiProvider` и `RouteProvider` в Run Game.
 * **15.07.2026 (P00):** Переориентирован фокус проекта на персональное использование (хобби) с минимизацией серверных костов и распараллеливанием тестов спроса (R04) и опыта (R03).
 * **15.07.2026 (R01):** Бар использован как первый research fixture. Все 20 стартов дали минимум два POI-кандидата (исторически это было названо «100% L2»); текущий технический L2 дополнительно требует route candidates, scorer и bundle, поэтому R01 трактуется только как POI-density signal.
-* **16.07.2026 (R02):** Разделены `home-territory product behavior` и `traveler-based founder research`. Бар перестал быть обязательной географией R02–R03; смена города не стала продуктовой или сюжетной механикой.
+* **16.07.2026 (R02):** Разделены `home-territory product behavior` and `traveler-based founder research`. Бар перестал быть обязательной географией R02–R03; смена города не стала продуктовой или сюжетной механикой.
 * **16.07.2026 (R02):** Принято story-first решение: authoring graph обязателен сейчас, production runtime graph engine откладывается. Сравнены Dracula-inspired, future-frequency и erased-trace concepts; provisional winner — оригинальный «Нулевой слой» (93/100). Это редакционная гипотеза, не field evidence.
 * **16.07.2026 (R02):** Зафиксированы Леа, M1–M3 micro-arc, три enum-state, четыре setup clues и reveal «игрок своими маршрутами создал Леа». Реализованы детерминированная линеаризация, A/B contract и запрет participant export до human approval.
-* **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как
-  research exception для повторяемых M1 device/audio/GPS итераций. Production
-  investment gates и запрет внешних участников не изменены.
-* **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный
-  Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time
-  master не считается geo-triggered runtime: первый walk-through и retiming
-  review обязательны до founder run. Raw GPX по умолчанию остаётся локально;
-  для разбора используется derived report без координат и точного старта.
+* **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
+* **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
+* **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 156 Python-тестов и 45 Swift/UI-тестов (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
+

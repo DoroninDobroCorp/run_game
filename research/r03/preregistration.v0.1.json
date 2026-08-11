@@ -1,0 +1,76 @@
+{
+  "schema_version": "0.1",
+  "study_id": "R03_SYNTHETIC_EVALUATION",
+  "title": "R03 Controlled Field Evaluation of Narrative Audio Conditioning (Conditions A vs B)",
+  "preregistered_at": "2026-08-11T00:00:00Z",
+  "hypothesis": "Condition A (Narrative Audio) increases 24h unaided place and story retention compared to Condition B (Non-narrative Control) without increasing route abort rates.",
+  "conditions": {
+    "A": {
+      "name": "Condition A (Narrative Audio)",
+      "description": "Full narrative story overlay bound to spatial POI anchors and C25K workout transitions"
+    },
+    "B": {
+      "name": "Condition B (Control / Non-narrative)",
+      "description": "Structured workout cues only with neutral environmental audio"
+    }
+  },
+  "randomization": {
+    "allocation_ratio": "1:1",
+    "seed_deterministic": true,
+    "strata": ["participant_role", "device_model"]
+  },
+  "sample_size": {
+    "target_n": 100,
+    "min_n_per_condition": 40
+  },
+  "primary_outcomes": [
+    {
+      "id": "retention_place_count",
+      "name": "24h Unaided Place Recall Count",
+      "metric": "count",
+      "min_value": 0,
+      "max_value": 10
+    },
+    {
+      "id": "desire_m02_score",
+      "name": "Desire for Mission 02 (1..7 Likert)",
+      "metric": "likert",
+      "min_value": 1,
+      "max_value": 7
+    }
+  ],
+  "manipulation_checks": [
+    {
+      "id": "place_necessity_score",
+      "name": "Place Necessity Rating (1..7 Likert)",
+      "metric": "likert",
+      "min_value": 1,
+      "max_value": 7
+    }
+  ],
+  "exclusion_criteria": [
+    {
+      "id": "excl_aborted_run",
+      "reason": "Run was aborted before completion or audio ended prematurely"
+    },
+    {
+      "id": "excl_delayed_debrief",
+      "reason": "Immediate debrief recording delay > 3600 seconds (confound_delayed_debrief == true)"
+    },
+    {
+      "id": "excl_early_recall",
+      "reason": "24h recall submitted before dueAt timestamp"
+    },
+    {
+      "id": "excl_missing_reasons",
+      "reason": "Missing required immediate or recall fields"
+    }
+  ],
+  "analysis_plan": {
+    "compute_denominators": true,
+    "compute_exclusions": true,
+    "effect_size_metric": "cohens_d",
+    "non_parametric_metric": "mann_whitney_u",
+    "fail_closed_on_real_data": true
+  }
+}
