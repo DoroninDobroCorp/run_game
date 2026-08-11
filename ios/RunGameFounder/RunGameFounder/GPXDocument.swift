@@ -96,13 +96,13 @@ private final class GPXParserDelegate: NSObject, XMLParserDelegate {
     private var currentAcc: Double?
     private var currentText = ""
 
-    private static let isoFormatterFractional: ISO8601DateFormatter = {
+    nonisolated(unsafe) private static let isoFormatterFractional: ISO8601DateFormatter = {
         let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return fmt
     }()
 
-    private static let isoFormatterStandard: ISO8601DateFormatter = {
+    nonisolated(unsafe) private static let isoFormatterStandard: ISO8601DateFormatter = {
         let fmt = ISO8601DateFormatter()
         fmt.formatOptions = [.withInternetDateTime]
         return fmt

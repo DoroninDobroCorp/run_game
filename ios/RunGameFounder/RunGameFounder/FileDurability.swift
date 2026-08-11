@@ -10,7 +10,7 @@ enum FileDurability {
         case failPublication
         case failParentSync
     }
-    static var injectedFailure: FailureInjection = .none
+    nonisolated(unsafe) static var injectedFailure: FailureInjection = .none
     #endif
 
     @discardableResult

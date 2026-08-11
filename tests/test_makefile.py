@@ -74,7 +74,25 @@ class MakefileTargetsTests(unittest.TestCase):
         match = re.search(r"^verify-pretest\s*:\s*(.*)$", self.content, re.MULTILINE)
         self.assertIsNotNone(match, "verify-pretest target rule must exist")
         prereqs = match.group(1).split()
-        expected_prereqs = ["r02-doctor", "r02-audit-privacy", "r02-preflight", "r02-audio-qa", "verify-synthetic", "ios-test"]
+        expected_prereqs = [
+            "r02-doctor",
+            "r02-audit-privacy",
+            "r02-preflight",
+            "r02-audio-qa",
+            "py-compile",
+            "ast-cross-contract",
+            "r02-story-validate",
+            "strict-ab-validate",
+            "r02-evidence-validate",
+            "negative-smoke-test",
+            "r03-synthetic-validate",
+            "r04-unset-reject",
+            "verify-synthetic",
+            "ios-build",
+            "ios-test",
+            "test-asan",
+            "test-tsan",
+        ]
         for expected in expected_prereqs:
             self.assertIn(expected, prereqs, f"verify-pretest missing prerequisite target '{expected}'")
 
