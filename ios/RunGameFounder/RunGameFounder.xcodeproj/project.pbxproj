@@ -18,6 +18,7 @@
 		694084EFF6A9A12F1FF21B3E /* m01_solo_founder_30min.m4a in Resources */ = {isa = PBXBuildFile; fileRef = EFF5E06FCB336F9328F3142B /* m01_solo_founder_30min.m4a */; };
 		6BBDF1A611E888C390EBF9B9 /* RouteWalkthroughView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F546758FEB6D7F4000F6B0E0 /* RouteWalkthroughView.swift */; };
 		6C3D9333487ADCE811FE424C /* MissionRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A37709950D1014076E35929D /* MissionRunView.swift */; };
+		728AFD6945DB9CEE0DBD2914 /* SessionStateMachine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C713EAC7D29349AD66814904 /* SessionStateMachine.swift */; };
 		7845600CFE27FE3D016AA1B8 /* AudioController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8018990956E9A10DF11D7466 /* AudioController.swift */; };
 		8461DFDDAE6DB917C6CA7549 /* FileDurability.swift in Sources */ = {isa = PBXBuildFile; fileRef = 401EC833F6D211032D954DFF /* FileDurability.swift */; };
 		8C852343F358CF4FAC6B02FF /* HomeAudioCheckView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99B39282E2A4F9F336DE1B3E /* HomeAudioCheckView.swift */; };
@@ -29,6 +30,7 @@
 		BD6CBFB38646DE17A875AAEA /* FounderFlowUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11539F7C01D23D484C796F3D /* FounderFlowUITests.swift */; };
 		C3E4FA5EB88DA488675C74B7 /* FounderAppTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C6E461B2912CA6428E40A5 /* FounderAppTests.swift */; };
 		D46DBAD9B6136AE5347AE67D /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EB8626F3BE56AFF577A3F680 /* RootView.swift */; };
+		D9B283DF6289AA20224211F4 /* SessionStateMachineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEBE09665438B1CBCDD09F4D /* SessionStateMachineTests.swift */; };
 		E32EE6AB7132FE4932345C07 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1C7925FC34E8BE7895F06885 /* Models.swift */; };
 		F19410B0D96E223ACDD41F43 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D525F5458CB29A6E4BFCC8F /* AppModel.swift */; };
 /* End PBXBuildFile section */
@@ -72,7 +74,9 @@
 		ADC82137D136B5D1C6487D28 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AF15A068A42A395177D5F841 /* FileDurabilityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileDurabilityTests.swift; sourceTree = "<group>"; };
 		BEC8831608197C23BF178D26 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		C713EAC7D29349AD66814904 /* SessionStateMachine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateMachine.swift; sourceTree = "<group>"; };
 		CE11331EB861B3D077FD37FA /* m01_solo_founder_30min.manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = m01_solo_founder_30min.manifest.json; sourceTree = "<group>"; };
+		CEBE09665438B1CBCDD09F4D /* SessionStateMachineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStateMachineTests.swift; sourceTree = "<group>"; };
 		D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModelLockTests.swift; sourceTree = "<group>"; };
 		DBE75860C0E2A0131E89A6B2 /* RunGameFounderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunGameFounderApp.swift; sourceTree = "<group>"; };
 		EB8626F3BE56AFF577A3F680 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -89,6 +93,7 @@
 				D36C4D56A6360A73481E2281 /* AppModelLockTests.swift */,
 				AF15A068A42A395177D5F841 /* FileDurabilityTests.swift */,
 				12C6E461B2912CA6428E40A5 /* FounderAppTests.swift */,
+				CEBE09665438B1CBCDD09F4D /* SessionStateMachineTests.swift */,
 			);
 			path = RunGameFounderTests;
 			sourceTree = "<group>";
@@ -141,6 +146,7 @@
 				337E66D755532973B3A8DA0A /* RoutePlanner.swift */,
 				F546758FEB6D7F4000F6B0E0 /* RouteWalkthroughView.swift */,
 				DBE75860C0E2A0131E89A6B2 /* RunGameFounderApp.swift */,
+				C713EAC7D29349AD66814904 /* SessionStateMachine.swift */,
 				8FE56E81349CEC597EB33888 /* Theme.swift */,
 			);
 			path = RunGameFounder;
@@ -307,6 +313,7 @@
 				01B6E77445873F003707DCD7 /* RoutePlanner.swift in Sources */,
 				6BBDF1A611E888C390EBF9B9 /* RouteWalkthroughView.swift in Sources */,
 				57C1CF06F3C2ADCC1E5A3B4E /* RunGameFounderApp.swift in Sources */,
+				728AFD6945DB9CEE0DBD2914 /* SessionStateMachine.swift in Sources */,
 				40D500F7C1144903F0E97184 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -319,6 +326,7 @@
 				1D659A8A0293492BBEE20265 /* AppModelLockTests.swift in Sources */,
 				906D7A21B9218FA8254B3507 /* FileDurabilityTests.swift in Sources */,
 				C3E4FA5EB88DA488675C74B7 /* FounderAppTests.swift in Sources */,
+				D9B283DF6289AA20224211F4 /* SessionStateMachineTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
