@@ -3,7 +3,7 @@
   "study_id": "R03_SYNTHETIC_EVALUATION",
   "title": "R03 Controlled Field Evaluation of Narrative Audio Conditioning (Conditions A vs B)",
   "preregistered_at": "2026-08-11T00:00:00Z",
-  "hypothesis": "Condition A (Narrative Audio) increases actual next workout start rate (within 72 hours) compared to Condition B (Non-narrative Control) without increasing route abort rates.",
+  "hypothesis": "Condition A (Narrative Audio) increases actual next workout start rate (within TBD) compared to Condition B (Component Test) without increasing route abort rates.",
   "conditions": {
     "A": {
       "name": "Condition A (Narrative Audio)",
@@ -11,36 +11,39 @@
     },
     "B": {
       "name": "Condition B (Component Test / Non-narrative Control)",
-      "description": "Component test with identical workout cues, route timing, and audio voice as Condition A, but using a non-dramatic place function (neutral environmental framing without story narrative or spatial POI dramatic triggers)"
+      "description": "Component test preserving narrative structure while altering place dramatic function (identical workout cues, route timing, and audio voice as Condition A, but using a non-dramatic place function with neutral environmental framing without spatial POI dramatic triggers)"
     }
+  },
+  "sample_size": {
+    "target_n": "TBD",
+    "min_n_per_condition": "UNSET"
+  },
+  "randomization": {
+    "allocation_ratio": "1:1",
+    "seed_deterministic": true,
+    "strata": [
+      "participant_role",
+      "device_model"
+    ]
   },
   "evaluation_windows": {
     "recruitment_window": "UNSET",
     "data_collection_window": "TBD",
     "followup_window_hours": "TBD"
   },
-  "randomization": {
-    "allocation_ratio": "1:1",
-    "seed_deterministic": true,
-    "strata": ["participant_role", "device_model"]
-  },
-  "sample_size": {
-    "target_n": "TBD",
-    "min_n_per_condition": "UNSET"
-  },
   "primary_outcomes": [
     {
       "id": "actual_next_workout_start",
-      "name": "Actual Next Workout Started Within 72 Hours (Binary 0/1)",
+      "name": "Actual Next Workout Started Within TBD (Binary 0/1)",
       "metric": "binary",
+      "min_value": 0,
+      "max_value": 1,
       "analysis_population": "intention_to_treat",
       "analysis_methods": [
         "risk_difference",
         "risk_ratio",
         "confidence_intervals_95"
-      ],
-      "min_value": 0,
-      "max_value": 1
+      ]
     }
   ],
   "manipulation_checks": [
@@ -87,11 +90,11 @@
   "analysis_plan": {
     "analysis_population": "intention_to_treat",
     "primary_outcome_analysis": "itt_risk_difference_and_ratio",
+    "effect_size_metric": "risk_difference_and_ratio",
+    "non_parametric_metric": "mann_whitney_u",
     "confidence_interval": 0.95,
     "compute_denominators": true,
     "compute_exclusions": true,
-    "effect_size_metric": "cohens_d",
-    "non_parametric_metric": "mann_whitney_u",
     "fail_closed_on_real_data": true
   }
 }

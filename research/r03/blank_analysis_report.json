@@ -1,8 +1,8 @@
 {
   "status": "UNEXECUTED",
   "tool": "r03_analyze",
-  "execution_status_claim": "NOT_STARTED",
   "study_id": "R03_SYNTHETIC_EVALUATION",
+  "execution_status_claim": "NOT_STARTED",
   "preregistration_file": "research/r03/preregistration.v0.1.json",
   "denominators": {
     "total_enrolled": "UNSET",
@@ -50,48 +50,77 @@
       "metric": "binary",
       "analysis_population": "intention_to_treat",
       "condition_A": {
-        "events": "UNSET",
-        "mean": "UNSET",
-        "n": "UNSET",
-        "n_assigned": "UNSET",
         "risk": "UNSET",
-        "std": "UNSET"
+        "events": "UNSET",
+        "n_assigned": "UNSET",
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
       },
       "condition_B": {
-        "events": "UNSET",
-        "mean": "UNSET",
-        "n": "UNSET",
-        "n_assigned": "UNSET",
         "risk": "UNSET",
-        "std": "UNSET"
+        "events": "UNSET",
+        "n_assigned": "UNSET",
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
       },
-      "cohens_d": "UNSET",
-      "difference": "UNSET",
       "risk_difference": "UNSET",
-      "risk_difference_ci_95": ["UNSET", "UNSET"],
       "risk_difference_se": "UNSET",
+      "risk_difference_ci_95": [
+        "UNSET",
+        "UNSET"
+      ],
       "risk_ratio": "UNSET",
-      "risk_ratio_ci_95": ["UNSET", "UNSET"]
+      "risk_ratio_ci_95": [
+        "UNSET",
+        "UNSET"
+      ],
+      "difference": "UNSET"
     }
   },
   "manipulation_checks": {
-    "desire_for_m02": {
-      "cohens_d": "UNSET",
-      "condition_A": { "mean": "UNSET", "n": "UNSET", "std": "UNSET" },
-      "condition_B": { "mean": "UNSET", "n": "UNSET", "std": "UNSET" },
-      "difference": "UNSET"
-    },
     "place_necessity": {
-      "cohens_d": "UNSET",
-      "condition_A": { "mean": "UNSET", "n": "UNSET", "std": "UNSET" },
-      "condition_B": { "mean": "UNSET", "n": "UNSET", "std": "UNSET" },
-      "difference": "UNSET"
+      "condition_A": {
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
+      },
+      "condition_B": {
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
+      },
+      "difference": "UNSET",
+      "cohens_d": "UNSET"
     },
     "unaided_place_recall": {
-      "cohens_d": "UNSET",
-      "condition_A": { "mean": "UNSET", "n": "UNSET", "std": "UNSET" },
-      "condition_B": { "mean": "UNSET", "n": "UNSET", "std": "UNSET" },
-      "difference": "UNSET"
+      "condition_A": {
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
+      },
+      "condition_B": {
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
+      },
+      "difference": "UNSET",
+      "cohens_d": "UNSET"
+    },
+    "desire_for_m02": {
+      "condition_A": {
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
+      },
+      "condition_B": {
+        "mean": "UNSET",
+        "std": "UNSET",
+        "n": "UNSET"
+      },
+      "difference": "UNSET",
+      "cohens_d": "UNSET"
     }
   },
   "interpretation_warning": "BLANK_REPORT_TEMPLATE. R03 remains NOT_STARTED; no real participant data has been collected or analyzed."

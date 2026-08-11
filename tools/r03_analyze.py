@@ -39,6 +39,21 @@ class R03AnalysisError(ValueError):
     """Exception raised for R03 data validation and analysis failures."""
 
 
+def validate_binary_outcome(val: Any, participant_id: Optional[str] = None) -> int:
+    """Validate that actual_next_workout_start is strictly boolean or exact integer 0/1.
+
+    Returns 1 or 0. Rejects float (e.g. 2.0, NaN, 1.0, 0.0), string, -1, 2, None, etc.
+    """
+    if type(val) is bool:
+        return 1 if val else 0
+    if type(val) is int and val in (0, 1):
+        return val
+    pid_str = f" for participant {participant_id!r}" if participant_id else ""
+    raise R03AnalysisError(
+        f"actual_next_workout_start must be boolean or exact integer 0/1, got {val!r} (type {type(val).__name__}){pid_str}"
+    )
+
+
 def _reject_json_constant(value: str) -> None:
     raise R03AnalysisError(f"non-finite JSON constant {value!r} is forbidden")
 
@@ -344,9 +359,14 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
     }
 
     for p in participants:
+        pid = p.get("participant_id")
         cond = p.get("condition")
         if cond not in {"A", "B"}:
-            raise R03AnalysisError(f"invalid condition {cond!r} for participant {p.get('participant_id')}")
+            raise R03AnalysisError(f"invalid condition {cond!r} for participant {pid}")
+
+        if "actual_next_workout_start" not in p:
+            raise R03AnalysisError(f"missing actual_next_workout_start for participant {pid}")
+        workout_val = validate_binary_outcome(p["actual_next_workout_start"], participant_id=pid)
 
         denominators["by_condition"][cond] += 1
         session = p.get("session", {})
@@ -388,15 +408,15 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
             exclusions["total_excluded"] += 1
             exclusions["by_condition"][cond] += 1
         else:
-            clean_groups[cond]["pids"].append(p.get("participant_id"))
-            clean_groups[cond]["next_workout_starts"].append(float(p.get("actual_next_workout_start", 0)))
+            clean_groups[cond]["pids"].append(pid)
+            clean_groups[cond]["next_workout_starts"].append(float(workout_val))
             clean_groups[cond]["place_recall_counts"].append(float(rec.get("unaided_place_recall_count", 0)))
             clean_groups[cond]["desire_m02_scores"].append(float(rec.get("desire_for_m02_1_to_7", 0)))
             clean_groups[cond]["place_necessity_scores"].append(float(imm.get("place_necessity_1_to_7", 0)))
 
     # Compute ITT metrics for primary outcome (actual_next_workout_start) across ALL assigned participants
-    assigned_a_workout = [float(p.get("actual_next_workout_start", 0)) for p in participants if p.get("condition") == "A"]
-    assigned_b_workout = [float(p.get("actual_next_workout_start", 0)) for p in participants if p.get("condition") == "B"]
+    assigned_a_workout = [float(validate_binary_outcome(p.get("actual_next_workout_start"), participant_id=p.get("participant_id"))) for p in participants if p.get("condition") == "A"]
+    assigned_b_workout = [float(validate_binary_outcome(p.get("actual_next_workout_start"), participant_id=p.get("participant_id"))) for p in participants if p.get("condition") == "B"]
     itt_workout_metrics = compute_itt_risk_metrics(assigned_a_workout, assigned_b_workout)
 
     # Compute outcomes and effect sizes
@@ -408,7 +428,6 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
 
     mean_workout_a, std_workout_a = compute_mean_and_std(group_a["next_workout_starts"])
     mean_workout_b, std_workout_b = compute_mean_and_std(group_b["next_workout_starts"])
-    cohen_workout = compute_cohens_d(group_a["next_workout_starts"], group_b["next_workout_starts"])
 
     mean_places_a, std_places_a = compute_mean_and_std(group_a["place_recall_counts"])
     mean_places_b, std_places_b = compute_mean_and_std(group_b["place_recall_counts"])
@@ -459,7 +478,6 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
                 "risk_ratio": itt_workout_metrics["risk_ratio"],
                 "risk_ratio_ci_95": itt_workout_metrics["risk_ratio_ci_95"],
                 "difference": round(mean_workout_a - mean_workout_b, 2),
-                "cohens_d": round(cohen_workout, 2),
             },
         },
         "manipulation_checks": {

@@ -3,6 +3,7 @@
   "title": "R03AnonymizedEventSchema",
   "description": "JSON schema for R03 anonymized participant field evaluation records",
   "type": "object",
+  "additionalProperties": false,
   "required": [
     "participant_id",
     "condition",
@@ -14,36 +15,57 @@
   "properties": {
     "participant_id": {
       "type": "string",
-      "pattern": "^synth_user_[0-9]{3,}$|^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$",
-      "description": "Pseudonymous non-PII participant identifier"
+      "description": "Pseudonymous non-PII participant identifier",
+      "pattern": "^synth_user_[0-9]{3,}$|^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
     },
     "condition": {
       "type": "string",
-      "enum": ["A", "B"],
+      "enum": [
+        "A",
+        "B"
+      ],
       "description": "Assigned evaluation condition (A: Narrative Audio, B: Component Test Non-narrative Control)"
     },
     "synthetic": {
       "type": "boolean",
       "description": "Flag indicating synthetic fixture record"
     },
-    "session": {
-      "type": "object",
-      "required": ["run_id", "aborted", "route_completed", "audio_duration_seconds"],
-      "properties": {
-        "run_id": { "type": "string" },
-        "aborted": { "type": "boolean" },
-        "route_completed": { "type": "boolean" },
-        "audio_duration_seconds": { "type": "number", "minimum": 0.0 }
-      },
-      "additionalProperties": false
-    },
     "actual_next_workout_start": {
       "type": "integer",
-      "enum": [0, 1],
-      "description": "Primary binary outcome: actual next workout started within 72 hours"
+      "enum": [
+        0,
+        1
+      ],
+      "description": "Primary binary outcome: actual next workout started within TBD"
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "run_id",
+        "aborted",
+        "route_completed",
+        "audio_duration_seconds"
+      ],
+      "properties": {
+        "run_id": {
+          "type": "string"
+        },
+        "aborted": {
+          "type": "boolean"
+        },
+        "route_completed": {
+          "type": "boolean"
+        },
+        "audio_duration_seconds": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
     },
     "immediate_debrief": {
       "type": "object",
+      "additionalProperties": false,
       "required": [
         "schema_version",
         "completed",
@@ -53,27 +75,63 @@
         "desire_for_m02_1_to_7"
       ],
       "properties": {
-        "schema_version": { "type": "string", "const": "0.3" },
-        "completed": { "type": "boolean" },
-        "recording_delay_seconds": { "type": "number", "minimum": 0.0 },
-        "confound_delayed_debrief": { "type": "boolean" },
-        "place_necessity_1_to_7": { "type": "integer", "minimum": 1, "maximum": 7 },
-        "desire_for_m02_1_to_7": { "type": "integer", "minimum": 1, "maximum": 7 }
-      },
-      "additionalProperties": false
+        "schema_version": {
+          "type": "string",
+          "const": "0.3"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "recording_delay_seconds": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confound_delayed_debrief": {
+          "type": "boolean"
+        },
+        "place_necessity_1_to_7": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        },
+        "desire_for_m02_1_to_7": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        }
+      }
     },
     "recall_24h": {
-      "type": ["object", "null"],
+      "type": [
+        "object",
+        "null"
+      ],
+      "additionalProperties": false,
       "properties": {
-        "schema_version": { "type": "string", "const": "0.2" },
-        "completed": { "type": "boolean" },
-        "due_at_delta_seconds": { "type": "number" },
-        "is_early_recall": { "type": "boolean" },
-        "unaided_place_recall_count": { "type": "integer", "minimum": 0, "maximum": 10 },
-        "desire_for_m02_1_to_7": { "type": "integer", "minimum": 1, "maximum": 7 }
-      },
-      "additionalProperties": false
+        "schema_version": {
+          "type": "string",
+          "const": "0.2"
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "due_at_delta_seconds": {
+          "type": "number"
+        },
+        "is_early_recall": {
+          "type": "boolean"
+        },
+        "unaided_place_recall_count": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "desire_for_m02_1_to_7": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 7
+        }
+      }
     }
-  },
-  "additionalProperties": false
+  }
 }

@@ -44,13 +44,13 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertIn(eval_windows.get("data_collection_window"), ["UNSET", "TBD"])
 
     def test_preregistration_defines_condition_b_as_component_test(self):
-        """Fulfills VAL-R03-001: Condition B is defined as a component test with non-dramatic place function."""
+        """Fulfills VAL-R03-001 and VAL-R03-006: Condition B is defined as a component test preserving narrative structure while altering place dramatic function."""
         prereg_path = ROOT / "research" / "r03" / "preregistration.v0.1.json"
         data = r03_analyze.load_strict_json(prereg_path)
         cond_b = data.get("conditions", {}).get("B", {})
         description = cond_b.get("description", "").lower()
         self.assertIn("component test", description)
-        self.assertIn("non-dramatic place function", description)
+        self.assertIn("preserving narrative structure while altering place dramatic function", description)
 
     def test_preregistration_defines_sole_primary_outcome_and_secondary_manipulation_checks(self):
         """Fulfills VAL-R03-002: preregistration.v0.1.json defines actual_next_workout_start as sole primary outcome."""
@@ -78,7 +78,8 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertEqual(report["denominators"]["total_enrolled"], 50)
         self.assertIn("primary_outcomes", report)
         self.assertIn("actual_next_workout_start", report["primary_outcomes"])
-        self.assertIn("cohens_d", report["primary_outcomes"]["actual_next_workout_start"])
+        self.assertNotIn("cohens_d", report["primary_outcomes"]["actual_next_workout_start"])
+        self.assertIn("risk_difference", report["primary_outcomes"]["actual_next_workout_start"])
         self.assertIn("manipulation_checks", report)
         self.assertIn("place_necessity", report["manipulation_checks"])
         self.assertIn("unaided_place_recall", report["manipulation_checks"])
@@ -284,6 +285,107 @@ class TestR03PreregistrationAndAnalysis(unittest.TestCase):
         self.assertIn("Informed Consent", content)
         self.assertIn("Pseudonymization", content)
         self.assertIn("NOT_STARTED", content)
+
+    def test_analyze_dataset_strictly_validates_binary_outcome(self):
+        """Fulfills VAL-R03-004: analyze_dataset rejects non-binary values (2, NaN, string, -1) with R03AnalysisError."""
+        dataset = r03_analyze.generate_synthetic_ab_dataset(n_total=10, seed=42)
+
+        # Valid binary integer 0/1 and boolean True/False
+        dataset["participants"][0]["actual_next_workout_start"] = 1
+        dataset["participants"][1]["actual_next_workout_start"] = 0
+        dataset["participants"][2]["actual_next_workout_start"] = True
+        dataset["participants"][3]["actual_next_workout_start"] = False
+        report = r03_analyze.analyze_dataset(dataset)
+        self.assertEqual(report["status"], "PASS")
+
+        # Invalid: integer 2
+        dataset["participants"][0]["actual_next_workout_start"] = 2
+        with self.assertRaises(r03_analyze.R03AnalysisError) as ctx:
+            r03_analyze.analyze_dataset(dataset)
+        self.assertIn("must be boolean or exact integer 0/1", str(ctx.exception))
+
+        # Invalid: integer -1
+        dataset["participants"][0]["actual_next_workout_start"] = -1
+        with self.assertRaises(r03_analyze.R03AnalysisError) as ctx:
+            r03_analyze.analyze_dataset(dataset)
+        self.assertIn("must be boolean or exact integer 0/1", str(ctx.exception))
+
+        # Invalid: string "1"
+        dataset["participants"][0]["actual_next_workout_start"] = "1"
+        with self.assertRaises(r03_analyze.R03AnalysisError) as ctx:
+            r03_analyze.analyze_dataset(dataset)
+        self.assertIn("must be boolean or exact integer 0/1", str(ctx.exception))
+
+        # Invalid: float 2.0
+        dataset["participants"][0]["actual_next_workout_start"] = 2.0
+        with self.assertRaises(r03_analyze.R03AnalysisError) as ctx:
+            r03_analyze.analyze_dataset(dataset)
+        self.assertIn("must be boolean or exact integer 0/1", str(ctx.exception))
+
+        # Invalid: float 1.0
+        dataset["participants"][0]["actual_next_workout_start"] = 1.0
+        with self.assertRaises(r03_analyze.R03AnalysisError) as ctx:
+            r03_analyze.analyze_dataset(dataset)
+        self.assertIn("must be boolean or exact integer 0/1", str(ctx.exception))
+
+        # Invalid: float NaN
+        dataset["participants"][0]["actual_next_workout_start"] = float("nan")
+        with self.assertRaises(r03_analyze.R03AnalysisError) as ctx:
+            r03_analyze.analyze_dataset(dataset)
+        self.assertIn("must be boolean or exact integer 0/1", str(ctx.exception))
+
+    def test_randomizer_tool_reproducibility_and_balance(self):
+        """Fulfills VAL-R03-005: r03_randomizer.py implements deterministic 1:1 blocked allocation generator with reproducibility tests."""
+        from tools import r03_randomizer
+
+        # Deterministic reproducibility
+        alloc1 = r03_randomizer.generate_blocked_allocation(n_participants=100, seed=123, block_size=4)
+        alloc2 = r03_randomizer.generate_blocked_allocation(n_participants=100, seed=123, block_size=4)
+        self.assertEqual(alloc1, alloc2, "Identical seed must produce identical allocation schedule")
+
+        # Different seeds produce different allocations
+        alloc3 = r03_randomizer.generate_blocked_allocation(n_participants=100, seed=999, block_size=4)
+        self.assertNotEqual(alloc1["allocations"], alloc3["allocations"])
+
+        # Balance check
+        self.assertEqual(alloc1["summary"]["condition_A_count"], 50)
+        self.assertEqual(alloc1["summary"]["condition_B_count"], 50)
+        self.assertTrue(alloc1["summary"]["is_balanced"])
+
+        # Odd N balance check
+        alloc_odd = r03_randomizer.generate_blocked_allocation(n_participants=101, seed=42, block_size=4)
+        self.assertEqual(alloc_odd["n_participants"], 101)
+        self.assertEqual(alloc_odd["summary"]["condition_A_count"] + alloc_odd["summary"]["condition_B_count"], 101)
+        self.assertTrue(alloc_odd["summary"]["is_balanced"])
+
+        # Error cases
+        with self.assertRaises(r03_randomizer.R03RandomizerError):
+            r03_randomizer.generate_blocked_allocation(n_participants=0)
+
+        with self.assertRaises(r03_randomizer.R03RandomizerError):
+            r03_randomizer.generate_blocked_allocation(n_participants=10, block_size=3)
+
+        with self.assertRaises(r03_randomizer.R03RandomizerError):
+            r03_randomizer.generate_blocked_allocation(n_participants=10, block_size=0)
+
+    def test_preregistration_hygiene_72h_replacement_and_primary_outcome(self):
+        """Fulfills VAL-R03-006: preregistration.v0.1.json replaces 72h references with TBD and removes Cohen's d from primary outcome."""
+        prereg_path = ROOT / "research" / "r03" / "preregistration.v0.1.json"
+        data = r03_analyze.load_strict_json(prereg_path)
+
+        # 72h references replaced with TBD
+        hypothesis = data.get("hypothesis", "")
+        self.assertNotIn("72 hours", hypothesis.lower())
+        self.assertIn("within tbd", hypothesis.lower())
+
+        primary_outcome = data.get("primary_outcomes", [])[0]
+        name = primary_outcome.get("name", "")
+        self.assertNotIn("72 hours", name.lower())
+        self.assertIn("within tbd", name.lower())
+
+        # Primary outcome block does not reference cohens_d
+        primary_str = json.dumps(primary_outcome)
+        self.assertNotIn("cohens_d", primary_str)
 
 
 if __name__ == "__main__":
