@@ -116,7 +116,8 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertTrue(model2.evidenceCaptureLocked)
     }
 
-    func testConcurrentAtomicWrites() throws {
+    @MainActor
+    func testConcurrentAtomicWrites() async throws {
         let iterations = 20
         let expectation = expectation(description: "Concurrent atomic writes complete")
         expectation.expectedFulfillmentCount = iterations
@@ -137,14 +138,15 @@ final class FileDurabilityTests: XCTestCase {
             expectation.fulfill()
         }
 
-        waitForExpectations(timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 10.0)
 
         let files = try FileManager.default.contentsOfDirectory(atPath: targetDir.path)
         let tmpFiles = files.filter { $0.hasPrefix(".tmp.") }
         XCTAssertTrue(tmpFiles.isEmpty, "Leftover staging files found: \(tmpFiles)")
     }
 
-    func testConcurrentOverwriteProtection() throws {
+    @MainActor
+    func testConcurrentOverwriteProtection() async throws {
         let fileURL = tempDirectory.appendingPathComponent("concurrent-overwrite.json")
         let initialData = Data("{\"status\": \"initial\"}".utf8)
         try FileDurability.writeFinalEvidence(data: initialData, to: fileURL)
@@ -166,7 +168,7 @@ final class FileDurabilityTests: XCTestCase {
             expectation.fulfill()
         }
 
-        waitForExpectations(timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 10.0)
 
         let preservedData = try Data(contentsOf: fileURL)
         XCTAssertEqual(preservedData, initialData)
@@ -176,16 +178,17 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertTrue(tmpFiles.isEmpty, "Leftover staging files found: \(tmpFiles)")
     }
 
-    func test20ConcurrentWritersToUncreatedDestinationURL() throws {
+    @MainActor
+    func test20ConcurrentWritersToUncreatedDestinationURL() async throws {
         let fileURL = tempDirectory.appendingPathComponent("concurrent-uncreated-target.json")
         let iterations = 20
         let expectation = expectation(description: "20 concurrent writers to uncreated destination complete")
         expectation.expectedFulfillmentCount = iterations
 
-        var successCount = 0
-        var fileExistsRejections = 0
-        var unexpectedErrors: [String] = []
-        var winningPayload: Data?
+        nonisolated(unsafe) var successCount = 0
+        nonisolated(unsafe) var fileExistsRejections = 0
+        nonisolated(unsafe) var unexpectedErrors: [String] = []
+        nonisolated(unsafe) var winningPayload: Data?
         let lock = NSLock()
 
         DispatchQueue.concurrentPerform(iterations: iterations) { index in
@@ -211,7 +214,7 @@ final class FileDurabilityTests: XCTestCase {
             expectation.fulfill()
         }
 
-        waitForExpectations(timeout: 10.0)
+        await fulfillment(of: [expectation], timeout: 10.0)
 
         XCTAssertEqual(unexpectedErrors, [], "No unexpected errors should occur")
         XCTAssertEqual(successCount, 1, "Exactly 1 writer should succeed")
