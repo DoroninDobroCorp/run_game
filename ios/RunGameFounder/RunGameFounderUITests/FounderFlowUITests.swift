@@ -17,21 +17,89 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Отдельный Mac gate: field review в binding"].exists)
         XCTAssertFalse(app.buttons["missionRunLink"].isEnabled)
 
-        app.buttons["routeWalkthroughLink"].tap()
+        let walkthroughLink = app.buttons["routeWalkthroughLink"]
+        XCTAssertTrue(walkthroughLink.exists)
+        XCTAssertTrue(walkthroughLink.isHittable)
+        walkthroughLink.tap()
+
         XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
         XCTAssertTrue(app.staticTexts["Контрольные точки"].exists)
         XCTAssertTrue(app.staticTexts["Локальная запись GPX"].exists)
-        XCTAssertFalse(app.buttons["routeApprovalButton"].isEnabled)
+
+        let startWalkthrough = app.buttons["startWalkthroughButton"]
+        XCTAssertTrue(startWalkthrough.exists)
+
+        let routeApproval = app.buttons["routeApprovalButton"]
+        XCTAssertTrue(routeApproval.exists)
+        XCTAssertFalse(routeApproval.isEnabled)
     }
 
     func testBundledMasterStartsPlayback() {
         let app = launchedApp()
-        app.buttons["homeAudioLink"].tap()
+        let homeAudioLink = app.buttons["homeAudioLink"]
+        XCTAssertTrue(homeAudioLink.exists)
+        XCTAssertTrue(homeAudioLink.isHittable)
+        homeAudioLink.tap()
+
         XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
         let playPause = app.buttons["homeAudioPlayPause"]
         XCTAssertTrue(playPause.exists)
-        XCTAssertFalse(app.buttons["homeAudioApprovalButton"].isEnabled)
+        XCTAssertTrue(playPause.isHittable)
+
+        let approvalButton = app.buttons["homeAudioApprovalButton"]
+        XCTAssertTrue(approvalButton.exists)
+        XCTAssertFalse(approvalButton.isEnabled)
+
         playPause.tap()
         XCTAssertTrue(app.buttons["Пауза"].waitForExistence(timeout: 4))
+    }
+
+    func testCompactScreenLayoutAndAccessibilityIdentifiers() {
+        let app = launchedApp()
+
+        // 1. Dashboard controls and identifiers
+        let walkthroughLink = app.buttons["routeWalkthroughLink"]
+        let homeAudioLink = app.buttons["homeAudioLink"]
+        let missionRunLink = app.buttons["missionRunLink"]
+
+        XCTAssertTrue(walkthroughLink.waitForExistence(timeout: 4))
+        XCTAssertTrue(homeAudioLink.exists)
+        XCTAssertTrue(missionRunLink.exists)
+
+        XCTAssertTrue(walkthroughLink.isHittable)
+        XCTAssertTrue(homeAudioLink.isHittable)
+        XCTAssertEqual(missionRunLink.identifier, "missionRunLink")
+
+        // 2. Route Walkthrough controls & labels
+        walkthroughLink.tap()
+        XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
+
+        let startWalkthrough = app.buttons["startWalkthroughButton"]
+        let routeApproval = app.buttons["routeApprovalButton"]
+
+        XCTAssertTrue(startWalkthrough.exists)
+        XCTAssertTrue(routeApproval.exists)
+        XCTAssertEqual(startWalkthrough.identifier, "startWalkthroughButton")
+        XCTAssertEqual(routeApproval.identifier, "routeApprovalButton")
+
+        // Navigate back
+        app.navigationBars["Дневной обход"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
+
+        // 3. Home Audio Check controls & labels
+        app.buttons["homeAudioLink"].tap()
+        XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
+
+        let homeAudioPlayPause = app.buttons["homeAudioPlayPause"]
+        let homeAudioApproval = app.buttons["homeAudioApprovalButton"]
+
+        XCTAssertTrue(homeAudioPlayPause.exists)
+        XCTAssertTrue(homeAudioApproval.exists)
+        XCTAssertEqual(homeAudioPlayPause.identifier, "homeAudioPlayPause")
+        XCTAssertEqual(homeAudioApproval.identifier, "homeAudioApprovalButton")
+
+        // Navigate back
+        app.navigationBars["Проверка аудио"].buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
     }
 }

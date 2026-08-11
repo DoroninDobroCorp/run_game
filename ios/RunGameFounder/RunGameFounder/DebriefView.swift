@@ -196,6 +196,7 @@ struct DebriefView: View {
                 }
 
                 Button("Сохранить immediate JSON", action: saveFinal)
+                    .accessibilityIdentifier("saveDebriefButton")
                     .disabled(!canSaveFinal)
                 if !canSaveFinal {
                     Text(saveRequirementMessage)
@@ -519,6 +520,7 @@ struct RecallView: View {
 
             Section("Локальный evidence") {
                 Button("Сохранить 24h recall JSON", action: save)
+                    .accessibilityIdentifier("saveRecallButton")
                     .disabled(!canSave)
                 if let exportedURL {
                     ShareLink(item: exportedURL) {

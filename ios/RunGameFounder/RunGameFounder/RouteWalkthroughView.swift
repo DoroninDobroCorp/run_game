@@ -144,12 +144,15 @@ struct RouteWalkthroughView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.danger)
+                .accessibilityIdentifier("stopWalkthroughButton")
+                .accessibilityLabel("Завершить дневной обход и сохранить GPX")
             } else if recorder.isAwaitingAuthorization {
                 HStack {
                     ProgressView()
                     Text("Ожидаем разрешение точной геопозиции…")
                 }
                 Button("Отменить") { recorder.cancelPendingStart() }
+                    .accessibilityIdentifier("cancelWalkthroughAuthButton")
             } else {
                 Button {
                     walkthroughEvidence = nil
@@ -160,6 +163,8 @@ struct RouteWalkthroughView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.electric)
+                .accessibilityIdentifier("startWalkthroughButton")
+                .accessibilityLabel("Начать дневной обход")
                 .disabled(!planner.isComplete || appModel.routeApproved || appModel.evidenceCaptureLocked)
             }
             if let url = recorder.exportedURL {

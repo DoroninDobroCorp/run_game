@@ -199,6 +199,8 @@ struct MissionRunView: View {
             .buttonStyle(.borderedProminent)
             .tint(RunGameTheme.electric)
             .foregroundStyle(RunGameTheme.ink)
+            .accessibilityIdentifier("startMissionButton")
+            .accessibilityLabel("Проверить GPS и начать миссию")
             .disabled(!preflightComplete || !audio.isPrepared || !appModel.canBeginMission || appModel.evidenceCaptureLocked)
         case .acquiringGPS:
             VStack(spacing: 12) {
@@ -209,6 +211,8 @@ struct MissionRunView: View {
                 Button("Отменить запуск", role: .destructive) {
                     rollbackStart(reason: "Запуск отменён до начала аудио.")
                 }
+                .accessibilityIdentifier("cancelGPSButton")
+                .accessibilityLabel("Отменить запуск миссии")
             }
             .runGamePanel()
         case .running:
@@ -226,8 +230,13 @@ struct MissionRunView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(RunGameTheme.violet)
+                .accessibilityIdentifier(audio.isPlaying ? "pauseMissionButton" : "resumeMissionButton")
+                .accessibilityLabel(audio.isPlaying ? "Поставить миссию на паузу" : "Продолжить миссию")
+
                 Button("Аварийно остановить", role: .destructive) { showAbortConfirmation = true }
                     .frame(maxWidth: .infinity)
+                    .accessibilityIdentifier("abortMissionButton")
+                    .accessibilityLabel("Аварийно остановить миссию")
             }
         case .completed, .aborted:
             Button {
@@ -238,6 +247,8 @@ struct MissionRunView: View {
             }
             .buttonStyle(.borderedProminent)
             .tint(RunGameTheme.violet)
+            .accessibilityIdentifier("fillDebriefButton")
+            .accessibilityLabel("Заполнить дебриф миссии")
             .disabled(context == nil)
         }
     }

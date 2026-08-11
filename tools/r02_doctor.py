@@ -254,7 +254,9 @@ def diagnose(
     fixture_dir: Path = DEFAULT_FIXTURE,
     ios_resources_dir: Path = DEFAULT_IOS_RESOURCES,
 ) -> dict[str, Any]:
-    from tools import r02_audit_privacy
+    if str(ROOT) not in sys.path:
+        sys.path.insert(0, str(ROOT))
+    import tools.r02_audit_privacy as r02_audit_privacy
     inspections = {
         "python": inspect_python(),
         "platform": inspect_platform(),

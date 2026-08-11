@@ -85,6 +85,7 @@ struct HomeAudioCheckView: View {
                     .tint(RunGameTheme.electric)
                     .foregroundStyle(RunGameTheme.ink)
                     .accessibilityIdentifier("homeAudioApprovalButton")
+                    .accessibilityLabel("Подтвердить домашнюю проверку аудио")
                     .disabled(!canApprove)
                 }
                 .runGamePanel()
