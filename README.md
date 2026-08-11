@@ -1,6 +1,6 @@
 # Run Game — Geo-Narrative Running Companion
 
-> **Current Project Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`)
+> **Current Project Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`), Stages `R03`/`R04` `NOT_STARTED`
 > **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 > **Active Fixture:** Valparaíso Central, Chile (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins)
 > **Master Readiness Standard:** 18/18 Readiness Lanes verified clean (`docs/PRE_FIRST_TEST_READINESS.md`)
@@ -89,7 +89,7 @@ Verified automatically via `tests/test_cross_contract.py`.
 
 ### R04 Decision-Ready Demand Template
 * **Template Spec:** `research/r04/decision_template.md` specifies refundable deposit / preorder smoke test rules for the demand gate (`G0_DEMAND`).
-* **Fail-Closed Guardrails:** Requires explicit founder sign-off on ad spend stop-loss ($250 max budget), qualified visitor criteria, and deposit conversion targets (PDCR ≥ 3.0% for `GO`) **prior** to any landing page publication or marketing spend.
+* **Fail-Closed Guardrails:** Requires explicit founder sign-off on ad spend stop-loss, qualified visitor criteria, and deposit conversion targets (all parameters initialized to `UNSET`) **prior** to any landing page publication or marketing spend.
 
 ---
 
@@ -111,7 +111,7 @@ make r02-audit-privacy
 # Run Preflight Bundle & Asset Checks
 make r02-preflight
 
-# Run Python Unit Tests & Synthetic Harness (156 tests)
+# Run Python Unit Tests & Synthetic Harness (219 tests)
 make verify-synthetic
 
 # Run iOS Unit & UI Tests (iPhone 16 Pro Simulator)

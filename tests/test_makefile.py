@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Unit tests for Makefile sanitizer targets and PYTHON executable consistency.
+"""Unit tests for Makefile sanitizer targets, PYTHON executable consistency, and documentation integrity.
 
-Fulfills assertion VAL-IOS-002 and VAL-CROSS-001 Makefile requirements.
+Fulfills assertion VAL-IOS-002, VAL-CROSS-001, VAL-DOCS-001, and VAL-DOCS-002.
 """
 
 from __future__ import annotations
@@ -97,5 +97,53 @@ class MakefileTargetsTests(unittest.TestCase):
             self.assertIn(expected, prereqs, f"verify-pretest missing prerequisite target '{expected}'")
 
 
+class DocumentationIntegrityTests(unittest.TestCase):
+    """Tests for documentation integrity, machine report cleanup, and honest stage reporting.
+
+    Fulfills assertions VAL-DOCS-001 and VAL-DOCS-002.
+    """
+
+    def test_machine_readiness_reports_removed_and_untracked(self) -> None:
+        """Verify research/dependency_readiness_report.json and research/validation_readiness_report.json are untracked and do not exist."""
+        dep_report = ROOT / "research" / "dependency_readiness_report.json"
+        val_report = ROOT / "research" / "validation_readiness_report.json"
+        self.assertFalse(dep_report.exists(), "dependency_readiness_report.json must be removed")
+        self.assertFalse(val_report.exists(), "validation_readiness_report.json must be removed")
+
+    def test_readme_purges_stale_metrics_and_reports_honest_status(self) -> None:
+        """Verify README.md purges old $250 budget, 3% PDCR, outdated 156 test count, and reports R02 IN_PROGRESS / R03-R04 NOT_STARTED."""
+        readme_path = ROOT / "README.md"
+        self.assertTrue(readme_path.is_file(), "README.md must exist")
+        content = readme_path.read_text(encoding="utf-8")
+
+        self.assertNotIn("$250", content, "README.md must not contain stale $250 budget figure")
+        self.assertNotIn("3.0%", content, "README.md must not contain stale 3.0% PDCR figure")
+        self.assertNotIn("156 tests", content, "README.md must not contain outdated 156 test count")
+        self.assertIn("219 tests", content, "README.md must reflect exact 219 Python test count")
+
+        self.assertIn("R02", content, "README.md must mention Stage R02")
+        self.assertIn("IN_PROGRESS", content, "README.md must report R02 as IN_PROGRESS")
+        self.assertIn("NOT_STARTED", content, "README.md must report R03/R04 as NOT_STARTED")
+
+    def test_execution_status_and_readiness_report_honest_counts_and_status(self) -> None:
+        """Verify EXECUTION_STATUS.md and PRE_FIRST_TEST_READINESS.md report honest R02 IN_PROGRESS, R03/R04 NOT_STARTED, and exact test counts."""
+        exec_status_path = ROOT / "docs" / "EXECUTION_STATUS.md"
+        readiness_path = ROOT / "docs" / "PRE_FIRST_TEST_READINESS.md"
+
+        self.assertTrue(exec_status_path.is_file(), "EXECUTION_STATUS.md must exist")
+        self.assertTrue(readiness_path.is_file(), "PRE_FIRST_TEST_READINESS.md must exist")
+
+        exec_content = exec_status_path.read_text(encoding="utf-8")
+        read_content = readiness_path.read_text(encoding="utf-8")
+
+        for name, doc_content in [("EXECUTION_STATUS.md", exec_content), ("PRE_FIRST_TEST_READINESS.md", read_content)]:
+            self.assertIn("R02", doc_content, f"{name} must contain R02 stage")
+            self.assertIn("IN_PROGRESS", doc_content, f"{name} must report IN_PROGRESS for R02")
+            self.assertIn("NOT_STARTED", doc_content, f"{name} must report NOT_STARTED for R03/R04")
+            self.assertIn("219", doc_content, f"{name} must report exact 219 Python test count")
+            self.assertIn("66", doc_content, f"{name} must report exact 66 Swift unit test count")
+
+
 if __name__ == "__main__":
     unittest.main()
+

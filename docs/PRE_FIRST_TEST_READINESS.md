@@ -1,9 +1,9 @@
 # Pre-First-Test Readiness (PRE_FIRST_TEST_READINESS)
 
 **Date:** August 11, 2026
-**Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`)
+**Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`), Stages `R03`/`R04` `NOT_STARTED`
 **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
-**Branch:** `executor/pre-first-test-final-hardening-e8c32fa`
+**Branch:** `executor/pre-first-test-acceptance-fixes-c2c0d26`
 **Overall Readiness Status:** `READY_FOR_DEVICE_SMOKE` (All synthetic/simulator validations passed cleanly; physical device smoke & human gates pending founder execution)
 
 ---
@@ -62,12 +62,12 @@ Per architectural invariants and fail-closed contract rules, the following human
 
 | Suite / Validator | Executable / Command | Tests Passed | Failure Count | Exit Code |
 | :--- | :--- | :--- | :--- | :--- |
-| **Python Unit Tests** | `/usr/bin/python3 -m unittest discover -s tests` | 180 / 180 | 0 | 0 |
+| **Python Unit Tests** | `/usr/bin/python3 -m unittest discover -s tests` | 219 / 219 | 0 | 0 |
 | **Pre-Test Doctor** | `python3 tools/r02_doctor.py` | 9 / 9 checks | 0 | 0 |
 | **Privacy Audit** | `python3 tools/r02_audit_privacy.py` | 4 / 4 audits | 0 | 0 |
 | **Offline Preflight** | `python3 tools/r02_preflight.py` | 12 / 12 checks | 0 | 0 |
 | **Technical Audio QA** | `python3 tools/r02_audio_qa.py` | 8 / 8 checks | 0 | 0 |
-| **Xcode Unit Tests** | `xcodebuild ... -only-testing:RunGameFounderTests` | 42 / 42 | 0 | 0 |
+| **Xcode Unit Tests** | `xcodebuild ... -only-testing:RunGameFounderTests` | 66 / 66 | 0 | 0 |
 | **Xcode UI Tests** | `xcodebuild ... -only-testing:RunGameFounderUITests` | 3 / 3 | 0 | 0 |
 | **Master Target** | `make verify-pretest` | End-to-end | 0 | 0 |
 

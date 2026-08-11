@@ -3,6 +3,10 @@ research/r02/local/
 research/r02/build/
 ios/RunGameFounder/Resources/Local/
 
+# Machine-specific readiness reports
+research/dependency_readiness_report.json
+research/validation_readiness_report.json
+
 ios/RunGameFounder/DerivedData/
 ios/RunGameFounder/DerivedDataReview/
 ios/RunGameFounder/*.xcresult
