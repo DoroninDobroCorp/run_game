@@ -12,6 +12,7 @@ import argparse
 from dataclasses import dataclass
 from datetime import datetime
 import hashlib
+import importlib
 import json
 import math
 from pathlib import Path
@@ -19,40 +20,21 @@ import sys
 from typing import Any, Sequence
 import xml.etree.ElementTree as ET
 
-try:
-    from tools.domain_thresholds import (
-        MAX_EVIDENCE_ACCURACY_M,
-        MAX_SAMPLE_GAP_SEC,
-        MAX_START_FINISH_CLOSURE_M,
-        MIN_EVIDENCE_DISTANCE_M,
-        MIN_WALKTHROUGH_DURATION_SEC,
-        MIN_EVIDENCE_SAMPLES,
-        MIN_SAMPLES_PER_ROUTE_POINT,
-        ROUTE_POINT_RADIUS_M,
-    )
-except ImportError:
-    from domain_thresholds import (
-        MAX_EVIDENCE_ACCURACY_M,
-        MAX_SAMPLE_GAP_SEC,
-        MAX_START_FINISH_CLOSURE_M,
-        MIN_EVIDENCE_DISTANCE_M,
-        MIN_WALKTHROUGH_DURATION_SEC,
-        MIN_EVIDENCE_SAMPLES,
-        MIN_SAMPLES_PER_ROUTE_POINT,
-        ROUTE_POINT_RADIUS_M,
-    )
+_thresholds = importlib.import_module(
+    "tools.domain_thresholds" if __package__ else "domain_thresholds"
+)
 
 
 EARTH_RADIUS_METERS = 6_371_008.8
-MAX_EVIDENCE_SAMPLE_GAP_SEC = MAX_SAMPLE_GAP_SEC
+MAX_EVIDENCE_SAMPLE_GAP_SEC = _thresholds.MAX_SAMPLE_GAP_SEC
 MAX_EVIDENCE_SPEED_MPS = 15.0
-MIN_ACCEPTED_POINTS = MIN_EVIDENCE_SAMPLES
-MIN_EVIDENCE_DURATION_SEC = MIN_WALKTHROUGH_DURATION_SEC
-MIN_EVIDENCE_DISTANCE_M = MIN_EVIDENCE_DISTANCE_M
-MAX_START_FINISH_CLOSURE_M = MAX_START_FINISH_CLOSURE_M
-MAX_ROUTE_POINT_RADIUS_M = ROUTE_POINT_RADIUS_M
-MAX_HORIZONTAL_ACCURACY_M = MAX_EVIDENCE_ACCURACY_M
-MIN_SAMPLES_PER_ROUTE_POINT = MIN_SAMPLES_PER_ROUTE_POINT
+MIN_ACCEPTED_POINTS = _thresholds.MIN_EVIDENCE_SAMPLES
+MIN_EVIDENCE_DURATION_SEC = _thresholds.MIN_WALKTHROUGH_DURATION_SEC
+MIN_EVIDENCE_DISTANCE_M = _thresholds.MIN_EVIDENCE_DISTANCE_M
+MAX_START_FINISH_CLOSURE_M = _thresholds.MAX_START_FINISH_CLOSURE_M
+MAX_ROUTE_POINT_RADIUS_M = _thresholds.ROUTE_POINT_RADIUS_M
+MAX_HORIZONTAL_ACCURACY_M = _thresholds.MAX_EVIDENCE_ACCURACY_M
+MIN_SAMPLES_PER_ROUTE_POINT = _thresholds.MIN_SAMPLES_PER_ROUTE_POINT
 REQUIRED_CUE_ROLES = ("threshold", "witness", "triangulation")
 ALLOWED_ROUTE_ROLES = ("start_and_finish", *REQUIRED_CUE_ROLES)
 SNAPSHOT_ROUTE_ORDER = (

@@ -8,13 +8,17 @@ Validates:
    - research/r02/local/
    - ios/RunGameFounder/Resources/Local/
 2. Tracked git file audit:
-   - Verifies no tracked files contain raw GPX files or coordinates.
+   - Verifies no tracked files contain raw GPX or private R02 fixture files.
    - Ensures no tracked files match ignored local fixture patterns.
 3. Shareable JSON privacy inspection:
    - Verifies shareable JSON files contain zero raw coordinates (latitude, longitude, track_points, etc.).
    - Verifies shareable JSON files contain zero absolute local file paths (e.g. /Users/..., /home/...).
 4. API secret / key exposure audit:
-   - Scanning repository text files for potential API keys, secret tokens, or private key blocks.
+   - Scans both the current tracked tree and reachable Git patch history.
+
+Public historical R01 POI coordinates are explicitly allowlisted. The policy
+forbids private starts, participant traces, raw GPX and R02 route coordinates;
+it does not pretend that the repository contains no public geospatial research.
 """
 
 from __future__ import annotations
@@ -37,7 +41,7 @@ REQUIRED_GITIGNORE_PATTERNS = [
 
 # Regex patterns for raw coordinate key leakage
 LAT_LON_KEY_RE = re.compile(
-    r"^(latitude|longitude|lat|lon|lats|lons|coordinates|track_points)$",
+    r"^(latitude|longitude|lat|lon|lng|lats|lons|lngs|coordinates|track_points)$",
     re.IGNORECASE,
 )
 
@@ -54,6 +58,13 @@ SECRET_PATTERNS = [
     (re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH |PRIVATE )?PRIVATE KEY-----"), "Embedded Private Key"),
     (re.compile(r"(?:sk_live_[0-9a-zA-Z]{24,}|ghp_[0-9a-zA-Z]{36}|glpat-[0-9a-zA-Z\-]{20,})"), "Known API Token Format"),
 ]
+
+PUBLIC_COORDINATE_JSON_ALLOWLIST = {
+    "docs/r01_raw_results.json": (
+        "Frozen R01 public OpenStreetMap POI-density research; contains no participant trace, "
+        "home location, private start, or R02 field route."
+    ),
+}
 
 
 def audit_gitignore(root_dir: Path = ROOT) -> dict[str, Any]:
@@ -86,7 +97,7 @@ def audit_gitignore(root_dir: Path = ROOT) -> dict[str, Any]:
 
 
 def audit_git_tracked_files(root_dir: Path = ROOT) -> dict[str, Any]:
-    """Audit tracked git files to verify no raw GPX files, coordinates, or ignored local resources are committed."""
+    """Verify no raw GPX or ignored private fixture resources are tracked."""
     try:
         res = subprocess.run(
             ["git", "ls-files"],
@@ -117,7 +128,7 @@ def audit_git_tracked_files(root_dir: Path = ROOT) -> dict[str, Any]:
         return {
             "ok": ok,
             "status": "PASS" if ok else "FAIL",
-            "detail": f"{len(tracked_files)} tracked files checked, zero raw GPX/fixture leaks found" if ok else f"{len(leaking_files)} privacy violations in tracked files",
+            "detail": f"{len(tracked_files)} tracked paths checked, zero raw GPX/private-fixture leaks found" if ok else f"{len(leaking_files)} privacy violations in tracked paths",
             "leaking_files": leaking_files,
         }
     except Exception as exc:
@@ -195,6 +206,51 @@ def audit_secrets(root_dir: Path = ROOT) -> dict[str, Any]:
         return {"ok": False, "status": "FAIL", "detail": f"Secrets audit failed: {exc}"}
 
 
+def audit_secret_history(root_dir: Path = ROOT) -> dict[str, Any]:
+    """Scan reachable Git patch history without echoing any matched secret value."""
+    try:
+        result = subprocess.run(
+            ["git", "log", "--all", "--format=commit:%H", "--patch", "--no-ext-diff", "--"],
+            capture_output=True,
+            text=True,
+            errors="ignore",
+            cwd=root_dir,
+            timeout=60,
+        )
+        if result.returncode != 0:
+            return {
+                "ok": False,
+                "status": "FAIL",
+                "detail": f"git history scan failed: {result.stderr.strip()}",
+                "finding_types": [],
+            }
+        finding_types = sorted(
+            {
+                description
+                for pattern, description in SECRET_PATTERNS
+                if pattern.search(result.stdout)
+            }
+        )
+        ok = not finding_types
+        return {
+            "ok": ok,
+            "status": "PASS" if ok else "FAIL",
+            "detail": (
+                "Reachable Git patch history contains no recognized secret formats"
+                if ok
+                else f"Reachable Git history contains {len(finding_types)} secret-pattern type(s); rotate and purge before release"
+            ),
+            "finding_types": finding_types,
+        }
+    except Exception as exc:
+        return {
+            "ok": False,
+            "status": "FAIL",
+            "detail": f"Git history secret audit failed: {exc}",
+            "finding_types": [],
+        }
+
+
 def audit_json_files(root_dir: Path = ROOT) -> dict[str, Any]:
     """Audit shareable and tracked R02/R03 JSON files for raw coordinate or local path leakage."""
     try:
@@ -210,13 +266,10 @@ def audit_json_files(root_dir: Path = ROOT) -> dict[str, Any]:
 
         json_files = [line.strip() for line in res.stdout.splitlines() if line.strip()]
         json_violations = []
+        allowed_public_coordinate_files = []
         audited_count = 0
 
         for rel_path in json_files:
-            # Skip historical R01 frozen research dataset which is documented in R01 memo
-            if rel_path.startswith("docs/r01_"):
-                continue
-
             file_path = root_dir / rel_path
             if not file_path.is_file():
                 continue
@@ -226,10 +279,20 @@ def audit_json_files(root_dir: Path = ROOT) -> dict[str, Any]:
                 data = json.loads(file_path.read_text(encoding="utf-8"))
                 violations = inspect_json_privacy(data)
                 if violations:
-                    json_violations.append({
-                        "file": rel_path,
-                        "violations": violations,
-                    })
+                    allow_reason = PUBLIC_COORDINATE_JSON_ALLOWLIST.get(rel_path)
+                    if allow_reason and all("coordinate key" in violation for violation in violations):
+                        allowed_public_coordinate_files.append(
+                            {
+                                "file": rel_path,
+                                "reason": allow_reason,
+                                "coordinate_key_count": len(violations),
+                            }
+                        )
+                    else:
+                        json_violations.append({
+                            "file": rel_path,
+                            "violations": violations,
+                        })
             except Exception as exc:
                 json_violations.append({
                     "file": rel_path,
@@ -240,8 +303,14 @@ def audit_json_files(root_dir: Path = ROOT) -> dict[str, Any]:
         return {
             "ok": ok,
             "status": "PASS" if ok else "FAIL",
-            "detail": f"{audited_count} tracked shareable JSON files checked, zero privacy violations found" if ok else f"{len(json_violations)} JSON files failed privacy inspection",
+            "detail": (
+                f"{audited_count} tracked JSON files checked; private-coordinate/path scope clean; "
+                f"{len(allowed_public_coordinate_files)} explicit public-geodata allowlist entry"
+                if ok
+                else f"{len(json_violations)} JSON files failed privacy inspection"
+            ),
             "json_violations": json_violations,
+            "allowed_public_coordinate_files": allowed_public_coordinate_files,
         }
     except Exception as exc:
         return {"ok": False, "status": "FAIL", "detail": f"JSON privacy audit failed: {exc}"}
@@ -252,12 +321,14 @@ def audit_all(root_dir: Path = ROOT) -> dict[str, Any]:
     git_files_report = audit_git_tracked_files(root_dir)
     json_report = audit_json_files(root_dir)
     secrets_report = audit_secrets(root_dir)
+    secret_history_report = audit_secret_history(root_dir)
 
     all_ok = (
         gitignore_report["ok"]
         and git_files_report["ok"]
         and json_report["ok"]
         and secrets_report["ok"]
+        and secret_history_report["ok"]
     )
 
     return {
@@ -270,6 +341,7 @@ def audit_all(root_dir: Path = ROOT) -> dict[str, Any]:
             "git_tracked_files": git_files_report,
             "json_privacy": json_report,
             "secrets": secrets_report,
+            "secret_history": secret_history_report,
         },
     }
 

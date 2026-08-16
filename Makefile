@@ -1,15 +1,21 @@
-PYTHON ?= python3
+PYTHON ?= /usr/bin/python3
 
 IOS_DIR := ios/RunGameFounder
-SIMULATOR ?= platform=iOS Simulator,name=iPhone 16 Pro,OS=18.5
+SIMULATOR ?= $(shell $(PYTHON) tools/r02_resolve_simulator.py)
+ALLOW_UNSUPPORTED_SANITIZERS ?= 0
+IOS_BUNDLE_ID ?= com.doronindobro.rungame.founder
+IOS_DEVELOPMENT_TEAM ?=
 R02_FIXTURE ?= research/r02/local/valparaiso_central
 R02_IOS_RESOURCES ?= $(IOS_DIR)/Resources/Local
 R02_AUDIO_MANIFEST := $(R02_IOS_RESOURCES)/m01_solo_founder_30min.manifest.json
 
-.PHONY: ios-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test test-asan test-tsan r02-doctor r02-audit-privacy r02-preflight r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
+.PHONY: ios-prepare ios-synthetic-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test ios-synthetic-build ios-synthetic-build-for-testing ios-synthetic-unit-test ios-synthetic-ui-test ios-synthetic-test test-asan test-tsan quality r02-doctor r02-audit-privacy r02-preflight r02-synthetic-ios r02-handoff-create r02-handoff-verify r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify-tester-package verify-clean-room verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
 
 ios-prepare: r02-preflight
-	cd $(IOS_DIR) && xcodegen generate
+	cd $(IOS_DIR) && RUN_GAME_BUNDLE_ID='$(IOS_BUNDLE_ID)' RUN_GAME_DEVELOPMENT_TEAM='$(IOS_DEVELOPMENT_TEAM)' xcodegen generate
+
+ios-synthetic-prepare: r02-synthetic-ios
+	cd $(IOS_DIR) && RUN_GAME_BUNDLE_ID='$(IOS_BUNDLE_ID)' RUN_GAME_DEVELOPMENT_TEAM='$(IOS_DEVELOPMENT_TEAM)' xcodegen generate
 
 ios-open: ios-prepare
 	open $(IOS_DIR)/RunGameFounder.xcodeproj
@@ -25,31 +31,43 @@ ios-ui-test: ios-prepare
 
 ios-test: ios-unit-test ios-ui-test
 
+ios-synthetic-build: ios-synthetic-prepare
+	xcodebuild -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder -destination '$(SIMULATOR)' -derivedDataPath $(IOS_DIR)/DerivedData build
+
+ios-synthetic-build-for-testing: ios-synthetic-prepare
+	xcodebuild -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder -destination '$(SIMULATOR)' -derivedDataPath $(IOS_DIR)/DerivedData -parallel-testing-enabled NO build-for-testing
+
+ios-synthetic-unit-test: ios-synthetic-prepare
+	xcodebuild -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder -destination '$(SIMULATOR)' -derivedDataPath $(IOS_DIR)/DerivedData -parallel-testing-enabled NO -only-testing:RunGameFounderTests test
+
+ios-synthetic-ui-test: ios-synthetic-prepare
+	xcodebuild -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder -destination '$(SIMULATOR)' -derivedDataPath $(IOS_DIR)/DerivedData -parallel-testing-enabled NO -only-testing:RunGameFounderUITests test
+
+ios-synthetic-test: ios-synthetic-unit-test ios-synthetic-ui-test
+
 test-asan:
 	@if command -v xcodebuild >/dev/null 2>&1; then \
 		$(MAKE) ios-prepare && \
-		if ! xcodebuild -showdestinations -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder 2>&1 | grep -q "iPhone 16 Pro"; then \
-			echo "UNSUPPORTED: Simulator destination '$(SIMULATOR)' is unavailable on this system"; \
-			exit 0; \
-		fi; \
 		xcodebuild -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder -destination '$(SIMULATOR)' -derivedDataPath $(IOS_DIR)/DerivedData -parallel-testing-enabled NO -enableAddressSanitizer YES -only-testing:RunGameFounderTests test; \
 	else \
-		echo "UNSUPPORTED: xcodebuild is unavailable on this system"; \
-		exit 0; \
+		echo "SKIPPED: xcodebuild is unavailable; AddressSanitizer was not verified"; \
+		test "$(ALLOW_UNSUPPORTED_SANITIZERS)" = "1"; \
 	fi
 
 test-tsan:
 	@if command -v xcodebuild >/dev/null 2>&1; then \
 		$(MAKE) ios-prepare && \
-		if ! xcodebuild -showdestinations -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder 2>&1 | grep -q "iPhone 16 Pro"; then \
-			echo "UNSUPPORTED: Simulator destination '$(SIMULATOR)' is unavailable on this system"; \
-			exit 0; \
-		fi; \
 		xcodebuild -project $(IOS_DIR)/RunGameFounder.xcodeproj -scheme RunGameFounder -destination '$(SIMULATOR)' -derivedDataPath $(IOS_DIR)/DerivedData -parallel-testing-enabled NO -enableThreadSanitizer YES -only-testing:RunGameFounderTests test; \
 	else \
-		echo "UNSUPPORTED: xcodebuild is unavailable on this system"; \
-		exit 0; \
+		echo "SKIPPED: xcodebuild is unavailable; ThreadSanitizer was not verified"; \
+		test "$(ALLOW_UNSUPPORTED_SANITIZERS)" = "1"; \
 	fi
+
+quality:
+	@command -v ruff >/dev/null 2>&1 || (echo "BLOCKED: install development requirements with '$(PYTHON) -m pip install -r requirements-dev.txt'" >&2; exit 2)
+	@command -v mypy >/dev/null 2>&1 || (echo "BLOCKED: install development requirements with '$(PYTHON) -m pip install -r requirements-dev.txt'" >&2; exit 2)
+	ruff check tools tests
+	mypy tools
 
 r02-doctor:
 	$(PYTHON) tools/r02_doctor.py --strict
@@ -61,7 +79,18 @@ r02-preflight:
 	$(PYTHON) tools/r02_prepare_ios.py --fixture-dir $(R02_FIXTURE) --output-dir $(R02_IOS_RESOURCES)
 	$(PYTHON) tools/r02_preflight.py --fixture-dir $(R02_FIXTURE) --ios-resources-dir $(R02_IOS_RESOURCES)
 
-r02-audio-qa:
+r02-synthetic-ios:
+	$(PYTHON) tools/r02_prepare_synthetic_ios.py --output-dir $(R02_IOS_RESOURCES)
+
+r02-handoff-create:
+	@test -n "$(HANDOFF_MANIFEST)" || (echo 'Usage: make r02-handoff-create HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json' >&2; exit 2)
+	$(PYTHON) tools/r02_handoff_manifest.py create --fixture-dir $(R02_FIXTURE) --out "$(HANDOFF_MANIFEST)"
+
+r02-handoff-verify:
+	@test -n "$(HANDOFF_MANIFEST)" || (echo 'Usage: make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json' >&2; exit 2)
+	$(PYTHON) tools/r02_handoff_manifest.py verify --fixture-dir $(R02_FIXTURE) --manifest "$(HANDOFF_MANIFEST)"
+
+r02-audio-qa: r02-preflight
 	$(PYTHON) tools/r02_audio_qa.py --m4a $(R02_IOS_RESOURCES)/m01_solo_founder_30min.m4a --manifest $(R02_AUDIO_MANIFEST)
 
 r02-validate-evidence:
@@ -110,7 +139,11 @@ r04-unset-reject:
 verify-synthetic:
 	$(PYTHON) -m unittest discover -s tests -p 'test_*.py' -v
 
-verify-pretest: r02-doctor r02-audit-privacy r02-preflight r02-audio-qa py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject verify-synthetic ios-build ios-test test-asan test-tsan
+verify-pretest: r02-doctor r02-audit-privacy r02-preflight r02-audio-qa quality py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject verify-synthetic ios-build ios-test test-asan test-tsan
+
+verify-tester-package: r02-handoff-verify r02-doctor r02-audit-privacy r02-preflight r02-audio-qa ios-build
+
+verify-clean-room: quality py-compile r02-audit-privacy verify-synthetic ios-synthetic-build-for-testing
 
 verify: r02-preflight
 	$(PYTHON) tools/r02_story.py validate

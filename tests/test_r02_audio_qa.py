@@ -5,7 +5,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
+from tools import r02_audio_qa
 
 ROOT = Path(__file__).resolve().parents[1]
 BEATS_PATH = ROOT / "research/r02/mission_01_beats.v0.1.json"
@@ -13,8 +15,6 @@ ACTIVE_FIXTURE_DIR = ROOT / "research/r02/local/valparaiso_central"
 AUDIO_DIR = ACTIVE_FIXTURE_DIR / "audio"
 MASTER_M4A = AUDIO_DIR / "m01_solo_founder_30min.m4a"
 MANIFEST_PATH = AUDIO_DIR / "m01_solo_founder_30min.manifest.json"
-
-from tools import r02_audio_qa
 
 class TestR02AudioQA(unittest.TestCase):
 

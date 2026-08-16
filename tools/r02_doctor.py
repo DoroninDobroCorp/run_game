@@ -67,15 +67,18 @@ def inspect_tools() -> dict[str, Any]:
         if path:
             try:
                 res = subprocess.run([tool_name, "--version"], capture_output=True, text=True, timeout=5)
-                tools_status[tool_name] = "PASS" if res.returncode == 0 else "FAIL"
+                tools_status[tool_name] = "AVAILABLE" if res.returncode == 0 else "UNAVAILABLE"
             except Exception:
-                tools_status[tool_name] = "FAIL"
+                tools_status[tool_name] = "UNAVAILABLE"
         else:
             tools_status[tool_name] = "NOT_INSTALLED"
 
     return {
         "status": "PASS",
-        "detail": f"ruff: {tools_status.get('ruff')}, mypy: {tools_status.get('mypy')}",
+        "detail": (
+            "Availability only (run 'make quality' for real checks): "
+            f"ruff={tools_status.get('ruff')}, mypy={tools_status.get('mypy')}"
+        ),
         "tools": tools_status,
     }
 
@@ -130,34 +133,38 @@ def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[s
     fixture_exists = fixture_dir.is_dir()
     ios_resources_exist = ios_resources_dir.is_dir()
 
-    missing = []
-    if not fixture_exists:
-        missing.append(f"fixture_dir ({fixture_dir.name})")
-    if not ios_resources_exist:
-        missing.append(f"ios_resources_dir ({ios_resources_dir.name})")
-
-    if missing:
+    source_paths = {
+        "binding": fixture_dir / "current.binding.json",
+        "osm_snapshot": fixture_dir / "osm_snapshot.json",
+        "aiff": fixture_dir / "audio/m01_solo_founder_30min.aiff",
+        "m4a": fixture_dir / "audio/m01_solo_founder_30min.m4a",
+        "manifest": fixture_dir / "audio/m01_solo_founder_30min.manifest.json",
+    }
+    source_missing = [name for name, path in source_paths.items() if not path.is_file()]
+    if not fixture_exists or source_missing:
         return {
             "status": "WARN",
-            "detail": f"Missing optional local fixtures: {', '.join(missing)}",
+            "detail": (
+                f"Source fixture is not ready: missing {', '.join(source_missing) or fixture_dir.name}. "
+                "Restore the private handoff bundle before device testing."
+            ),
             "fixture_dir_exists": fixture_exists,
             "ios_resources_dir_exists": ios_resources_exist,
             "m4a_exists": False,
             "manifest_exists": False,
             "mission_exists": False,
+            "source_ready": False,
+            "prepared_resources_status": "MISSING" if not ios_resources_exist else "INCOMPLETE",
             "master_audio_sha": None,
             "master_audio_sha_matches": False,
         }
 
-    # Check for expected resources
-    m4a_path = ios_resources_dir / "m01_solo_founder_30min.m4a"
-    if not m4a_path.is_file():
-        alt_m4a = fixture_dir / "audio/m01_solo_founder_30min.m4a"
-        if alt_m4a.is_file():
-            m4a_path = alt_m4a
-
-    manifest_path = ios_resources_dir / "m01_solo_founder_30min.manifest.json"
-    mission_path = ios_resources_dir / "mission.json"
+    m4a_path = source_paths["m4a"]
+    prepared_paths = {
+        "m4a": ios_resources_dir / "m01_solo_founder_30min.m4a",
+        "manifest": ios_resources_dir / "m01_solo_founder_30min.manifest.json",
+        "mission": ios_resources_dir / "mission.json",
+    }
 
     import hashlib
     m4a_sha = None
@@ -170,9 +177,24 @@ def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[s
         m4a_sha = digest.hexdigest()
         master_sha_matches = (m4a_sha == EXPECTED_MASTER_SHA256)
 
-    files_ok = m4a_path.is_file() and manifest_path.is_file() and mission_path.is_file() and master_sha_matches
-    status = "PASS" if files_ok else "WARN"
-    detail = "All iOS local resources present and master audio SHA verified" if files_ok else "Some iOS local resource files missing or master audio SHA mismatch"
+    prepared_missing = [name for name, path in prepared_paths.items() if not path.is_file()]
+    if prepared_missing and ios_resources_exist:
+        prepared_status = "INCOMPLETE"
+    elif prepared_missing:
+        prepared_status = "NOT_PREPARED"
+    else:
+        prepared_status = "READY"
+
+    source_ready = not source_missing and master_sha_matches
+    status = "PASS" if source_ready and prepared_status != "INCOMPLETE" else "WARN"
+    if not master_sha_matches:
+        detail = "Source fixture master audio SHA does not match the accepted release hash"
+    elif prepared_status == "READY":
+        detail = "Source fixture and generated iOS resources are ready; master audio SHA verified"
+    elif prepared_status == "NOT_PREPARED":
+        detail = "Source fixture is ready; generated iOS resources will be created by r02-preflight"
+    else:
+        detail = f"Generated iOS resources are incomplete: missing {', '.join(prepared_missing)}"
 
     return {
         "status": status,
@@ -180,8 +202,10 @@ def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[s
         "fixture_dir_exists": fixture_exists,
         "ios_resources_dir_exists": ios_resources_exist,
         "m4a_exists": m4a_path.is_file(),
-        "manifest_exists": manifest_path.is_file(),
-        "mission_exists": mission_path.is_file(),
+        "manifest_exists": prepared_paths["manifest"].is_file(),
+        "mission_exists": prepared_paths["mission"].is_file(),
+        "source_ready": source_ready,
+        "prepared_resources_status": prepared_status,
         "master_audio_sha": m4a_sha,
         "master_audio_sha_matches": master_sha_matches,
     }

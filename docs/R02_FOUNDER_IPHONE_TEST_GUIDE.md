@@ -1,7 +1,8 @@
 # Run Game Founder — инструкция первого теста с нуля
 
-**Текущий статус:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`)
-**Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / BLOCKED_ON_PRIVATE_HANDOFF_AND_DEVICE`)
+
+**Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 
 Это инструкция для владельца проекта. Приложение — локальный founder-only
 research instrument, не медицинская рекомендация и не публичный продукт.
@@ -11,7 +12,8 @@ Fitness-сетка ещё не прошла профильный review. До в
 Активная фикстура — **центральный Вальпараисо**. Santiago неактивен: сохранённая
 рядом папка `santiago_cumming/` не должна молча подменять Valparaíso.
 
-На 10 августа 2026 года physical-device smoke, дневной walk-through, полное
+На 16 августа 2026 года private bundle отсутствует на проверочной машине, а
+physical-device smoke, дневной walk-through, полное
 lock-screen прослушивание и M1-A founder run ещё не считаются выполненными.
 Первый сюжетный run запрещён, пока приложение не показывает **3/3** и текущая
 попытка не прошла отдельный GPS/pre-run checklist.
@@ -44,7 +46,7 @@ pedestrian preview используют онлайн-сервис Apple Maps; Ap
 
 ```bash
 xcode-select -p
-python3 --version
+/usr/bin/python3 --version
 command -v ffprobe || command -v afinfo
 ```
 
@@ -53,10 +55,14 @@ command -v ffprobe || command -v afinfo
 
 3. Убедитесь, что локально существует папка
    `research/r02/local/valparaiso_central/` с binding, snapshot, manifest и M4A.
-4. Выполните:
+   Полный handoff также обязан содержать AIFF и пройти manifest verification.
+4. Выполните из точного manifest-bound commit:
 
 ```bash
-make r02-preflight
+/usr/bin/python3 -m pip install -r requirements-dev.txt
+make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make verify-pretest
+make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
 Команда явно готовит iOS resources из Valparaíso и запускает offline integrity
@@ -74,7 +80,16 @@ bundle согласованы. Он **не** означает route safety, work
 ## Часть B. Первичная установка на физический iPhone
 
 1. Разблокируйте iPhone, подключите его к Mac кабелем и подтвердите доверие.
-2. Откройте `ios/RunGameFounder/RunGameFounder.xcodeproj`.
+2. Сгенерируйте переносимый проект со своим bundle ID и Apple Team, затем
+   откройте его:
+
+```bash
+make ios-prepare \
+  IOS_BUNDLE_ID=com.example.rungame.founder \
+  IOS_DEVELOPMENT_TEAM=<APPLE_TEAM_ID>
+open ios/RunGameFounder/RunGameFounder.xcodeproj
+```
+
 3. В destination выберите подключённый iPhone, не Simulator.
 4. Нажмите ▶︎.
 5. Если Xcode просит signing, выберите проект `RunGameFounder` →
@@ -166,7 +181,7 @@ make r02-analyze-gpx GPX=/absolute/local/path/to/walkthrough.gpx
 Эквивалентная явная команда:
 
 ```bash
-python3 tools/r02_analyze_gpx.py \
+/usr/bin/python3 tools/r02_analyze_gpx.py \
   --gpx /absolute/local/path/to/walkthrough.gpx \
   --mission ios/RunGameFounder/Resources/Local/mission.json \
   --manifest ios/RunGameFounder/Resources/Local/m01_solo_founder_30min.manifest.json

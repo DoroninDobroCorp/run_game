@@ -1,9 +1,12 @@
 # Журнал выполнения Run Game (EXECUTION_STATUS)
 
-**Последнее обновление:** 11 августа 2026 года
-**Текущая фаза:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`, pre-first-test hardening завершён)
-**Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
-**Текущая ветка:** `executor/pre-first-test-last-mile-7a11842`
+**Последнее обновление:** 16 августа 2026 года
+
+**Текущая фаза:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / BLOCKED_ON_PRIVATE_HANDOFF_AND_DEVICE`)
+
+**Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+
+**Текущая ветка:** `codex/tester-readiness`
 
 ---
 
@@ -57,7 +60,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS` (`READY_FOR_DEVICE_SMOKE`) | `R01` | Pre-First-Test Max Hardening завершён. Созданы `docs/PRE_FIRST_TEST_READINESS.md` (18 readiness lanes), `tools/r02_doctor.py`, `tools/r02_validate_evidence.py`, `tools/r02_audio_qa.py`, `tools/r03_analyze.py` и `research/r04/decision_template.md`. Пройден `make verify-pretest`. Master audio SHA-256 (`17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`). Активная founder fixture — центральный Вальпараисо (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins). Вся синтетическая и симуляционная часть готова. | 11.08.2026 | Physical-device smoke ➔ дневной walk-through/derived report ➔ human route approval ➔ полный lock-screen audio check ➔ GPS-gated solo founder run ➔ immediate JSON/queued 24h recall. |
+| **R02** | `IN_PROGRESS` (`ENGINEERING_RC`) | `R01` | Подготовлены clean-clone workflow, CI, privacy/history audit, переносимый signing, приватный handoff manifest и fail-closed durable queue recovery. На текущем checkout прошли 245 Python-тестов (6 fixture-dependent skips), static analysis, privacy audit и synthetic iOS build. Реальная Valparaíso fixture на этом Mac отсутствует; Swift runtime suite локально `NOT_RUN` из-за зависания Xcode launcher после успешной компиляции 76 unit и 5 UI test methods. | 16.08.2026 | Вернуть приватные 5 файлов → проверить handoff/real preflight → получить зелёный CI/второй Mac Swift run → physical-device smoke → founder-only field gates. |
 | **R03** | `NOT_STARTED`| `R02` | Созданы `research/r03/preregistration.v0.1.json`, `tools/r03_analyze.py` и `tests/test_r03_analyze.py` для офлайн-анализа синтетических A/B данных. | 11.08.2026 | Ожидает завершения физического этапа R02. |
 | **R04** | `NOT_STARTED`| `R02` | Создан `research/r04/decision_template.md` (decision-ready шаблон с описанием аудитории, оффера, stop-loss и метрик конверсии). | 11.08.2026 | Ожидает основательского решения по запуску тестов спроса (может идти параллельно с R03). |
 
@@ -67,29 +70,28 @@
 
 ## 5. Command Evidence
 
-Сводный результат независимого автоматизированного прогона для принятого технического baseline (`commit 610849e`):
+Доказательства для текущего engineering candidate:
 
-* `make verify-pretest`:
-  - `tools/r02_doctor.py`: `PASS` (9 проверок, 0 WARN по uncommitted изменениям при чистом рабочем дереве).
-  - `tools/r02_audit_privacy.py`: `PASS` (4/4 проверки приватности, 0 утечек координат/секретов).
-  - `tools/r02_preflight.py`: `READY_FOR_DEVICE_SMOKE` (12/12 проверок пройдены).
-  - `tools/r02_audio_qa.py`: `PASS` (1800.0s exact AAC master, peak -1.6dB, SHA `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22` совпадает).
-  - `/usr/bin/python3 -m unittest discover -s tests`: `PASS` (229 тестов пройдено, 0 ошибок).
-  - `xcodebuild ... RunGameFounderTests`: `PASS` (66 юнита-тестов Swift пройдено).
-  - `xcodebuild ... RunGameFounderUITests`: `PASS` (3 UI-теста пройдено на iPhone 16 Pro iOS 18.5 Simulator).
-
-Все 18 полос готовности задокументированы в `docs/PRE_FIRST_TEST_READINESS.md`.
+* `make quality py-compile`: `PASS` — `ruff`, `mypy`, Python bytecode compile.
+* `/usr/bin/python3 -m unittest discover -s tests`: `PASS` — 245 тестов, 0 ошибок, 6 пропусков только для отсутствующего приватного master/fixture.
+* `tools/r02_audit_privacy.py`: `PASS` — 5/5 проверок, включая reachable Git patch history; public R01 OSM coordinates явно отделены от private R02 scope.
+* `make ios-synthetic-build IOS_DEVELOPMENT_TEAM=""`: `PASS` на Xcode 26.3 / iOS 26.2 Simulator.
+* Swift targets: 76 unit-test methods и 5 UI-test methods компилируются; runtime execution на этой машине `NOT_RUN` — launcher завис после `Testing started`, run отменён через 90 секунд с 0 выполненных методов.
+* `make verify-pretest`: `BLOCKED`, ожидаемо — приватных Valparaíso source assets нет на этой машине.
+* GitHub Actions: `CONFIGURED_NOT_RUN` до публикации ветки.
 
 ---
 
 ## 6. Open Blockers
-После успешного offline preflight (`make verify-pretest`) нет инженерных блокеров для начала physical device smoke. Активными остаются исключительно человеческие блокеры (human gates):
+До передачи на physical device остаются инженерные и человеческие блокеры:
 
-1. **Human Route Approval (`binding.human_route_approved`):** Требуется физический дневной обход маршрута основателем в Вальпараисо.
-2. **Workout Approval (`binding.workout_approved`):** Требуется физическая проверка интервалов бега/ходьбы и покрытия.
-3. **M1-A Human Approval (`binding.human_approved`):** Требуется явное подтверждение основателя после обхода.
-4. **Public Start Confirmation (`binding.public_start`):** Требуется проверка публичной доступности точки старта.
-5. **Full Audio Lock-Screen Review:** Требуется полное 30-минутное прослушивание M4A мастера на физическом iPhone при заблокированном экране.
+1. **Private handoff:** восстановить пять Valparaíso-файлов, создать/проверить `RELEASE_MANIFEST.json`, подтвердить accepted M4A hash и выполнить `make verify-pretest`.
+2. **Independent Swift run:** получить зелёный runtime suite в CI или на втором Mac; локальная компиляция не заменяет execution.
+3. **Signing/device:** выбрать Apple Team, установить ровно manifest-bound commit и выполнить внешний QA smoke.
+
+4. **Human Route Approval (`binding.human_route_approved`):** только основатель после реального дневного обхода.
+5. **Workout/M1/Public Start approvals:** только основатель; внешний QA-тестер не должен их выставлять.
+6. **Full Audio Lock-Screen Review:** полное 30-минутное прослушивание принятого M4A на физическом iPhone.
 
 ---
 
@@ -102,4 +104,5 @@
 * **16.07.2026 (R02):** Зафиксированы Леа, M1–M3 micro-arc, три enum-state, четыре setup clues и reveal «игрок своими маршрутами создал Леа». Реализованы детерминированная линеаризация, A/B contract и запрет participant export до human approval.
 * **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
 * **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
-* **11.08.2026 (R02):** Завершён пре-тестовый харднинг (R02 Max Hardening). Подготовлены 18 полос готовности (`docs/PRE_FIRST_TEST_READINESS.md`), проверены 229 Python-тестов, 72 Swift unit-теста и 5 Swift UI-тестов, включая ASan/TSan (`make verify-pretest`). Статус переведен в `READY_FOR_DEVICE_SMOKE`.
+* **11.08.2026 (R02):** Исторический baseline заявил `READY_FOR_DEVICE_SMOKE`; последующий полный аудит обнаружил, что локальные приватные assets отсутствуют, а текущий Xcode runner не даёт воспроизводимого runtime PASS. Заявление заменено evidence-based статусом.
+* **16.08.2026 (R02):** Подготовлен engineering candidate: 245 Python-тестов, quality/privacy gates, clean-clone synthetic bundle, CI, signing parameters, exact private handoff manifest и durable queue recovery. До передачи остаются private bundle, независимый Swift runtime и physical-device gates.

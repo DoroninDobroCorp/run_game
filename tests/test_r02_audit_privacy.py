@@ -39,18 +39,31 @@ class TestR02AuditPrivacy(unittest.TestCase):
             "schema_version": "0.3",
             "latitude": 37.7749,
             "longitude": -122.4194,
+            "lng": -122.4194,
             "local_path": "/Users/john/secret/file.txt",
         }
         violations = r02_audit_privacy.inspect_json_privacy(leaky_json)
-        self.assertTrue(len(violations) >= 3)
+        self.assertTrue(len(violations) >= 4)
         self.assertTrue(any("latitude" in v for v in violations))
         self.assertTrue(any("longitude" in v for v in violations))
+        self.assertTrue(any("lng" in v for v in violations))
         self.assertTrue(any("absolute path" in v for v in violations))
 
     def test_audit_secrets_clean(self) -> None:
         report = r02_audit_privacy.audit_secrets()
         self.assertTrue(report["ok"])
         self.assertEqual(len(report["findings"]), 0)
+
+    def test_audit_reachable_git_history_for_secrets(self) -> None:
+        report = r02_audit_privacy.audit_secret_history()
+        self.assertTrue(report["ok"])
+        self.assertEqual(report["finding_types"], [])
+
+    def test_r01_public_coordinate_fixture_is_explicitly_allowlisted(self) -> None:
+        report = r02_audit_privacy.audit_json_files()
+        entries = report["allowed_public_coordinate_files"]
+        self.assertEqual([entry["file"] for entry in entries], ["docs/r01_raw_results.json"])
+        self.assertGreater(entries[0]["coordinate_key_count"], 0)
 
     def test_audit_all_clean(self) -> None:
         report = r02_audit_privacy.audit_all()

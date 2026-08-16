@@ -16,11 +16,10 @@ from __future__ import annotations
 
 import ast
 import json
-import math
 from pathlib import Path
 import subprocess
 import tempfile
-from typing import Any, Callable, Optional, Union
+from typing import Callable, Optional, Union
 import unittest
 
 from tools.domain_thresholds import (
@@ -42,11 +41,9 @@ from tools.domain_thresholds import (
 )
 from tools.r02_validate_evidence import (
     ValidationError,
-    load_json_strict,
     validate_evidence_file,
     validate_evidence_pair,
     validate_immediate_debrief,
-    validate_recall_record,
 )
 
 ROOT = Path(__file__).resolve().parents[1]

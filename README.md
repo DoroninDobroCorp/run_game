@@ -3,10 +3,10 @@
 > **Human handoff:** Before installing on a physical iPhone, follow
 > [`HUMAN_FIRST_IPHONE_SMOKE_TEST.md`](./HUMAN_FIRST_IPHONE_SMOKE_TEST.md).
 
-> **Current Project Phase:** Stage `R02` `IN_PROGRESS` (substatus `READY_FOR_DEVICE_SMOKE`), Stages `R03`/`R04` `NOT_STARTED`
-> **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
-> **Active Fixture:** Valparaíso Central, Chile (Plaza de la Victoria ➔ Arco Británico ➔ Parque Italia ➔ Plaza O'Higgins)
-> **Master Readiness Standard:** 18/18 Readiness Lanes verified clean (`docs/PRE_FIRST_TEST_READINESS.md`)
+> **Current Project Phase:** Stage `R02` `IN_PROGRESS`; engineering candidate prepared, real private handoff and physical-device checks pending. Stages `R03`/`R04` are `NOT_STARTED`.
+> **Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+> **Planned Field Fixture:** Valparaíso Central, Chile (private fixture is not stored in Git and is absent on the current verification Mac).
+> **Readiness truth:** clean-clone Python/static/privacy checks and synthetic iOS build pass; local Swift runtime execution is `NOT_RUN` because the Xcode simulator launcher stalls after compilation.
 
 ---
 
@@ -48,13 +48,15 @@ The repository includes a Python-based utility suite in `tools/` for preflight v
 
 | Tool | Path | Purpose |
 | :--- | :--- | :--- |
-| **Pre-Test Doctor** | `tools/r02_doctor.py` | Validates local environment (Python 3.12, Xcode, iOS simulator, directory structures, git status, domain threshold parity). |
+| **Pre-Test Doctor** | `tools/r02_doctor.py` | Reports environment/tool availability and validates the exact private fixture inventory; `make quality` performs static checks. |
 | **Privacy Audit** | `tools/r02_audit_privacy.py` | Scans tracked files, JSON outputs, and git history for coordinate leaks, personal identifiers, or API keys. |
 | **Offline Preflight** | `tools/r02_preflight.py` | Verifies route bundle integrity, audio file presence, manifest checksums, and iOS resource alignment. |
 | **Audio QA Probe** | `tools/r02_audio_qa.py` | Validates master audio format (AAC/44.1kHz mono), exact 30-min duration (1800.0s), peak levels (-1.6dB), and SHA-256 fingerprint (`17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`). |
 | **Offline GPX Analyzer** | `tools/r02_analyze_gpx.py` | Derives distance, pace, bounding box, and POI arrival timestamps from raw GPX tracks without saving raw coordinates in public artifacts. |
 | **Evidence Validator** | `tools/r02_validate_evidence.py` | Enforces fail-closed evidence locking rules (`evidenceCaptureLocked = true`) until all pending queues and human gates pass. |
 | **iOS Resource Sync** | `tools/r02_prepare_ios.py` | Packages research fixtures (`research/r02/local/valparaiso_central`) into iOS bundle resources (`ios/RunGameFounder/Resources/Local`). |
+| **Synthetic iOS Bundle** | `tools/r02_prepare_synthetic_ios.py` | Creates a visibly marked, fail-closed bundle for clean-clone compilation and CI only; it is forbidden for field use. |
+| **Private Handoff Manifest** | `tools/r02_handoff_manifest.py` | Binds the five private files and accepted audio hash to one full release commit without placing private data in Git. |
 | **Story Authoring** | `tools/r02_story.py` | Validates authoring graph nodes, clue setups, and deterministic linearization for the M1 narrative. |
 | **Synthetic R03 Engine** | `tools/r03_analyze.py` | Executes offline statistical analysis and metric simulation for synthetic A/B trial data against `research/r03/preregistration.v0.1.json`. |
 | **R04 Decision Template** | `research/r04/decision_template.md` | Decision-ready framework for preorder / deposit demand evaluation (`G0_DEMAND`) with explicit spend stop-loss and conversion rules. |
@@ -102,7 +104,13 @@ All project verification workflows are accessible via `Makefile` targets:
 
 ### Core Verification Targets
 ```bash
-# Complete Pre-First-Test Verification (Doctor, Privacy, Preflight, Audio QA, Synthetic Tests & iOS Tests)
+# Install pinned static-analysis tools
+/usr/bin/python3 -m pip install -r requirements-dev.txt
+
+# Clean-clone verification without private field assets
+make verify-clean-room
+
+# Full maintainer verification; requires the real private Valparaíso bundle
 make verify-pretest
 
 # Run Pre-Test Environment Doctor
@@ -114,11 +122,14 @@ make r02-audit-privacy
 # Run Preflight Bundle & Asset Checks
 make r02-preflight
 
-# Run Python Unit Tests & Synthetic Harness (229 tests)
+# Run Python Unit Tests & Synthetic Harness (245 tests; 6 asset-dependent skips here)
 make verify-synthetic
 
-# Run iOS Unit & UI Tests (iPhone 16 Pro Simulator)
-make ios-test
+# Run iOS Unit & UI Tests with the explicitly marked synthetic bundle
+make ios-synthetic-test IOS_DEVELOPMENT_TEAM=""
+
+# Validate the exact real tester package before device installation
+make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
 ### Specialized Field Tools
@@ -137,7 +148,7 @@ make r02-audio-qa
 
 ## 7. Fail-Closed Human Safety & Approval Gates
 
-While technical and synthetic preflight checks are 100% complete (`make verify-pretest` passes), physical field testing is governed by fail-closed human approval gates:
+The engineering candidate is intentionally not declared field-ready on this checkout. `make verify-pretest` and `make verify-tester-package` require the missing private Valparaíso source bundle, and physical field testing remains governed by fail-closed human approval gates:
 
 1. **Human Route Approval (`binding.human_route_approved`):** Requires physical daylight walkthrough of the Valparaíso Central route by the founder.
 2. **Workout Approval (`binding.workout_approved`):** Requires physical verification of Couch-to-5K interval timing safety and ground conditions.
@@ -153,6 +164,8 @@ For detailed specifications and historical logs, consult the `docs/` directory:
 
 * [`docs/PRE_FIRST_TEST_READINESS.md`](./docs/PRE_FIRST_TEST_READINESS.md) — Master 18-lane readiness matrix and test summary.
 * [`docs/EXECUTION_STATUS.md`](./docs/EXECUTION_STATUS.md) — Single source of truth for phase progress, gates, and decision log.
+* [`TESTER_HANDOFF.md`](./TESTER_HANDOFF.md) — Release cover sheet, external-QA scope and severity rules.
+* [`HUMAN_FIRST_IPHONE_SMOKE_TEST.md`](./HUMAN_FIRST_IPHONE_SMOKE_TEST.md) — Exact manifest-bound first-device smoke protocol.
 * [`docs/GEO_NARRATIVE_PRODUCT_STRATEGY.md`](./docs/GEO_NARRATIVE_PRODUCT_STRATEGY.md) — Product vision, investment gates, and core constraints.
 * [`docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md`](./docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md) — Protocol for physical iPhone walkthrough and field execution.
 * [`docs/GEO_NARRATIVE_TECHNICAL_SPEC.md`](./docs/GEO_NARRATIVE_TECHNICAL_SPEC.md) — System design and technical kill criteria.

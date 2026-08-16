@@ -8,14 +8,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-
 from tools.r04_validate_decision import (
     R04DecisionValidationError,
     evaluate_r04_decision_template,
-    load_decision_template,
     main as r04_validator_main,
 )
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class TestR04DecisionTemplate(unittest.TestCase):

@@ -1,6 +1,6 @@
 name: RunGameFounder
 options:
-  bundleIdPrefix: com.doronindobro
+  bundleIdPrefix: ${RUN_GAME_BUNDLE_ID}
   deploymentTarget:
     iOS: "18.0"
   createIntermediateGroups: true
@@ -9,7 +9,7 @@ settings:
     SWIFT_VERSION: "5.0"
     SWIFT_STRICT_CONCURRENCY: complete
     SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
-    DEVELOPMENT_TEAM: RYH84JAC66
+    DEVELOPMENT_TEAM: ${RUN_GAME_DEVELOPMENT_TEAM}
     CODE_SIGN_STYLE: Automatic
 targets:
   RunGameFounder:
@@ -25,7 +25,7 @@ targets:
         buildPhase: resources
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.doronindobro.rungame.founder
+        PRODUCT_BUNDLE_IDENTIFIER: ${RUN_GAME_BUNDLE_ID}
         INFOPLIST_FILE: RunGameFounder/Info.plist
         GENERATE_INFOPLIST_FILE: NO
         TARGETED_DEVICE_FAMILY: "1"
@@ -43,7 +43,7 @@ targets:
       - target: RunGameFounder
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.doronindobro.rungame.founder.tests
+        PRODUCT_BUNDLE_IDENTIFIER: ${RUN_GAME_BUNDLE_ID}.tests
         GENERATE_INFOPLIST_FILE: YES
   RunGameFounderUITests:
     type: bundle.ui-testing
@@ -54,5 +54,5 @@ targets:
       - target: RunGameFounder
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.doronindobro.rungame.founder.uitests
+        PRODUCT_BUNDLE_IDENTIFIER: ${RUN_GAME_BUNDLE_ID}.uitests
         GENERATE_INFOPLIST_FILE: YES

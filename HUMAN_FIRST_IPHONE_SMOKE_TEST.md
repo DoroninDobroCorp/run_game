@@ -1,170 +1,120 @@
-# Run Game — передача человеку для первого iPhone smoke-test
+# Run Game — первый iPhone smoke-test после передачи
 
-Этот файл нужно прочитать **до установки приложения и до выхода на маршрут**.
-Он описывает только первый диагностический тест на физическом iPhone. Полный
-дневной обход, домашнее 30-минутное прослушивание и M1-A выполняются позже по
-[подробному founder guide](docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md).
+Этот протокол предназначен для внешнего QA-тестера. Он проверяет установку,
+карту, GPS/recovery и звук в безопасном месте. Он **не разрешает** тестеру
+одобрять маршрут, workout, public start, M1-A или выходить на полевой маршрут.
 
-## Текущий допуск
+Текущий проект: `R02 IN_PROGRESS / ENGINEERING_RC`. Допуск к устройству
+появляется только после выдачи владельцем `RELEASE_MANIFEST.json`, пяти
+приватных файлов и успешного выполнения всех команд ниже.
 
-- Статус: `R02 IN_PROGRESS / READY_FOR_DEVICE_SMOKE`.
-- Активная фикстура: **Valparaíso Central**.
-- Принятый технический baseline: `610849e63dc016f6194f490ee2c1ac57854b373d`.
-- Master audio SHA-256:
+## 1. Получить точный код и приватный пакет
+
+Владелец передаёт:
+
+- полный 40-символьный `release_commit`;
+- `RELEASE_MANIFEST.json`;
+- по зашифрованному приватному каналу папку
+  `research/r02/local/valparaiso_central/` с `current.binding.json`,
+  `osm_snapshot.json`, AIFF, M4A и audio manifest;
+- ожидаемый M4A SHA-256
   `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`.
-- Это founder-only research instrument, не публичный продукт и не медицинская
-  или тренировочная рекомендация.
-
-`READY_FOR_DEVICE_SMOKE` не означает, что маршрут безопасен, workout одобрен
-или M1-A разрешён. Human blockers в выводе preflight до реального обхода —
-ожидаемое состояние.
-
-## 1. Получить проект на другом Mac
-
-Сначала проверьте, нет ли уже существующей папки `run_game`. Если репозиторий
-уже развёрнут, не создавайте второй clone: откройте его и выполните команды
-обновления.
-
-Для нового компьютера:
 
 ```bash
 git clone https://github.com/DoroninDobroCorp/run_game.git
 cd run_game
-git switch --track origin/executor/pre-first-test-last-mile-7a11842
-git pull --ff-only
+git fetch --all --tags
+git switch --detach <release_commit>
+git status --short
 ```
 
-Для уже существующего checkout:
+`git status --short` должен быть пустым до копирования ignored private bundle.
+Не используйте «последнюю ветку» вместо commit из манифеста.
+
+## 2. Проверить пакет до сборки
 
 ```bash
-cd /absolute/path/to/run_game
-git fetch origin
-git switch executor/pre-first-test-last-mile-7a11842
-git pull --ff-only
+/usr/bin/python3 -m pip install -r requirements-dev.txt
+make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make verify-clean-room IOS_DEVELOPMENT_TEAM=""
+make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
-Проверьте, что дерево чистое и текущий commit является baseline или его
-документационным потомком:
+Любой non-zero exit — `STOP`. Не подменяйте приватный bundle синтетическим:
+в synthetic UI явно написано `SYNTHETIC TEST BUNDLE — НЕ ДЛЯ МАРШРУТА`.
+
+Для полного maintainer gate владелец отдельно должен получить зелёный
+`make verify-pretest` и CI. До этого установка тестеру считается
+`BLOCKED`, даже если обычный app build успешен.
+
+## 3. Signing и установка
+
+Подключите разблокированный iPhone, подтвердите доверие и выберите уникальный
+bundle ID и свой Apple Team:
 
 ```bash
-git status --short --branch
-git log -1 --oneline
-git merge-base --is-ancestor 610849e63dc016f6194f490ee2c1ac57854b373d HEAD
+make ios-prepare \
+  IOS_BUNDLE_ID=com.example.rungame.founder.qa \
+  IOS_DEVELOPMENT_TEAM=<APPLE_TEAM_ID>
+open ios/RunGameFounder/RunGameFounder.xcodeproj
 ```
 
-Последняя команда должна завершиться с exit code `0`.
+В Xcode выберите физический iPhone, не Simulator, и выполните Build & Run.
+При запросе включите Developer Mode. На повторной установке нажмите в
+приложении «Сбросить локальную готовность».
 
-## 2. Отдельно перенести локальные артефакты
+После чистого запуска M1-A должен быть заблокирован. Если приложение показывает
+synthetic warning или разрешает M1-A без human gates — немедленный `STOP`.
 
-Папка `research/r02/local/` намеренно не хранится в Git. С исходного Mac
-скопируйте целиком:
+## 4. Безопасный домашний smoke
+
+Не двигайтесь ради GPS и не выходите на дорогу.
+
+1. В «Проверить маршрут» Apple Maps должен построить все четыре сегмента.
+2. Не ставьте route/workout/safety approvals.
+3. Запустите диагностическую GPX-запись с `While Using` и Precise Location,
+   заблокируйте экран на 30–60 секунд, вернитесь и завершите как
+   `smoke/aborted`.
+4. Начните вторую запись, дождитесь accepted point/checkpoint, принудительно
+   закройте приложение и откройте снова. Должен появиться recovery
+   `.partial.gpx`.
+5. В «Прослушать дома» проверьте старт аудио и один Pause/Play с lock screen.
+   Seeking должен отсутствовать. Это не 30-минутный audio approval.
+6. Проверьте, что persistence/corruption error не исчезает молча и предлагает
+   сохранить quarantine bytes или явно подтвердить reset.
+
+## 5. Немедленный STOP
+
+- crash/hang, пустой экран или неполная карта;
+- SHA/preflight mismatch или synthetic bundle;
+- нет Precise Location/samples/recovery;
+- не работает lock-screen Pause/Play или доступен seeking;
+- M1-A разблокирован без founder gates;
+- потеря pending debrief/recall после relaunch;
+- любое молчаливое исчезновение persistence error.
+
+Не удаляйте приложение до снятия диагностики. Raw GPX и private fixture нельзя
+прикладывать к issue, GitHub, мессенджеру или LLM.
+
+## 6. Отчёт тестера
 
 ```text
-research/r02/local/valparaiso_central/
+Release commit (40 chars):
+Manifest verify: PASS | FAIL
+Clean-room gate: PASS | FAIL
+Tester-package gate: PASS | FAIL
+Mac/macOS/Xcode:
+iPhone/iOS:
+Install: PASS | FAIL
+Fresh launch + M1 locked: PASS | FAIL
+Map 4/4: PASS | FAIL
+GPS/background/recovery: PASS | FAIL
+Audio/lock-screen/no-seeking: PASS | FAIL
+Queue persistence/relaunch: PASS | FAIL
+First failing step + exact error:
+Privacy-safe screenshots/video:
 ```
 
-В ней должны находиться как минимум:
-
-```text
-current.binding.json
-osm_snapshot.json
-audio/m01_solo_founder_30min.aiff
-audio/m01_solo_founder_30min.m4a
-audio/m01_solo_founder_30min.manifest.json
-```
-
-Не коммитьте эту папку и не отправляйте её публично. Папка
-`santiago_cumming/`, если она также скопирована, остаётся неактивным архивом и
-не должна подменять Valparaíso.
-
-## 3. Проверить Mac до установки
-
-Из корня проекта:
-
-```bash
-make PYTHON=/usr/bin/python3 verify-pretest
-```
-
-Продолжать можно только при exit code `0`. В выводе `r02_preflight` должен быть
-статус `READY_FOR_DEVICE_SMOKE`, а SHA master должен совпасть со значением
-выше. Список `human_blockers_to_m1_a` пока не является ошибкой.
-
-При любом красном тесте остановитесь. Сохраните команду, exit code и полный
-текст первой ошибки; не пытайтесь обходить validator или вручную ставить human
-approval.
-
-## 4. Установить на физический iPhone
-
-1. Подключите разблокированный iPhone кабелем и подтвердите доверие Mac.
-2. Откройте `ios/RunGameFounder/RunGameFounder.xcodeproj` в Xcode.
-3. Выберите подключённый iPhone как destination, не Simulator.
-4. При необходимости выберите свой Personal Team в `Signing & Capabilities`.
-5. Нажмите **Build & Run**.
-6. Если iPhone запросит Developer Mode, включите его, перезагрузите устройство
-   и снова выполните Build & Run.
-7. Для не-чистой установки в приложении нажмите «Сбросить локальную
-   готовность».
-
-После чистого запуска ожидается device readiness `1/3`. M1-A должен оставаться
-заблокированным.
-
-## 5. Выполнить только короткий домашний smoke
-
-Делайте этот этап в безопасном месте. Не выходите на проезжую часть и не
-пытайтесь двигаться ради GPS.
-
-1. Откройте «Проверить маршрут» и убедитесь, что Apple Maps строит все четыре
-   сегмента между пятью точками. Неполный маршрут — ошибка.
-2. Не ставьте route approval и safety-галочки дома.
-3. Запустите короткую диагностическую GPX-запись. Разрешите `While Using` и
-   **Precise Location**.
-4. Заблокируйте экран на 30–60 секунд, вернитесь в приложение и проверьте, что
-   accepted samples обновляются. Завершите запись как `smoke/aborted`, не как
-   route evidence.
-5. Начните вторую диагностическую запись, дождитесь accepted точки/checkpoint,
-   принудительно закройте приложение и откройте снова. На dashboard должен
-   появиться recovery `.partial.gpx`.
-6. Откройте «Прослушать дома», запустите звук и убедитесь, что слышны первый
-   workout NAV и первая реплика.
-7. Один раз проверьте Pause/Play с lock screen. Перемотка должна быть
-   недоступна.
-8. Остановите короткую проверку. Не выдавайте её за полное 30-минутное audio
-   approval.
-
-## 6. Немедленно остановиться, если
-
-- приложение падает или зависает;
-- master не проходит SHA-проверку или не воспроизводится;
-- карта показывает не все четыре сегмента;
-- Precise Location недоступна или samples не появляются;
-- после принудительного закрытия нет recovery `.partial.gpx`;
-- lock-screen Pause/Play не работает или доступна перемотка;
-- приложение позволяет запустить M1-A без human gates;
-- приложение показывает corruption/persistence error banner.
-
-Не удаляйте приложение и диагностические файлы до фиксации проблемы.
-
-## 7. Что передать после smoke-test
-
-Не прикладывайте raw GPX к GitHub, мессенджеру или LLM. Передайте только:
-
-```text
-Commit/HEAD:
-Mac + macOS:
-iPhone + iOS:
-Install/build: PASS | FAIL
-Map 4/4 segments: PASS | FAIL
-Precise GPS samples: PASS | FAIL
-Background 30–60 sec: PASS | FAIL
-Forced-close partial recovery: PASS | FAIL
-Audio start: PASS | FAIL
-Lock-screen Pause/Play: PASS | FAIL
-Seeking absent: PASS | FAIL
-Unexpected M1-A unlock: YES | NO
-First error text:
-Screenshots without coordinates/private data:
-```
-
-Если все пункты прошли, следующим отдельным действием будет дневной
-walk-through из части D подробного guide. Не объединяйте домашний smoke,
-дневной обход и первый сюжетный run в одну попытку.
+После PASS внешний тестер возвращает отчёт владельцу. Дневной обход, route
+approval, полное прослушивание и founder run выполняются отдельно только по
+[`docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md`](docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md).

@@ -6,13 +6,13 @@ Fulfills assertion VAL-IOS-002, VAL-CROSS-001, VAL-DOCS-001, and VAL-DOCS-002.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 import re
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 MAKEFILE_PATH = ROOT / "Makefile"
+PROJECT_YML_PATH = ROOT / "ios" / "RunGameFounder" / "project.yml"
 
 
 class MakefileTargetsTests(unittest.TestCase):
@@ -26,6 +26,7 @@ class MakefileTargetsTests(unittest.TestCase):
         """Verify PYTHON ?= python3 or PYTHON = ... is defined near top of Makefile."""
         match = re.search(r"^PYTHON\s*\??=\s*.+$", self.content, re.MULTILINE)
         self.assertIsNotNone(match, "Makefile must define PYTHON variable (e.g. PYTHON ?= python3)")
+        self.assertIn("/usr/bin/python3", match.group(0), "macOS release workflow must default to the pyexpat-capable system Python")
 
     def test_all_python_invocations_use_python_variable(self) -> None:
         """Verify python script and unittest invocations use $(PYTHON) instead of raw python3 or /usr/bin/python3."""
@@ -53,21 +54,23 @@ class MakefileTargetsTests(unittest.TestCase):
         self.assertIsNotNone(re.search(r"^test-asan\s*:", self.content, re.MULTILINE), "Makefile must define test-asan target rule")
         self.assertIsNotNone(re.search(r"^test-tsan\s*:", self.content, re.MULTILINE), "Makefile must define test-tsan target rule")
 
-    def test_sanitizer_targets_handle_unsupported(self) -> None:
-        """Verify test-asan and test-tsan contain UNSUPPORTED diagnostic status fallback."""
+    def test_sanitizer_targets_fail_closed_when_skipped(self) -> None:
+        """Verify sanitizer targets report skipped runs and require an explicit opt-out."""
         # Find test-asan section
         asan_match = re.search(r"^test-asan\s*:.*?(?=\n[a-zA-Z0-9_\.-]+\s*:|\Z)", self.content, re.MULTILINE | re.DOTALL)
         self.assertIsNotNone(asan_match, "test-asan target block must be found")
         asan_block = asan_match.group(0)
         self.assertIn("enableAddressSanitizer", asan_block, "test-asan must use -enableAddressSanitizer YES")
-        self.assertIn("UNSUPPORTED", asan_block, "test-asan must report UNSUPPORTED if unavailable")
+        self.assertIn("SKIPPED", asan_block, "test-asan must report SKIPPED if unavailable")
+        self.assertIn("ALLOW_UNSUPPORTED_SANITIZERS", asan_block)
 
         # Find test-tsan section
         tsan_match = re.search(r"^test-tsan\s*:.*?(?=\n[a-zA-Z0-9_\.-]+\s*:|\Z)", self.content, re.MULTILINE | re.DOTALL)
         self.assertIsNotNone(tsan_match, "test-tsan target block must be found")
         tsan_block = tsan_match.group(0)
         self.assertIn("enableThreadSanitizer", tsan_block, "test-tsan must use -enableThreadSanitizer YES")
-        self.assertIn("UNSUPPORTED", tsan_block, "test-tsan must report UNSUPPORTED if unavailable")
+        self.assertIn("SKIPPED", tsan_block, "test-tsan must report SKIPPED if unavailable")
+        self.assertIn("ALLOW_UNSUPPORTED_SANITIZERS", tsan_block)
 
     def test_strict_ab_validate_target_executes_verify_field(self) -> None:
         """Verify strict-ab-validate target executes tools/r02_verify_field.py."""
@@ -86,6 +89,7 @@ class MakefileTargetsTests(unittest.TestCase):
             "r02-audit-privacy",
             "r02-preflight",
             "r02-audio-qa",
+            "quality",
             "py-compile",
             "ast-cross-contract",
             "r02-story-validate",
@@ -102,6 +106,30 @@ class MakefileTargetsTests(unittest.TestCase):
         ]
         for expected in expected_prereqs:
             self.assertIn(expected, prereqs, f"verify-pretest missing prerequisite target '{expected}'")
+
+    def test_tester_package_target_avoids_developer_only_suites(self) -> None:
+        match = re.search(r"^verify-tester-package\s*:\s*(.*)$", self.content, re.MULTILINE)
+        self.assertIsNotNone(match, "verify-tester-package target rule must exist")
+        prereqs = match.group(1).split()
+        self.assertEqual(
+            prereqs,
+            ["r02-handoff-verify", "r02-doctor", "r02-audit-privacy", "r02-preflight", "r02-audio-qa", "ios-build"],
+        )
+
+    def test_clean_room_target_uses_synthetic_bundle(self) -> None:
+        match = re.search(r"^verify-clean-room\s*:\s*(.*)$", self.content, re.MULTILINE)
+        self.assertIsNotNone(match, "verify-clean-room target rule must exist")
+        prereqs = match.group(1).split()
+        self.assertIn("ios-synthetic-build-for-testing", prereqs)
+        self.assertNotIn("r02-preflight", prereqs)
+
+    def test_xcodegen_signing_and_bundle_id_are_parameterized(self) -> None:
+        project_spec = PROJECT_YML_PATH.read_text(encoding="utf-8")
+        self.assertIn("${RUN_GAME_BUNDLE_ID}", project_spec)
+        self.assertIn("${RUN_GAME_DEVELOPMENT_TEAM}", project_spec)
+        self.assertNotIn("DEVELOPMENT_TEAM: RYH84JAC66", project_spec)
+        self.assertIn("IOS_BUNDLE_ID ?=", self.content)
+        self.assertRegex(self.content, r"(?m)^IOS_DEVELOPMENT_TEAM \?=\s*$")
 
 
 class DocumentationIntegrityTests(unittest.TestCase):
@@ -126,7 +154,7 @@ class DocumentationIntegrityTests(unittest.TestCase):
         self.assertNotIn("$250", content, "README.md must not contain stale $250 budget figure")
         self.assertNotIn("3.0%", content, "README.md must not contain stale 3.0% PDCR figure")
         self.assertNotIn("156 tests", content, "README.md must not contain outdated 156 test count")
-        self.assertIn("229 tests", content, "README.md must reflect exact 229 Python test count")
+        self.assertIn("245 tests", content, "README.md must reflect exact 245 Python test count")
 
         self.assertIn("R02", content, "README.md must mention Stage R02")
         self.assertIn("IN_PROGRESS", content, "README.md must report R02 as IN_PROGRESS")
@@ -147,8 +175,9 @@ class DocumentationIntegrityTests(unittest.TestCase):
             self.assertIn("R02", doc_content, f"{name} must contain R02 stage")
             self.assertIn("IN_PROGRESS", doc_content, f"{name} must report IN_PROGRESS for R02")
             self.assertIn("NOT_STARTED", doc_content, f"{name} must report NOT_STARTED for R03/R04")
-            self.assertIn("229", doc_content, f"{name} must report exact 229 Python test count")
-            self.assertIn("72", doc_content, f"{name} must report exact 72 Swift unit test count")
+            self.assertIn("245", doc_content, f"{name} must report exact 245 Python test count")
+            self.assertIn("76", doc_content, f"{name} must report exact 76 Swift unit test method count")
+            self.assertIn("NOT_RUN", doc_content, f"{name} must not claim the local Swift runtime suite passed")
 
 
 if __name__ == "__main__":

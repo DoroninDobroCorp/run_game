@@ -27,7 +27,7 @@ import math
 from pathlib import Path
 import re
 import sys
-from typing import Any, Tuple
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
@@ -249,7 +249,8 @@ def validate_immediate_debrief(data: dict[str, Any]) -> dict[str, Any]:
         raise ValidationError("missing or invalid device object")
     if record_status == "immediate_complete":
         for field in ["model", "system_name", "system_version", "headphones"]:
-            if not isinstance(device.get(field), str) or not device.get(field).strip():
+            value = device.get(field)
+            if not isinstance(value, str) or not value.strip():
                 raise ValidationError(f"missing or empty device field {field!r}")
         if not isinstance(device.get("lock_screen_used"), bool):
             raise ValidationError("device.lock_screen_used must be a boolean")

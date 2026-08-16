@@ -319,7 +319,7 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
         seen_pids.add(pid)
 
     # Denominators tracking
-    denominators = {
+    denominators: dict[str, Any] = {
         "total_enrolled": len(participants),
         "by_condition": {"A": 0, "B": 0},
         "sessions_completed": {"A": 0, "B": 0},
@@ -329,7 +329,7 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
     }
 
     # Exclusions tracking
-    exclusions = {
+    exclusions: dict[str, Any] = {
         "total_excluded": 0,
         "by_reason": {
             "excl_aborted_run": 0,
@@ -341,7 +341,7 @@ def analyze_dataset(dataset: Dict[str, Any], prereg: Optional[Dict[str, Any]] = 
     }
 
     # Clean per-protocol analysis groups
-    clean_groups = {
+    clean_groups: dict[str, dict[str, list[Any]]] = {
         "A": {
             "pids": [],
             "next_workout_starts": [],

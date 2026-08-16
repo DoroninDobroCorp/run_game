@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from tools import r02_doctor
 
@@ -67,6 +67,12 @@ class TestR02Doctor(unittest.TestCase):
             ios_dir = tmp_path / "ios"
             fixture_dir.mkdir()
             ios_dir.mkdir()
+            (fixture_dir / "audio").mkdir()
+            (fixture_dir / "current.binding.json").write_text("{}", encoding="utf-8")
+            (fixture_dir / "osm_snapshot.json").write_text("{}", encoding="utf-8")
+            (fixture_dir / "audio/m01_solo_founder_30min.aiff").write_bytes(b"aiff")
+            (fixture_dir / "audio/m01_solo_founder_30min.m4a").write_bytes(b"dummy")
+            (fixture_dir / "audio/m01_solo_founder_30min.manifest.json").write_text("{}", encoding="utf-8")
             (ios_dir / "m01_solo_founder_30min.m4a").write_bytes(b"dummy")
             (ios_dir / "m01_solo_founder_30min.manifest.json").write_text("{}", encoding="utf-8")
             (ios_dir / "mission.json").write_text("{}", encoding="utf-8")
@@ -81,7 +87,30 @@ class TestR02Doctor(unittest.TestCase):
                 self.assertTrue(result["m4a_exists"])
                 self.assertTrue(result["manifest_exists"])
                 self.assertTrue(result["mission_exists"])
+                self.assertTrue(result["source_ready"])
+                self.assertEqual(result["prepared_resources_status"], "READY")
                 self.assertTrue(result["master_audio_sha_matches"])
+
+    def test_source_fixture_passes_before_generated_resources_exist(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            fixture_dir = tmp_path / "fixture"
+            audio_dir = fixture_dir / "audio"
+            audio_dir.mkdir(parents=True)
+            (fixture_dir / "current.binding.json").write_text("{}", encoding="utf-8")
+            (fixture_dir / "osm_snapshot.json").write_text("{}", encoding="utf-8")
+            (audio_dir / "m01_solo_founder_30min.aiff").write_bytes(b"aiff")
+            (audio_dir / "m01_solo_founder_30min.m4a").write_bytes(b"dummy")
+            (audio_dir / "m01_solo_founder_30min.manifest.json").write_text("{}", encoding="utf-8")
+
+            import hashlib
+            dummy_sha = hashlib.sha256(b"dummy").hexdigest()
+            with patch("tools.r02_doctor.EXPECTED_MASTER_SHA256", dummy_sha):
+                result = r02_doctor.inspect_local_fixtures(fixture_dir, tmp_path / "ios")
+
+            self.assertEqual(result["status"], "PASS")
+            self.assertTrue(result["source_ready"])
+            self.assertEqual(result["prepared_resources_status"], "NOT_PREPARED")
 
     def test_pyexpat_xml_parser_failure_blocks(self) -> None:
         with patch("pyexpat.ParserCreate", side_effect=Exception("Parser error")):
