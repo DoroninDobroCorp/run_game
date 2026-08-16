@@ -304,4 +304,151 @@ final class FileDurabilityTests: XCTestCase {
         XCTAssertThrowsError(try FileDurability.writeAtomicDraft(data: testData, to: fileURL))
         FileDurability.injectedFailure = .none
     }
+
+    @MainActor
+    func testDebriefQueueTransitionsPublishOnlyAfterDurableWrite() throws {
+        let suiteName = "FileDurabilityTests.DebriefQueue.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let model = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+        let context = makeCompletedContext(runID: "durable-debrief")
+
+        FileDurability.injectedFailure = .failPublication
+        XCTAssertThrowsError(try model.scheduleDebrief(for: context))
+        XCTAssertTrue(model.pendingDebriefs.isEmpty)
+        XCTAssertTrue(model.queuePersistenceFailed)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        FileDurability.injectedFailure = .none
+        try model.scheduleDebrief(for: context)
+        let durableBeforeCompletion = try Data(contentsOf: model.pendingDebriefsFileURL)
+        XCTAssertEqual(model.pendingDebriefs.map(\.runID), [context.runID])
+
+        FileDurability.injectedFailure = .failPublication
+        XCTAssertThrowsError(try model.completeDebrief(runID: context.runID))
+        XCTAssertEqual(model.pendingDebriefs.map(\.runID), [context.runID])
+        XCTAssertEqual(try Data(contentsOf: model.pendingDebriefsFileURL), durableBeforeCompletion)
+        XCTAssertTrue(model.queuePersistenceFailed)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        FileDurability.injectedFailure = .none
+        let restored = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+        XCTAssertEqual(restored.pendingDebriefs.map(\.runID), [context.runID])
+        try restored.completeDebrief(runID: context.runID)
+        XCTAssertTrue(restored.pendingDebriefs.isEmpty)
+        XCTAssertFalse(restored.queuePersistenceFailed)
+    }
+
+    @MainActor
+    func testRecallQueueTransitionsPublishOnlyAfterDurableWrite() throws {
+        let suiteName = "FileDurabilityTests.RecallQueue.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let model = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+        let context = makeCompletedContext(runID: "durable-recall")
+
+        FileDurability.injectedFailure = .failPublication
+        XCTAssertThrowsError(try model.scheduleRecall(for: context))
+        XCTAssertTrue(model.pendingRecalls.isEmpty)
+        XCTAssertTrue(model.queuePersistenceFailed)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        FileDurability.injectedFailure = .none
+        try model.scheduleRecall(for: context)
+        let durableBeforeCompletion = try Data(contentsOf: model.pendingRecallsFileURL)
+        XCTAssertEqual(model.pendingRecalls.map(\.runID), [context.runID])
+
+        FileDurability.injectedFailure = .failPublication
+        XCTAssertThrowsError(try model.completeRecall(runID: context.runID))
+        XCTAssertEqual(model.pendingRecalls.map(\.runID), [context.runID])
+        XCTAssertEqual(try Data(contentsOf: model.pendingRecallsFileURL), durableBeforeCompletion)
+        XCTAssertTrue(model.queuePersistenceFailed)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        FileDurability.injectedFailure = .none
+        let restored = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+        XCTAssertEqual(restored.pendingRecalls.map(\.runID), [context.runID])
+        try restored.completeRecall(runID: context.runID)
+        XCTAssertTrue(restored.pendingRecalls.isEmpty)
+        XCTAssertFalse(restored.queuePersistenceFailed)
+    }
+
+    @MainActor
+    func testCorruptedQueueCanBeQuarantinedAndResetWithoutDiscardingBytes() throws {
+        let suiteName = "FileDurabilityTests.QueueRecovery.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let corruptedData = Data("not valid queue json".utf8)
+        let queueURL = tempDirectory.appendingPathComponent("pending_debriefs.json")
+        try corruptedData.write(to: queueURL)
+
+        let model = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+        XCTAssertTrue(model.queueCorrupted)
+        XCTAssertTrue(model.evidenceCaptureLocked)
+
+        model.resetQueueQuarantine()
+
+        XCTAssertFalse(model.queueCorrupted)
+        XCTAssertFalse(model.queuePersistenceFailed)
+        XCTAssertTrue(model.pendingDebriefs.isEmpty)
+        XCTAssertTrue(model.pendingRecalls.isEmpty)
+        XCTAssertEqual(model.queueQuarantineURLs.count, 1)
+        XCTAssertEqual(try Data(contentsOf: try XCTUnwrap(model.queueQuarantineURLs.first)), corruptedData)
+
+        let restored = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+        XCTAssertFalse(restored.queueCorrupted)
+        XCTAssertTrue(restored.pendingDebriefs.isEmpty)
+        XCTAssertEqual(restored.queueQuarantineURLs.count, 1)
+    }
+
+    @MainActor
+    func testInterruptedQueueTransactionRemainsFailClosedAcrossRelaunch() throws {
+        let suiteName = "FileDurabilityTests.InterruptedQueue.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suiteName)!
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let markerURL = tempDirectory.appendingPathComponent("pending_queue_transaction.json")
+        let interruptedMarker = Data("interrupted transaction marker".utf8)
+        try interruptedMarker.write(to: markerURL)
+
+        let restored = AppModel(defaults: defaults, documentsDirectory: tempDirectory)
+
+        XCTAssertTrue(restored.queuePersistenceFailed)
+        XCTAssertTrue(restored.evidenceCaptureLocked)
+        XCTAssertTrue(restored.pendingDebriefs.isEmpty)
+        XCTAssertTrue(restored.pendingRecalls.isEmpty)
+        XCTAssertTrue(restored.queueErrorBanner?.contains("interrupted queue transaction") == true)
+
+        restored.resetQueueQuarantine()
+        XCTAssertFalse(restored.queueCorrupted)
+        XCTAssertFalse(restored.queuePersistenceFailed)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: markerURL.path))
+        XCTAssertTrue(restored.queueQuarantineURLs.contains { url in
+            (try? Data(contentsOf: url)) == interruptedMarker
+        })
+    }
+
+    private func makeCompletedContext(runID: String) -> RunSessionContext {
+        let endedAt = Date()
+        return RunSessionContext(
+            participantID: "participant_founder_durability",
+            runID: runID,
+            missionID: "m01",
+            bindingID: "binding-durability",
+            audioSHA256: String(repeating: "a", count: 64),
+            routeWorkoutFingerprint: String(repeating: "b", count: 64),
+            condition: "A",
+            startedAt: endedAt.addingTimeInterval(-1800),
+            endedAt: endedAt,
+            precommittedNextWorkoutAt: endedAt.addingTimeInterval(86400),
+            completed: true,
+            aborted: false,
+            abortReason: "",
+            audioElapsedSeconds: 1800,
+            pauseCount: 0,
+            track: nil,
+            routeTraversalEvidence: nil,
+            audioIncidents: [],
+            locationIncidents: []
+        )
+    }
 }

@@ -2,6 +2,13 @@ import Foundation
 
 @MainActor
 final class AppModel: ObservableObject {
+    private struct QueueTransactionMarker: Codable {
+        let schemaVersion: String
+        let operation: String
+        let runID: String
+        let startedAt: Date
+    }
+
     @Published private(set) var participantId: String = ""
     @Published private(set) var mission: MissionConfig?
     @Published private(set) var loadError: String?
@@ -18,10 +25,13 @@ final class AppModel: ObservableObject {
     @Published private(set) var localEvidenceURLs: [URL] = []
     @Published private(set) var pendingDebriefs: [RunSessionContext] = []
     @Published private(set) var pendingRecalls: [PendingRecall] = []
+    @Published private(set) var queueQuarantineURLs: [URL] = []
     @Published private(set) var journalCorrupted = false
     @Published private(set) var queueCorrupted = false
+    @Published private(set) var queuePersistenceFailed = false
     @Published private(set) var journalPersistenceFailed = false
     @Published private(set) var journalErrorBanner: String?
+    @Published private(set) var queueErrorBanner: String?
 
     private let defaults: UserDefaults
     private let documentsDirectory: URL
@@ -47,6 +57,8 @@ final class AppModel: ObservableObject {
         loadMission()
         restorePendingDebriefs()
         restorePendingRecalls()
+        restoreQueueTransactionMarker()
+        refreshQueueQuarantineURLs()
         recoverActiveJournal()
         refreshRecoveredTracks()
     }
@@ -64,11 +76,11 @@ final class AppModel: ObservableObject {
             readinessComplete: canStartMission,
             hasPendingDebrief: !pendingDebriefs.isEmpty,
             hasPendingRecall: !pendingRecalls.isEmpty
-        ) && !journalCorrupted && !queueCorrupted && !journalPersistenceFailed && loadError == nil
+        ) && !journalCorrupted && !queueCorrupted && !queuePersistenceFailed && !journalPersistenceFailed && loadError == nil
     }
 
     var evidenceCaptureLocked: Bool {
-        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil || journalCorrupted || queueCorrupted || journalPersistenceFailed
+        !pendingDebriefs.isEmpty || !pendingRecalls.isEmpty || loadError != nil || journalCorrupted || queueCorrupted || queuePersistenceFailed || journalPersistenceFailed
     }
 
     nonisolated static func canBeginMission(
@@ -177,7 +189,7 @@ final class AppModel: ObservableObject {
                 let ext = url.pathExtension.lowercased()
                 if name.hasSuffix(".partial.gpx") { return false }
                 if name.hasSuffix("-draft.json") { return false }
-                if name == "pending_debriefs.json" || name == "pending_recalls.json" || name == ActiveRunJournal.journalFilename { return false }
+                if name == "pending_debriefs.json" || name == "pending_recalls.json" || name == "pending_queue_transaction.json" || name == ActiveRunJournal.journalFilename { return false }
                 if isRecallPending && ext == "json" { return false }
                 return ["gpx", "json"].contains(ext)
             }
@@ -191,31 +203,93 @@ final class AppModel: ObservableObject {
     func scheduleRecall(for context: RunSessionContext) throws {
         guard context.completed && !context.aborted else { return }
         let pending = PendingRecall.make(context: context)
-        pendingRecalls.removeAll { $0.runID == pending.runID }
-        pendingRecalls.append(pending)
-        pendingRecalls.sort { $0.dueAt < $1.dueAt }
-        try persistPendingRecallsAndVerify(expectedRunID: pending.runID)
-        refreshRecoveredTracks()
+        var candidate = pendingRecalls.filter { $0.runID != pending.runID }
+        candidate.append(pending)
+        candidate.sort { $0.dueAt < $1.dueAt }
+        do {
+            try beginQueueTransaction(operation: "schedule_recall", runID: context.runID)
+            try persistPendingRecalls(candidate)
+            try clearQueueTransactionMarker()
+            pendingRecalls = candidate
+            markQueuePersistenceSucceeded()
+            refreshRecoveredTracks()
+        } catch {
+            markQueuePersistenceFailed(operation: "schedule recall", error: error)
+            throw error
+        }
     }
 
     func scheduleDebrief(for context: RunSessionContext) throws {
-        pendingDebriefs.removeAll { $0.runID == context.runID }
-        pendingDebriefs.append(context)
-        pendingDebriefs.sort { $0.endedAt < $1.endedAt }
-        try persistPendingDebriefsAndVerify(expectedRunID: context.runID)
-        refreshRecoveredTracks()
+        var candidate = pendingDebriefs.filter { $0.runID != context.runID }
+        candidate.append(context)
+        candidate.sort { $0.endedAt < $1.endedAt }
+        do {
+            try beginQueueTransaction(operation: "schedule_debrief", runID: context.runID)
+            try persistPendingDebriefs(candidate)
+            try clearQueueTransactionMarker()
+            pendingDebriefs = candidate
+            markQueuePersistenceSucceeded()
+            refreshRecoveredTracks()
+        } catch {
+            markQueuePersistenceFailed(operation: "schedule debrief", error: error)
+            throw error
+        }
     }
 
     func completeDebrief(runID: String) throws {
-        pendingDebriefs.removeAll { $0.runID == runID }
-        try persistPendingDebriefs()
-        refreshRecoveredTracks()
+        let candidate = pendingDebriefs.filter { $0.runID != runID }
+        do {
+            try beginQueueTransaction(operation: "complete_debrief", runID: runID)
+            try persistPendingDebriefs(candidate)
+            try clearQueueTransactionMarker()
+            pendingDebriefs = candidate
+            markQueuePersistenceSucceeded()
+            refreshRecoveredTracks()
+        } catch {
+            markQueuePersistenceFailed(operation: "complete debrief", error: error)
+            throw error
+        }
     }
 
     func completeRecall(runID: String) throws {
-        pendingRecalls.removeAll { $0.runID == runID }
-        try persistPendingRecalls()
-        refreshRecoveredTracks()
+        let candidate = pendingRecalls.filter { $0.runID != runID }
+        do {
+            try beginQueueTransaction(operation: "complete_recall", runID: runID)
+            try persistPendingRecalls(candidate)
+            try clearQueueTransactionMarker()
+            pendingRecalls = candidate
+            markQueuePersistenceSucceeded()
+            refreshRecoveredTracks()
+        } catch {
+            markQueuePersistenceFailed(operation: "complete recall", error: error)
+            throw error
+        }
+    }
+
+    func resetQueueQuarantine() {
+        do {
+            try quarantineQueueDataIfPresent(at: pendingDebriefsFileURL, label: "pending-debriefs")
+            try quarantineQueueDataIfPresent(at: pendingRecallsFileURL, label: "pending-recalls")
+            try quarantineQueueDataIfPresent(at: queueTransactionFileURL, label: "queue-transaction")
+            try quarantineLegacyQueueDataIfPresent(key: Self.pendingDebriefsKey, label: "legacy-pending-debriefs")
+            try quarantineLegacyQueueDataIfPresent(key: Self.pendingRecallsKey, label: "legacy-pending-recalls")
+
+            try persistPendingDebriefs([])
+            try persistPendingRecalls([])
+            try clearQueueTransactionMarker()
+            pendingDebriefs = []
+            pendingRecalls = []
+            queueCorrupted = false
+            queuePersistenceFailed = false
+            queueErrorBanner = nil
+            refreshQueueQuarantineURLs()
+            refreshRecoveredTracks()
+        } catch {
+            queueCorrupted = true
+            queuePersistenceFailed = true
+            queueErrorBanner = "Queue quarantine/reset failed: \(error.localizedDescription). Evidence remains locked."
+            refreshQueueQuarantineURLs()
+        }
     }
 
     func saveActiveAttempt(_ attempt: ActiveRunAttempt) throws {
@@ -330,6 +404,14 @@ final class AppModel: ObservableObject {
         documentsDirectory.appendingPathComponent("pending_recalls.json")
     }
 
+    var queueQuarantineDirectoryURL: URL {
+        documentsDirectory.appendingPathComponent("QueueQuarantine", isDirectory: true)
+    }
+
+    var queueTransactionFileURL: URL {
+        documentsDirectory.appendingPathComponent("pending_queue_transaction.json")
+    }
+
     private func restorePendingRecalls() {
         let fm = FileManager.default
         let data: Data
@@ -338,6 +420,7 @@ final class AppModel: ObservableObject {
                 data = try Data(contentsOf: pendingRecallsFileURL)
             } catch {
                 queueCorrupted = true
+                queueErrorBanner = "Pending recall queue is unreadable: \(error.localizedDescription). Evidence is locked."
                 pendingRecalls = []
                 return
             }
@@ -354,10 +437,16 @@ final class AppModel: ObservableObject {
                 .compactMap { $0.value.last }
                 .sorted { $0.dueAt < $1.dueAt }
             if !fm.fileExists(atPath: pendingRecallsFileURL.path) {
-                try? persistPendingRecalls()
+                do {
+                    try persistPendingRecalls(pendingRecalls)
+                } catch {
+                    queuePersistenceFailed = true
+                    queueErrorBanner = "Pending recall migration failed: \(error.localizedDescription). Evidence is locked."
+                }
             }
         } catch {
             queueCorrupted = true
+            queueErrorBanner = "Pending recall queue is corrupted: \(error.localizedDescription). Evidence is locked."
             pendingRecalls = []
         }
     }
@@ -370,6 +459,7 @@ final class AppModel: ObservableObject {
                 data = try Data(contentsOf: pendingDebriefsFileURL)
             } catch {
                 queueCorrupted = true
+                queueErrorBanner = "Pending debrief queue is unreadable: \(error.localizedDescription). Evidence is locked."
                 pendingDebriefs = []
                 return
             }
@@ -386,46 +476,112 @@ final class AppModel: ObservableObject {
                 .compactMap { $0.value.last }
                 .sorted { $0.endedAt < $1.endedAt }
             if !fm.fileExists(atPath: pendingDebriefsFileURL.path) {
-                try? persistPendingDebriefs()
+                do {
+                    try persistPendingDebriefs(pendingDebriefs)
+                } catch {
+                    queuePersistenceFailed = true
+                    queueErrorBanner = "Pending debrief migration failed: \(error.localizedDescription). Evidence is locked."
+                }
             }
         } catch {
             queueCorrupted = true
+            queueErrorBanner = "Pending debrief queue is corrupted: \(error.localizedDescription). Evidence is locked."
             pendingDebriefs = []
         }
     }
 
-    private func persistPendingDebriefs() throws {
-        let data = try encoder.encode(pendingDebriefs)
+    private func persistPendingDebriefs(_ records: [RunSessionContext]) throws {
+        let data = try encoder.encode(records)
         try FileDurability.writeAtomicStaging(data: data, to: pendingDebriefsFileURL, overwrite: true)
+        let readBackData = try Data(contentsOf: pendingDebriefsFileURL)
+        let verifiedRecords = try decoder.decode([RunSessionContext].self, from: readBackData)
+        guard verifiedRecords.map(\.runID) == records.map(\.runID) else {
+            throw FounderAppError.invalidTrack("Pending debrief read-back verification failed")
+        }
         if defaults.object(forKey: Self.pendingDebriefsKey) != nil {
             defaults.removeObject(forKey: Self.pendingDebriefsKey)
         }
     }
 
-    private func persistPendingDebriefsAndVerify(expectedRunID: String) throws {
-        try persistPendingDebriefs()
-        let readBackData = try Data(contentsOf: pendingDebriefsFileURL)
-        let verifiedRecords = try decoder.decode([RunSessionContext].self, from: readBackData)
-        guard verifiedRecords.contains(where: { $0.runID == expectedRunID }) else {
-            throw FounderAppError.invalidTrack("Pending debrief read-back verification failed for \(expectedRunID)")
-        }
-    }
-
-    private func persistPendingRecalls() throws {
-        let data = try encoder.encode(pendingRecalls)
+    private func persistPendingRecalls(_ records: [PendingRecall]) throws {
+        let data = try encoder.encode(records)
         try FileDurability.writeAtomicStaging(data: data, to: pendingRecallsFileURL, overwrite: true)
+        let readBackData = try Data(contentsOf: pendingRecallsFileURL)
+        let verifiedRecords = try decoder.decode([PendingRecall].self, from: readBackData)
+        guard verifiedRecords.map(\.runID) == records.map(\.runID) else {
+            throw FounderAppError.invalidTrack("Pending recall read-back verification failed")
+        }
         if defaults.object(forKey: Self.pendingRecallsKey) != nil {
             defaults.removeObject(forKey: Self.pendingRecallsKey)
         }
     }
 
-    private func persistPendingRecallsAndVerify(expectedRunID: String) throws {
-        try persistPendingRecalls()
-        let readBackData = try Data(contentsOf: pendingRecallsFileURL)
-        let verifiedRecords = try decoder.decode([PendingRecall].self, from: readBackData)
-        guard verifiedRecords.contains(where: { $0.runID == expectedRunID }) else {
-            throw FounderAppError.invalidTrack("Pending recall read-back verification failed for \(expectedRunID)")
+    private func markQueuePersistenceFailed(operation: String, error: Error) {
+        queuePersistenceFailed = true
+        queueErrorBanner = "Failed to \(operation) durably: \(error.localizedDescription). Evidence remains locked."
+    }
+
+    private func markQueuePersistenceSucceeded() {
+        queuePersistenceFailed = false
+        if !queueCorrupted {
+            queueErrorBanner = nil
         }
+    }
+
+    private func beginQueueTransaction(operation: String, runID: String) throws {
+        let marker = QueueTransactionMarker(
+            schemaVersion: "0.1",
+            operation: operation,
+            runID: runID,
+            startedAt: Date()
+        )
+        let data = try encoder.encode(marker)
+        try FileDurability.writeAtomicStaging(data: data, to: queueTransactionFileURL, overwrite: true)
+        guard try Data(contentsOf: queueTransactionFileURL) == data else {
+            throw FounderAppError.invalidTrack("Queue transaction marker verification failed")
+        }
+    }
+
+    private func clearQueueTransactionMarker() throws {
+        try FileDurability.removeDurably(at: queueTransactionFileURL)
+    }
+
+    private func restoreQueueTransactionMarker() {
+        guard FileManager.default.fileExists(atPath: queueTransactionFileURL.path) else { return }
+        queuePersistenceFailed = true
+        let detail: String
+        if let data = try? Data(contentsOf: queueTransactionFileURL),
+           let marker = try? decoder.decode(QueueTransactionMarker.self, from: data) {
+            detail = "Interrupted queue operation \(marker.operation) for run \(marker.runID)."
+        } else {
+            detail = "Unreadable interrupted queue transaction marker."
+        }
+        queueErrorBanner = "\(detail) Evidence remains locked until the queue is retried or quarantined."
+    }
+
+    private func quarantineQueueDataIfPresent(at url: URL, label: String) throws {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        try quarantineQueueData(try Data(contentsOf: url), label: label)
+    }
+
+    private func quarantineLegacyQueueDataIfPresent(key: String, label: String) throws {
+        guard let data = defaults.data(forKey: key) else { return }
+        try quarantineQueueData(data, label: label)
+    }
+
+    private func quarantineQueueData(_ data: Data, label: String) throws {
+        let filename = "\(label)-\(UUID().uuidString).json"
+        let destination = queueQuarantineDirectoryURL.appendingPathComponent(filename)
+        try FileDurability.writeFinalEvidence(data: data, to: destination)
+    }
+
+    private func refreshQueueQuarantineURLs() {
+        let urls = (try? FileManager.default.contentsOfDirectory(
+            at: queueQuarantineDirectoryURL,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )) ?? []
+        queueQuarantineURLs = urls.sorted { $0.lastPathComponent < $1.lastPathComponent }
     }
 
     private func restoreApprovals(for mission: MissionConfig) {

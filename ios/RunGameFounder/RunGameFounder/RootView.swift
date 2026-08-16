@@ -26,11 +26,13 @@ private struct DashboardView: View {
     @EnvironmentObject private var appModel: AppModel
     let mission: MissionConfig
     @State private var showResetConfirmation = false
+    @State private var showQueueResetConfirmation = false
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 22) {
                 recoveryErrorBanner
+                queueQuarantineFiles
                 hero
                 readiness
                 debriefQueue
@@ -52,16 +54,21 @@ private struct DashboardView: View {
         } message: {
             Text("Маршрут и домашнее прослушивание снова будут отмечены как непроверенные.")
         }
+        .confirmationDialog("Поместить повреждённые очереди в карантин?", isPresented: $showQueueResetConfirmation) {
+            Button("Карантин и сброс", role: .destructive) { appModel.resetQueueQuarantine() }
+        } message: {
+            Text("Исходные байты будут сохранены для экспорта, после чего pending-очереди будут очищены. Используй это только после сохранения evidence или по указанию разработчика.")
+        }
     }
 
     @ViewBuilder
     private var recoveryErrorBanner: some View {
-        if appModel.journalCorrupted || appModel.queueCorrupted || appModel.journalPersistenceFailed {
+        if appModel.journalCorrupted || appModel.queueCorrupted || appModel.queuePersistenceFailed || appModel.journalPersistenceFailed {
             VStack(alignment: .leading, spacing: 8) {
                 Label("Recovery Error / Evidence Locked", systemImage: "exclamationmark.triangle.fill")
                     .font(.headline)
                     .foregroundStyle(RunGameTheme.warning)
-                Text(appModel.journalErrorBanner ?? "Очередь сессий или журнал активности повреждены. Захват evidence заблокирован.")
+                Text(appModel.queueErrorBanner ?? appModel.journalErrorBanner ?? "Очередь сессий или журнал активности повреждены. Захват evidence заблокирован.")
                     .font(.footnote)
                 if appModel.journalCorrupted || appModel.journalPersistenceFailed {
                     Button("Сбросить карантин журнала", role: .destructive) {
@@ -70,9 +77,37 @@ private struct DashboardView: View {
                     .font(.caption.bold())
                     .accessibilityIdentifier("resetQuarantineButton")
                 }
+                if appModel.queueCorrupted || appModel.queuePersistenceFailed {
+                    Button("Карантин и сброс очереди", role: .destructive) {
+                        showQueueResetConfirmation = true
+                    }
+                    .font(.caption.bold())
+                    .accessibilityIdentifier("resetQueueQuarantineButton")
+                }
             }
             .runGamePanel()
             .accessibilityIdentifier("recoveryErrorBanner")
+        }
+    }
+
+    @ViewBuilder
+    private var queueQuarantineFiles: some View {
+        if !appModel.queueQuarantineURLs.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Карантин очередей", systemImage: "shippingbox.fill")
+                    .font(.headline)
+                    .foregroundStyle(RunGameTheme.warning)
+                Text("Сохрани эти файлы для диагностики. Они передаются только по нажатию Share.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                ForEach(appModel.queueQuarantineURLs, id: \.self) { url in
+                    ShareLink(item: url) {
+                        Label(url.lastPathComponent, systemImage: "square.and.arrow.up")
+                            .font(.caption.monospaced())
+                    }
+                }
+            }
+            .runGamePanel()
         }
     }
 

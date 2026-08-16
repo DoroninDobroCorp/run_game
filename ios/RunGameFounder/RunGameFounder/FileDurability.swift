@@ -238,6 +238,33 @@ enum FileDurability {
         try writeAtomicStaging(data: data, to: url, overwrite: false)
     }
 
+    static func removeDurably(at url: URL) throws {
+        let fileManager = FileManager.default
+        guard fileManager.fileExists(atPath: url.path) else { return }
+        try fileManager.removeItem(at: url)
+
+        let parentDir = url.deletingLastPathComponent()
+        let parentFD = open(parentDir.path, O_RDONLY)
+        if parentFD < 0 {
+            let err = errno
+            throw NSError(
+                domain: NSPOSIXErrorDomain,
+                code: Int(err),
+                userInfo: [NSFilePathErrorKey: parentDir.path, NSLocalizedDescriptionKey: "Failed to open parent directory after removal"]
+            )
+        }
+        defer { close(parentFD) }
+
+        if fcntl(parentFD, F_FULLFSYNC) != 0, fsync(parentFD) != 0 {
+            let err = errno
+            throw NSError(
+                domain: NSPOSIXErrorDomain,
+                code: Int(err),
+                userInfo: [NSFilePathErrorKey: parentDir.path, NSLocalizedDescriptionKey: "Failed to sync parent directory after removal"]
+            )
+        }
+    }
+
     static func verifySHA256(of url: URL, expectedSHA: String) -> Bool {
         guard let actualSHA = try? BundleIntegrity.sha256(of: url) else { return false }
         return actualSHA.caseInsensitiveCompare(expectedSHA) == .orderedSame

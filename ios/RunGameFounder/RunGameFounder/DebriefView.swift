@@ -416,17 +416,22 @@ struct DebriefView: View {
     }
 
     private func completeFinalSave(at url: URL) {
-        let draft = evidenceURL(suffix: "draft")
-        if FileManager.default.fileExists(atPath: draft.path) {
-            try? FileManager.default.removeItem(at: draft)
+        do {
+            if context.completed && !context.aborted {
+                try appModel.scheduleRecall(for: context)
+            }
+            try appModel.completeDebrief(runID: context.runID)
+            let draft = evidenceURL(suffix: "draft")
+            if FileManager.default.fileExists(atPath: draft.path) {
+                try? FileManager.default.removeItem(at: draft)
+            }
+            appModel.refreshRecoveredTracks()
+            exportedURL = url
+            errorMessage = nil
+        } catch {
+            exportedURL = nil
+            errorMessage = "Final evidence exists, but the pending queue was not updated durably. Retry without editing: \(error.localizedDescription)"
         }
-        if context.completed && !context.aborted {
-            try? appModel.scheduleRecall(for: context)
-        }
-        try? appModel.completeDebrief(runID: context.runID)
-        appModel.refreshRecoveredTracks()
-        exportedURL = url
-        errorMessage = nil
     }
 
     private static func evidenceURL(missionID: String, runID: String, suffix: String) -> URL {
@@ -658,14 +663,19 @@ struct RecallView: View {
     }
 
     private func completeFinalSave(at url: URL) {
-        let draft = evidenceURL(suffix: "recall-24h-draft")
-        if FileManager.default.fileExists(atPath: draft.path) {
-            try? FileManager.default.removeItem(at: draft)
+        do {
+            try appModel.completeRecall(runID: record.runID)
+            let draft = evidenceURL(suffix: "recall-24h-draft")
+            if FileManager.default.fileExists(atPath: draft.path) {
+                try? FileManager.default.removeItem(at: draft)
+            }
+            appModel.refreshRecoveredTracks()
+            exportedURL = url
+            errorMessage = nil
+        } catch {
+            exportedURL = nil
+            errorMessage = "Recall evidence exists, but the pending queue was not updated durably. Retry without editing: \(error.localizedDescription)"
         }
-        exportedURL = url
-        errorMessage = nil
-        try? appModel.completeRecall(runID: record.runID)
-        appModel.refreshRecoveredTracks()
     }
 
     private func evidenceURL(suffix: String) -> URL {
