@@ -28,7 +28,7 @@ evidence is unavailable, not that the check was waived.
 | iOS runtime suites on this Mac | `NOT_RUN` | Xcode compiles all test targets but the simulator launcher stalls after `Testing started`; the run was canceled after 90 seconds with 0 test methods executed. CI and a second Mac are required. |
 | Durable evidence queues | `PASS_AT_COMPILE_AND_SOURCE_TEST_LEVEL` | Queue mutations use write-ahead durable markers, read-back verification, fail-closed relaunch recovery and recoverable quarantine/reset UI. Runtime coverage is present among the 76 compiled Swift methods. |
 | Signing portability | `PASS` | Bundle ID and Apple team are parameters; the generated project has no required personal team. |
-| CI definition | `CONFIGURED_NOT_RUN` | GitHub Actions runs Python quality/privacy/tests and synthetic iOS unit/UI tests on a clean macOS runner. It cannot be evidence until the branch is pushed and the workflow succeeds. |
+| CI definition | `BLOCKED_ACCOUNT_BILLING` | Branch push created [Actions run #1](https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276), but GitHub started neither job because the account is locked by a billing issue. Workflow execution remains required after the owner unlocks Actions. |
 | Real Valparaíso inventory | `BLOCKED` | `current.binding.json`, `osm_snapshot.json`, AIFF, M4A and audio manifest are absent on this Mac. |
 | Accepted real master hash | `BLOCKED` | Expected hash is fixed above, but the actual private M4A cannot be rehashed here. |
 | Full real preflight/audio QA | `BLOCKED` | Run `make verify-pretest` only after restoring and verifying the private bundle. |

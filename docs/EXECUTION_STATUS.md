@@ -78,7 +78,7 @@
 * `make ios-synthetic-build IOS_DEVELOPMENT_TEAM=""`: `PASS` на Xcode 26.3 / iOS 26.2 Simulator.
 * Swift targets: 76 unit-test methods и 5 UI-test methods компилируются; runtime execution на этой машине `NOT_RUN` — launcher завис после `Testing started`, run отменён через 90 секунд с 0 выполненных методов.
 * `make verify-pretest`: `BLOCKED`, ожидаемо — приватных Valparaíso source assets нет на этой машине.
-* GitHub Actions: `CONFIGURED_NOT_RUN` до публикации ветки.
+* GitHub Actions: `BLOCKED_ACCOUNT_BILLING` — [run #1](https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276) создал два job, но GitHub не запустил ни один из-за billing lock аккаунта.
 
 ---
 
@@ -89,9 +89,11 @@
 2. **Independent Swift run:** получить зелёный runtime suite в CI или на втором Mac; локальная компиляция не заменяет execution.
 3. **Signing/device:** выбрать Apple Team, установить ровно manifest-bound commit и выполнить внешний QA smoke.
 
-4. **Human Route Approval (`binding.human_route_approved`):** только основатель после реального дневного обхода.
-5. **Workout/M1/Public Start approvals:** только основатель; внешний QA-тестер не должен их выставлять.
-6. **Full Audio Lock-Screen Review:** полное 30-минутное прослушивание принятого M4A на физическом iPhone.
+4. **GitHub Actions billing:** владелец организации должен снять billing lock и повторно запустить workflow; текущий failed badge не является test failure, потому что runner не выдавался.
+
+5. **Human Route Approval (`binding.human_route_approved`):** только основатель после реального дневного обхода.
+6. **Workout/M1/Public Start approvals:** только основатель; внешний QA-тестер не должен их выставлять.
+7. **Full Audio Lock-Screen Review:** полное 30-минутное прослушивание принятого M4A на физическом iPhone.
 
 ---
 

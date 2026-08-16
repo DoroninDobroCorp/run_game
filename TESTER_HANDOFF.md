@@ -7,7 +7,7 @@ Use this page as the release cover sheet. The executable protocol is
 
 ```text
 Release commit (full SHA): BLOCKED
-CI run URL/result: BLOCKED
+CI run URL/result: BLOCKED_ACCOUNT_BILLING — https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276
 RELEASE_MANIFEST.json: BLOCKED
 Private bundle transferred with encryption: BLOCKED
 make r02-handoff-verify: BLOCKED
@@ -17,9 +17,11 @@ Physical iPhone/model/iOS assigned: BLOCKED
 Apple Team + unique QA bundle ID assigned: BLOCKED
 ```
 
-These fields are deliberately `BLOCKED` in Git. They are evidence from the
-final commit, private transfer and tester hardware, so they must not be
-pre-filled or inferred from an earlier run.
+Except for the recorded CI billing blocker, these fields are deliberately
+`BLOCKED` in Git. They are evidence from the final commit, private transfer and
+tester hardware, so they must not be pre-filled or inferred from an earlier
+run. The owner must unlock GitHub Actions and obtain a new green run before
+changing the CI field to `PASS`.
 
 ## Proven on the engineering checkout
 
