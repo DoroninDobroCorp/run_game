@@ -2,7 +2,7 @@
 
 **Последнее обновление:** 16 августа 2026 года
 
-**Текущая фаза:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / BLOCKED_ON_PRIVATE_HANDOFF_AND_DEVICE`)
+**Текущая фаза:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / TECHNICAL_HANDOFF_AND_DEVICE_PENDING`)
 
 **Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 
@@ -60,7 +60,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS` (`ENGINEERING_RC`) | `R01` | Подготовлены clean-clone workflow, CI, privacy/history audit, переносимый signing, приватный handoff manifest и fail-closed durable queue recovery. На текущем checkout прошли 245 Python-тестов (6 fixture-dependent skips), static analysis, privacy audit и synthetic iOS build. Реальная Valparaíso fixture на этом Mac отсутствует; Swift runtime suite локально `NOT_RUN` из-за зависания Xcode launcher после успешной компиляции 76 unit и 5 UI test methods. | 16.08.2026 | Вернуть приватные 5 файлов → проверить handoff/real preflight → получить зелёный CI/второй Mac Swift run → physical-device smoke → founder-only field gates. |
+| **R02** | `IN_PROGRESS` (`ENGINEERING_RC`) | `R01` | Подготовлены clean-clone workflow, CI, privacy/history audit, переносимый signing, приватный handoff manifest и fail-closed durable queue recovery. На текущем checkout прошли 245 Python-тестов (6 fixture-dependent skips), static analysis, privacy audit и synthetic iOS build. Оригинальная Valparaíso fixture потеряна; создан отдельный local technical-only replacement из retained app projection и accepted M4A, с выключенными approvals. Swift runtime suite локально `NOT_RUN`: устройство Simulator загружается, но XCTest остаётся зависшим после compilation. | 21.08.2026 | Проверить reconstituted handoff/preflight → получить реальное Swift runtime evidence на втором Mac → physical-device smoke → founder-only field gates. |
 | **R03** | `NOT_STARTED`| `R02` | Созданы `research/r03/preregistration.v0.1.json`, `tools/r03_analyze.py` и `tests/test_r03_analyze.py` для офлайн-анализа синтетических A/B данных. | 11.08.2026 | Ожидает завершения физического этапа R02. |
 | **R04** | `NOT_STARTED`| `R02` | Создан `research/r04/decision_template.md` (decision-ready шаблон с описанием аудитории, оффера, stop-loss и метрик конверсии). | 11.08.2026 | Ожидает основательского решения по запуску тестов спроса (может идти параллельно с R03). |
 
@@ -85,7 +85,7 @@
 ## 6. Open Blockers
 До передачи на physical device остаются инженерные и человеческие блокеры:
 
-1. **Private handoff:** восстановить пять Valparaíso-файлов, создать/проверить `RELEASE_MANIFEST.json`, подтвердить accepted M4A hash и выполнить `make verify-pretest`.
+1. **Technical handoff:** проверить local reconstituted Valparaíso fixture, создать/проверить `RELEASE_MANIFEST.json` с technical-only class и подтвердить accepted M4A hash. Historical private source bundle не восстановлен.
 2. **Independent Swift run:** получить зелёный runtime suite в CI или на втором Mac; локальная компиляция не заменяет execution.
 3. **Signing/device:** выбрать Apple Team, установить ровно manifest-bound commit и выполнить внешний QA smoke.
 
@@ -107,4 +107,4 @@
 * **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
 * **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
 * **11.08.2026 (R02):** Исторический baseline заявил `READY_FOR_DEVICE_SMOKE`; последующий полный аудит обнаружил, что локальные приватные assets отсутствуют, а текущий Xcode runner не даёт воспроизводимого runtime PASS. Заявление заменено evidence-based статусом.
-* **16.08.2026 (R02):** Подготовлен engineering candidate: 245 Python-тестов, quality/privacy gates, clean-clone synthetic bundle, CI, signing parameters, exact private handoff manifest и durable queue recovery. До передачи остаются private bundle, независимый Swift runtime и physical-device gates.
+* **21.08.2026 (R02):** Оригинальные private binding/snapshot/AIFF признаны утраченными после проверки local migration backups. Из retained installed-app projection и verified accepted M4A создан отдельный `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`; до передачи остаются его final handoff checks, независимый Swift runtime и physical-device gates.

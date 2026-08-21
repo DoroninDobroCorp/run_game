@@ -37,10 +37,12 @@ green; see [`docs/SSH_REMOTE_PYTHON_CI.md`](docs/SSH_REMOTE_PYTHON_CI.md).
   stalled after compilation and executed 0 test methods.
 - Pending evidence queue mutations now use durable transaction markers,
   fail-closed relaunch recovery and explicit quarantine/reset handling.
-- A locally installed old simulator app contains a verified copy of the accepted
-  M4A and its manifest, but not the other three authoritative files. It may be
-  preserved only as `UNVERIFIED_PARTIAL_RECOVERY`; it is not a releasable
-  fixture. See [`docs/EXTERNAL_COMPLETION_TZ.md`](docs/EXTERNAL_COMPLETION_TZ.md).
+- The original private binding/snapshot/AIFF are unrecoverable. A separate
+  local technical replacement fixture preserves the accepted M4A, derives AIFF
+  from it and reconstructs JSON only from the retained app projection. Its
+  handoff class is `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`: use it
+  for technical QA only, never as route/workout/field approval evidence. See
+  [`docs/EXTERNAL_COMPLETION_TZ.md`](docs/EXTERNAL_COMPLETION_TZ.md).
 
 ## Scope for external QA
 

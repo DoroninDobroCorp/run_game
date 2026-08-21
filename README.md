@@ -3,9 +3,9 @@
 > **Human handoff:** Before installing on a physical iPhone, follow
 > [`HUMAN_FIRST_IPHONE_SMOKE_TEST.md`](./HUMAN_FIRST_IPHONE_SMOKE_TEST.md).
 
-> **Current Project Phase:** Stage `R02` `IN_PROGRESS`; engineering candidate prepared, real private handoff and physical-device checks pending. Stages `R03`/`R04` are `NOT_STARTED`.
+> **Current Project Phase:** Stage `R02` `IN_PROGRESS`; engineering candidate prepared, a reconstituted technical handoff and physical-device checks pending. Stages `R03`/`R04` are `NOT_STARTED`.
 > **Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
-> **Planned Field Fixture:** Valparaíso Central, Chile (private fixture is not stored in Git and is absent on the current verification Mac).
+> **Planned Field Fixture:** Valparaíso Central, Chile. The original private fixture is lost; a local, ignored replacement is technical-QA-only and has no field approval.
 > **Readiness truth:** clean-clone Python/static/privacy checks and synthetic iOS build pass; local Swift runtime execution is `NOT_RUN` because the Xcode simulator launcher stalls after compilation.
 
 ---

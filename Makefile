@@ -9,7 +9,7 @@ R02_FIXTURE ?= research/r02/local/valparaiso_central
 R02_IOS_RESOURCES ?= $(IOS_DIR)/Resources/Local
 R02_AUDIO_MANIFEST := $(R02_IOS_RESOURCES)/m01_solo_founder_30min.manifest.json
 
-.PHONY: ios-prepare ios-synthetic-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test ios-synthetic-build ios-synthetic-build-for-testing ios-synthetic-unit-test ios-synthetic-ui-test ios-synthetic-test test-asan test-tsan quality r02-doctor r02-audit-privacy r02-preflight r02-synthetic-ios r02-handoff-create r02-handoff-verify r02-recover-cached-assets remote-python-ci r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify-tester-package verify-clean-room verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
+.PHONY: ios-prepare ios-synthetic-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test ios-synthetic-build ios-synthetic-build-for-testing ios-synthetic-unit-test ios-synthetic-ui-test ios-synthetic-test test-asan test-tsan quality r02-doctor r02-audit-privacy r02-preflight r02-synthetic-ios r02-handoff-create r02-handoff-verify r02-recover-cached-assets r02-reconstitute-cached-fixture remote-python-ci r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify-tester-package verify-clean-room verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
 
 ios-prepare: r02-preflight
 	cd $(IOS_DIR) && RUN_GAME_BUNDLE_ID='$(IOS_BUNDLE_ID)' RUN_GAME_DEVELOPMENT_TEAM='$(IOS_DEVELOPMENT_TEAM)' xcodegen generate
@@ -70,7 +70,7 @@ quality:
 	mypy tools
 
 r02-doctor:
-	$(PYTHON) tools/r02_doctor.py --strict
+	$(PYTHON) tools/r02_doctor.py --fixture-dir $(R02_FIXTURE) --ios-resources-dir $(R02_IOS_RESOURCES) --strict
 
 r02-audit-privacy:
 	$(PYTHON) tools/r02_audit_privacy.py
@@ -93,6 +93,10 @@ r02-handoff-verify:
 r02-recover-cached-assets:
 	@test -n "$(CACHED_M4A)" && test -n "$(CACHED_MANIFEST)" && test -n "$(R02_RECOVERY_DIR)" || (echo 'Usage: make r02-recover-cached-assets CACHED_M4A=/path/to/m01_solo_founder_30min.m4a CACHED_MANIFEST=/path/to/m01_solo_founder_30min.manifest.json R02_RECOVERY_DIR=research/r02/local/recovered_cache' >&2; exit 2)
 	$(PYTHON) tools/r02_recover_cached_assets.py --audio-source "$(CACHED_M4A)" --manifest-source "$(CACHED_MANIFEST)" --output-dir "$(R02_RECOVERY_DIR)"
+
+r02-reconstitute-cached-fixture:
+	@test -n "$(CACHED_MISSION)" && test -n "$(CACHED_M4A)" && test -n "$(CACHED_MANIFEST)" && test -n "$(R02_RECONSTITUTED_FIXTURE)" || (echo 'Usage: make r02-reconstitute-cached-fixture CACHED_MISSION=/path/to/mission.json CACHED_M4A=/path/to/m01_solo_founder_30min.m4a CACHED_MANIFEST=/path/to/m01_solo_founder_30min.manifest.json R02_RECONSTITUTED_FIXTURE=research/r02/local/reconstituted_fixture' >&2; exit 2)
+	$(PYTHON) tools/r02_reconstitute_cached_fixture.py --mission-source "$(CACHED_MISSION)" --audio-source "$(CACHED_M4A)" --manifest-source "$(CACHED_MANIFEST)" --output-dir "$(R02_RECONSTITUTED_FIXTURE)"
 
 remote-python-ci:
 	tools/r02_remote_python_ci.sh

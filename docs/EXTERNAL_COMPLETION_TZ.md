@@ -30,9 +30,9 @@ macOS runner/Xcode Cloud. Linux SSH для этой задачи не подхо
 **Acceptance:** обе runtime suites реально завершены с exit 0, нет private
 resources в bundle/логе, зафиксированы Mac OS, Xcode, iOS runtime и SHA.
 
-## Задача B — вернуть authoritative private five-file bundle
+## Задача B — reconstituted technical five-file bundle
 
-**Исполнитель:** владелец исходного защищённого хранилища/резервной копии.
+**Статус:** выполнено локально владельцем; не делегировать слабой модели.
 
 Нужны именно исходные файлы в private path
 `research/r02/local/valparaiso_central/`:
@@ -43,10 +43,20 @@ resources в bundle/логе, зафиксированы Mac OS, Xcode, iOS runt
 - `audio/m01_solo_founder_30min.m4a`
 - `audio/m01_solo_founder_30min.manifest.json`
 
-Не реконструировать binding/snapshot/AIFF по встроенному приложению: это
-создало бы новые неподтверждённые данные. Найденные локально M4A+manifest можно
-сохранить только инструментом `r02-recover-cached-assets`; его статус
-`UNVERIFIED_PARTIAL_RECOVERY`, это не fixture и не release source.
+Оригинальные binding/snapshot/AIFF больше недоступны. Поэтому создан отдельный
+локальный ignored fixture `valparaiso_central_reconstituted_20260821`:
+
+- accepted M4A сохранён без изменения и должен совпадать с закреплённым SHA;
+- mission projection из установленного приложения дала пять route points и OSM
+  identity для внутренне согласованных replacement JSON;
+- AIFF декодирован из accepted M4A, поэтому не является потерянным original
+  source audio;
+- fixture и handoff manifest маркируются
+  `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`;
+- все human/public-start/workout approvals остаются `false`.
+
+Это позволяет техническую установку и smoke тест, но **не** восстанавливает
+историческую полевую валидацию и не даёт права на participant/field run.
 
 ### Уже проверенные локальные источники — не повторять
 
@@ -61,24 +71,22 @@ resources в bundle/логе, зафиксированы Mac OS, Xcode, iOS runt
 
 Слабой модели **нельзя** получать, читать или использовать age identity,
 зашифрованные backup’ы, SSH private keys, Apple credentials или private files.
-Её допустимая задача — только обновить публичный код/документацию и запустить
-synthetic checks. Поиск оригиналов продолжает владелец: другой Mac, Time
-Machine, облачное/внешнее зашифрованное хранилище либо приватное вложение.
-Найденный candidate bundle сначала проверяется локально командами ниже;
-передача модели для этой проверки не требуется.
+Её допустимая задача — только Task A (Apple runtime на отдельном Mac) и
+публичные synthetic checks. Она не должна перегенерировать этот fixture либо
+снимать его `NOT_FIELD_APPROVED` status.
 
 После восстановления:
 
 ```bash
-make r02-handoff-create HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
-make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
-make verify-pretest
-make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make r02-handoff-create R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make r02-handoff-verify R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make verify-tester-package R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
 **Acceptance:** M4A SHA-256 строго равен
 `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`; все
-команды выше проходят на финальном чистом SHA; `RELEASE_MANIFEST.json` передан
+команды выше проходят на финальном чистом SHA; `RELEASE_MANIFEST.json` содержит
+fixture class `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`, передан
 отдельно через шифрованный канал, private files не попали в Git.
 
 ## Задача C — physical iPhone smoke

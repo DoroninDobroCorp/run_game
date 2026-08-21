@@ -567,6 +567,27 @@ def validate_fixture(fixture_dir: Path) -> dict[str, Any]:
             "M4A probed/target duration mismatch: "
             f"probed={probed_duration}, target={target_duration}"
         )
+
+    aiff_name = manifest.get("aiff_file")
+    aiff_sha = manifest.get("aiff_sha256")
+    if aiff_name is not None or aiff_sha is not None:
+        if aiff_name != "m01_solo_founder_30min.aiff":
+            raise ValueError("Audio manifest aiff_file must name the canonical R02 AIFF")
+        if not isinstance(aiff_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", aiff_sha):
+            raise ValueError("Audio manifest aiff_sha256 must be a lowercase SHA-256")
+        aiff_path = audio_dir / aiff_name
+        if not aiff_path.is_file():
+            raise FileNotFoundError(f"Missing source AIFF: {aiff_path}")
+        if compute_sha256(aiff_path) != aiff_sha:
+            raise ValueError("AIFF SHA-256 mismatch against audio manifest")
+        declared_aiff_duration = manifest.get("actual_duration_aiff_sec")
+        if declared_aiff_duration is not None:
+            actual_aiff_duration = probe_audio_duration(aiff_path)
+            if abs(
+                actual_aiff_duration
+                - _number(declared_aiff_duration, "Audio manifest actual_duration_aiff_sec")
+            ) > DURATION_TOLERANCE_SEC:
+                raise ValueError("AIFF probed/manifest duration mismatch")
     _validate_manifest_timing(manifest, actual_manifest_duration)
 
     raw_candidates = snapshot.get("osm_candidates")

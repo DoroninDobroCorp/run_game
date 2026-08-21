@@ -91,6 +91,22 @@ def inspect_fixture(fixture_dir: Path) -> list[dict[str, Any]]:
     return files
 
 
+def fixture_class(fixture_dir: Path) -> str:
+    """Expose whether this handoff is authoritative or technically reconstituted."""
+    try:
+        binding = r02_prepare_ios.load_json(fixture_dir / "current.binding.json")
+    except Exception:
+        # validate_fixture() is called before this in production. This fallback
+        # preserves the helper's usefulness for isolated inventory tests.
+        return "UNCLASSIFIED_LEGACY_FIXTURE"
+    provenance = binding.get("fixture_provenance")
+    if isinstance(provenance, dict) and provenance.get("status") == (
+        "RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED"
+    ):
+        return "RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED"
+    return "AUTHORITATIVE_PRIVATE_SOURCE"
+
+
 def create_manifest(fixture_dir: Path, release_commit: str | None = None) -> dict[str, Any]:
     r02_prepare_ios.validate_fixture(fixture_dir)
     files = inspect_fixture(fixture_dir)
@@ -113,6 +129,7 @@ def create_manifest(fixture_dir: Path, release_commit: str | None = None) -> dic
         "release_commit": commit,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
         "accepted_m4a_sha256": r02_doctor.EXPECTED_MASTER_SHA256,
+        "fixture_class": fixture_class(fixture_dir),
         "transport_encryption_verified": False,
         "files": files,
     }
@@ -160,6 +177,8 @@ def verify_manifest(
         raise ValueError("Handoff asset inventory/hash mismatch")
     if manifest.get("accepted_m4a_sha256") != r02_doctor.EXPECTED_MASTER_SHA256:
         raise ValueError("Handoff manifest accepted M4A hash is stale")
+    if manifest.get("fixture_class") != fixture_class(fixture_dir):
+        raise ValueError("Handoff fixture class does not match the current private bundle")
     r02_prepare_ios.validate_fixture(fixture_dir)
     return manifest
 

@@ -29,10 +29,10 @@ evidence is unavailable, not that the check was waived.
 | Durable evidence queues | `PASS_AT_COMPILE_AND_SOURCE_TEST_LEVEL` | Queue mutations use write-ahead durable markers, read-back verification, fail-closed relaunch recovery and recoverable quarantine/reset UI. Runtime coverage is present among the 76 compiled Swift methods. |
 | Signing portability | `PASS` | Bundle ID and Apple team are parameters; the generated project has no required personal team. |
 | CI definition | `BLOCKED_ACCOUNT_BILLING` | Branch push created [Actions run #1](https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276), but GitHub started neither job because the account is locked by a billing issue. Workflow execution remains required after the owner unlocks Actions. |
-| Real Valparaíso inventory | `BLOCKED` | `current.binding.json`, `osm_snapshot.json`, AIFF, M4A and audio manifest are absent on this Mac. |
-| Accepted real master hash | `BLOCKED` | Expected hash is fixed above, but the actual private M4A cannot be rehashed here. |
-| Full real preflight/audio QA | `BLOCKED` | Run `make verify-pretest` only after restoring and verifying the private bundle. |
-| Private handoff binding | `BLOCKED` | After the final commit, create `RELEASE_MANIFEST.json`; recipient verification rejects asset tampering and the wrong Git HEAD. |
+| Reconstituted technical inventory | `READY_FOR_VALIDATION` | Original binding/snapshot/AIFF are lost. An ignored replacement fixture preserves the accepted M4A, derives an AIFF and reconstructs route JSON from a retained installed-app projection; its approvals remain false. |
+| Accepted master hash | `PASS` | The recovered M4A rehashes to the fixed accepted SHA-256 above. |
+| Reconstituted preflight/audio QA | `PENDING_FINAL_RUN` | Run the explicit `R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821` gates after the final code commit. |
+| Private handoff binding | `PENDING_FINAL_RUN` | The handoff manifest must declare `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`, reject tampering/wrong Git HEAD and be transferred privately. |
 | Physical iPhone smoke | `BLOCKED` | Requires tester hardware, Apple signing, install, map/GPS/recovery/audio checks. |
 | Daylight route/workout review | `BLOCKED` | Founder-only field gate; an external QA tester must not approve it. |
 | Full lock-screen audio and M1-A | `BLOCKED` | Requires the accepted real master and the founder-only sequence after the route gate. |
@@ -46,18 +46,17 @@ Clean clone, no private assets:
 make verify-clean-room IOS_DEVELOPMENT_TEAM=""
 ```
 
-Maintainer, after restoring the real private bundle:
+Maintainer, for the reconstituted technical fixture:
 
 ```bash
-make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
-make verify-pretest
-make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make r02-handoff-verify R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make verify-tester-package R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
 Create the handoff manifest only from the final clean release commit:
 
 ```bash
-make r02-handoff-create HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make r02-handoff-create R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
 The five private files and the manifest must be sent through encrypted private
