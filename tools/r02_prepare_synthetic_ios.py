@@ -21,7 +21,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT = ROOT / "ios/RunGameFounder/Resources/Local"
-SYNTHETIC_AUDIO_DURATION_SECONDS = 30
+SYNTHETIC_AUDIO_DURATION_SECONDS = 1800
 r02_prepare_ios = importlib.import_module(
     "tools.r02_prepare_ios" if __package__ else "r02_prepare_ios"
 )
@@ -127,11 +127,11 @@ def prepare(output_dir: Path = DEFAULT_OUTPUT) -> dict[str, Any]:
         _write_json(manifest_path, manifest)
 
         route_points = [
-            {"id": "start_and_finish-0", "role": "start_and_finish", "roleLabel": "Старт", "name": "Synthetic Start", "latitude": 10.0, "longitude": 20.0, "osmURL": "https://www.openstreetmap.org/node/1"},
-            {"id": "threshold-1", "role": "threshold", "roleLabel": "Порог", "name": "Synthetic Threshold", "latitude": 10.0001, "longitude": 20.0001, "osmURL": "https://www.openstreetmap.org/node/2"},
-            {"id": "witness-2", "role": "witness", "roleLabel": "Свидетель", "name": "Synthetic Witness", "latitude": 10.0002, "longitude": 20.0001, "osmURL": "https://www.openstreetmap.org/node/3"},
-            {"id": "triangulation-3", "role": "triangulation", "roleLabel": "Триангуляция", "name": "Synthetic Triangulation", "latitude": 10.0001, "longitude": 20.0002, "osmURL": "https://www.openstreetmap.org/node/4"},
-            {"id": "start_and_finish-4", "role": "start_and_finish", "roleLabel": "Финиш", "name": "Synthetic Start", "latitude": 10.0, "longitude": 20.0, "osmURL": "https://www.openstreetmap.org/node/1"},
+            {"id": "start_and_finish-0", "role": "start_and_finish", "roleLabel": "Старт", "name": "Synthetic Start", "latitude": 10.0001, "longitude": 20.0001, "osmURL": "https://www.openstreetmap.org/node/1"},
+            {"id": "threshold-1", "role": "threshold", "roleLabel": "Порог", "name": "Synthetic Threshold", "latitude": 10.0011, "longitude": 20.0011, "osmURL": "https://www.openstreetmap.org/node/2"},
+            {"id": "witness-2", "role": "witness", "roleLabel": "Свидетель", "name": "Synthetic Witness", "latitude": 10.0021, "longitude": 20.0011, "osmURL": "https://www.openstreetmap.org/node/3"},
+            {"id": "triangulation-3", "role": "triangulation", "roleLabel": "Триангуляция", "name": "Synthetic Triangulation", "latitude": 10.0011, "longitude": 20.0021, "osmURL": "https://www.openstreetmap.org/node/4"},
+            {"id": "start_and_finish-4", "role": "start_and_finish", "roleLabel": "Финиш", "name": "Synthetic Start", "latitude": 10.0001, "longitude": 20.0001, "osmURL": "https://www.openstreetmap.org/node/1"},
         ]
         timeline = r02_prepare_ios._timeline()
         synthetic_binding = {
