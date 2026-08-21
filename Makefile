@@ -9,7 +9,7 @@ R02_FIXTURE ?= research/r02/local/valparaiso_central
 R02_IOS_RESOURCES ?= $(IOS_DIR)/Resources/Local
 R02_AUDIO_MANIFEST := $(R02_IOS_RESOURCES)/m01_solo_founder_30min.manifest.json
 
-.PHONY: ios-prepare ios-synthetic-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test ios-synthetic-build ios-synthetic-build-for-testing ios-synthetic-unit-test ios-synthetic-ui-test ios-synthetic-test test-asan test-tsan quality r02-doctor r02-audit-privacy r02-preflight r02-synthetic-ios r02-handoff-create r02-handoff-verify r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify-tester-package verify-clean-room verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
+.PHONY: ios-prepare ios-synthetic-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test ios-synthetic-build ios-synthetic-build-for-testing ios-synthetic-unit-test ios-synthetic-ui-test ios-synthetic-test test-asan test-tsan quality r02-doctor r02-audit-privacy r02-preflight r02-synthetic-ios r02-handoff-create r02-handoff-verify r02-recover-cached-assets remote-python-ci r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify-tester-package verify-clean-room verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
 
 ios-prepare: r02-preflight
 	cd $(IOS_DIR) && RUN_GAME_BUNDLE_ID='$(IOS_BUNDLE_ID)' RUN_GAME_DEVELOPMENT_TEAM='$(IOS_DEVELOPMENT_TEAM)' xcodegen generate
@@ -89,6 +89,13 @@ r02-handoff-create:
 r02-handoff-verify:
 	@test -n "$(HANDOFF_MANIFEST)" || (echo 'Usage: make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json' >&2; exit 2)
 	$(PYTHON) tools/r02_handoff_manifest.py verify --fixture-dir $(R02_FIXTURE) --manifest "$(HANDOFF_MANIFEST)"
+
+r02-recover-cached-assets:
+	@test -n "$(CACHED_M4A)" && test -n "$(CACHED_MANIFEST)" && test -n "$(R02_RECOVERY_DIR)" || (echo 'Usage: make r02-recover-cached-assets CACHED_M4A=/path/to/m01_solo_founder_30min.m4a CACHED_MANIFEST=/path/to/m01_solo_founder_30min.manifest.json R02_RECOVERY_DIR=research/r02/local/recovered_cache' >&2; exit 2)
+	$(PYTHON) tools/r02_recover_cached_assets.py --audio-source "$(CACHED_M4A)" --manifest-source "$(CACHED_MANIFEST)" --output-dir "$(R02_RECOVERY_DIR)"
+
+remote-python-ci:
+	tools/r02_remote_python_ci.sh
 
 r02-audio-qa: r02-preflight
 	$(PYTHON) tools/r02_audio_qa.py --m4a $(R02_IOS_RESOURCES)/m01_solo_founder_30min.m4a --manifest $(R02_AUDIO_MANIFEST)

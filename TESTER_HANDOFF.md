@@ -8,6 +8,7 @@ Use this page as the release cover sheet. The executable protocol is
 ```text
 Release commit (full SHA): BLOCKED
 CI run URL/result: BLOCKED_ACCOUNT_BILLING — https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276
+Independent portable CI: NOT_YET_RUN — see docs/SSH_REMOTE_PYTHON_CI.md
 RELEASE_MANIFEST.json: BLOCKED
 Private bundle transferred with encryption: BLOCKED
 make r02-handoff-verify: BLOCKED
@@ -21,7 +22,9 @@ Except for the recorded CI billing blocker, these fields are deliberately
 `BLOCKED` in Git. They are evidence from the final commit, private transfer and
 tester hardware, so they must not be pre-filled or inferred from an earlier
 run. The owner must unlock GitHub Actions and obtain a new green run before
-changing the CI field to `PASS`.
+changing the GitHub CI field to `PASS`. An SSH host may independently close the
+portable Python/static/privacy lane, but cannot turn the Apple runtime lane
+green; see [`docs/SSH_REMOTE_PYTHON_CI.md`](docs/SSH_REMOTE_PYTHON_CI.md).
 
 ## Proven on the engineering checkout
 
@@ -34,6 +37,10 @@ changing the CI field to `PASS`.
   stalled after compilation and executed 0 test methods.
 - Pending evidence queue mutations now use durable transaction markers,
   fail-closed relaunch recovery and explicit quarantine/reset handling.
+- A locally installed old simulator app contains a verified copy of the accepted
+  M4A and its manifest, but not the other three authoritative files. It may be
+  preserved only as `UNVERIFIED_PARTIAL_RECOVERY`; it is not a releasable
+  fixture. See [`docs/EXTERNAL_COMPLETION_TZ.md`](docs/EXTERNAL_COMPLETION_TZ.md).
 
 ## Scope for external QA
 
