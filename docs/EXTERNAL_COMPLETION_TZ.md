@@ -48,6 +48,25 @@ resources в bundle/логе, зафиксированы Mac OS, Xcode, iOS runt
 сохранить только инструментом `r02-recover-cached-assets`; его статус
 `UNVERIFIED_PARTIAL_RECOVERY`, это не fixture и не release source.
 
+### Уже проверенные локальные источники — не повторять
+
+- В текущем Mac найдены и сохранены только M4A+manifest в старом Simulator
+  app; трёх остальных файлов там нет.
+- Инвентарь `DevMigrationBackup/serverforvovka-20260814T223704Z` содержит
+  `srv/LinguaLearn/english/run_game/research/r02/local/valparaiso_central/`,
+  но сам каталог и `audio/` в момент backup были пустыми.
+- Зашифрованные `dev-final`, `preliminary` и `ps38-supplement` migration
+  archives уже были потоково проинспектированы владельцем: ни одного из пяти
+  canonical R02 filenames в них нет.
+
+Слабой модели **нельзя** получать, читать или использовать age identity,
+зашифрованные backup’ы, SSH private keys, Apple credentials или private files.
+Её допустимая задача — только обновить публичный код/документацию и запустить
+synthetic checks. Поиск оригиналов продолжает владелец: другой Mac, Time
+Machine, облачное/внешнее зашифрованное хранилище либо приватное вложение.
+Найденный candidate bundle сначала проверяется локально командами ниже;
+передача модели для этой проверки не требуется.
+
 После восстановления:
 
 ```bash
