@@ -60,7 +60,7 @@
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS` (`ENGINEERING_RC`) | `R01` | Подготовлены clean-clone workflow, CI, privacy/history audit, переносимый signing, приватный handoff manifest и fail-closed durable queue recovery. На текущем checkout прошли 245 Python-тестов (6 fixture-dependent skips), static analysis, privacy audit и synthetic iOS build. Оригинальная Valparaíso fixture потеряна; создан отдельный local technical-only replacement из retained app projection и accepted M4A, с выключенными approvals. Swift runtime suite локально `NOT_RUN`: устройство Simulator загружается, но XCTest остаётся зависшим после compilation. | 21.08.2026 | Проверить reconstituted handoff/preflight → получить реальное Swift runtime evidence на втором Mac → physical-device smoke → founder-only field gates. |
+| **R02** | `IN_PROGRESS` (`ENGINEERING_RC`) | `R01` | Подготовлены clean-clone workflow, CI, privacy/history audit, переносимый signing, приватный handoff manifest и fail-closed durable queue recovery. На текущем checkout прошли 245 Python-тестов (6 fixture-dependent skips), static analysis, privacy audit, synthetic iOS build, 76 Swift unit tests и 5 UI tests. Оригинальная Valparaíso fixture потеряна; отдельный local technical-only replacement из retained app projection и accepted M4A проходит handoff/preflight/audio checks с выключенными approvals. | 22.08.2026 | Передать manifest-bound private package → physical-device smoke → founder-only field gates. |
 | **R03** | `NOT_STARTED`| `R02` | Созданы `research/r03/preregistration.v0.1.json`, `tools/r03_analyze.py` и `tests/test_r03_analyze.py` для офлайн-анализа синтетических A/B данных. | 11.08.2026 | Ожидает завершения физического этапа R02. |
 | **R04** | `NOT_STARTED`| `R02` | Создан `research/r04/decision_template.md` (decision-ready шаблон с описанием аудитории, оффера, stop-loss и метрик конверсии). | 11.08.2026 | Ожидает основательского решения по запуску тестов спроса (может идти параллельно с R03). |
 
@@ -76,7 +76,9 @@
 * `/usr/bin/python3 -m unittest discover -s tests`: `PASS` — 245 тестов, 0 ошибок, 6 пропусков только для отсутствующего приватного master/fixture.
 * `tools/r02_audit_privacy.py`: `PASS` — 5/5 проверок, включая reachable Git patch history; public R01 OSM coordinates явно отделены от private R02 scope.
 * `make ios-synthetic-build IOS_DEVELOPMENT_TEAM=""`: `PASS` на Xcode 26.3 / iOS 26.2 Simulator.
-* Swift targets: 76 unit-test methods и 5 UI-test methods компилируются; runtime execution на этой машине `NOT_RUN` — launcher завис после `Testing started`, run отменён через 90 секунд с 0 выполненных методов.
+* `make ios-synthetic-unit-test IOS_DEVELOPMENT_TEAM=""`: `PASS` — 76 тестов выполнено, 0 ошибок, iPhone 16 Pro Simulator / iOS 18.5.
+* `make ios-synthetic-ui-test IOS_DEVELOPMENT_TEAM=""`: `PASS` — 5 тестов выполнено, 0 ошибок, iPhone 16 Pro Simulator / iOS 18.5.
+* XCTest evidence: macOS 26.0 / Xcode 26.3; свежий Simulator полностью завершил `bootstatus` перед запуском. `.xcresult` хранится локально в `ios/RunGameFounder/DerivedData/Logs/Test/`.
 * `make verify-pretest`: `BLOCKED`, ожидаемо — приватных Valparaíso source assets нет на этой машине.
 * GitHub Actions: `BLOCKED_ACCOUNT_BILLING` — [run #1](https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276) создал два job, но GitHub не запустил ни один из-за billing lock аккаунта.
 
@@ -85,15 +87,14 @@
 ## 6. Open Blockers
 До передачи на physical device остаются инженерные и человеческие блокеры:
 
-1. **Technical handoff:** проверить local reconstituted Valparaíso fixture, создать/проверить `RELEASE_MANIFEST.json` с technical-only class и подтвердить accepted M4A hash. Historical private source bundle не восстановлен.
-2. **Independent Swift run:** получить зелёный runtime suite в CI или на втором Mac; локальная компиляция не заменяет execution.
-3. **Signing/device:** выбрать Apple Team, установить ровно manifest-bound commit и выполнить внешний QA smoke.
+1. **Technical handoff transfer:** пересоздать `RELEASE_MANIFEST.json` для финального release commit, передать manifest и private technical-only fixture по зашифрованному каналу. Historical private source bundle не восстановлен.
+2. **Signing/device:** выбрать Apple Team, установить ровно manifest-bound commit и выполнить внешний QA smoke.
 
-4. **GitHub Actions billing:** владелец организации должен снять billing lock и повторно запустить workflow; текущий failed badge не является test failure, потому что runner не выдавался.
+3. **GitHub Actions billing:** владелец организации должен снять billing lock и повторно запустить workflow; текущий failed badge не является test failure, потому что runner не выдавался.
 
-5. **Human Route Approval (`binding.human_route_approved`):** только основатель после реального дневного обхода.
-6. **Workout/M1/Public Start approvals:** только основатель; внешний QA-тестер не должен их выставлять.
-7. **Full Audio Lock-Screen Review:** полное 30-минутное прослушивание принятого M4A на физическом iPhone.
+4. **Human Route Approval (`binding.human_route_approved`):** только основатель после реального дневного обхода.
+5. **Workout/M1/Public Start approvals:** только основатель; внешний QA-тестер не должен их выставлять.
+6. **Full Audio Lock-Screen Review:** полное 30-минутное прослушивание принятого M4A на физическом iPhone.
 
 ---
 
@@ -108,3 +109,4 @@
 * **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
 * **11.08.2026 (R02):** Исторический baseline заявил `READY_FOR_DEVICE_SMOKE`; последующий полный аудит обнаружил, что локальные приватные assets отсутствуют, а текущий Xcode runner не даёт воспроизводимого runtime PASS. Заявление заменено evidence-based статусом.
 * **21.08.2026 (R02):** Оригинальные private binding/snapshot/AIFF признаны утраченными после проверки local migration backups. Из retained installed-app projection и verified accepted M4A создан отдельный `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`; до передачи остаются его final handoff checks, независимый Swift runtime и physical-device gates.
+* **22.08.2026 (R02):** После полного first boot нового iOS 18.5 Simulator локально выполнены 76/76 unit tests и 5/5 UI tests с exit 0. Reconstituted technical fixture прошёл manifest, doctor, privacy, preflight, audio QA и build gates; остаются private transfer, signing/physical-device smoke и founder-only field approvals.

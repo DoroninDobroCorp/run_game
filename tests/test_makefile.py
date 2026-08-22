@@ -176,8 +176,9 @@ class DocumentationIntegrityTests(unittest.TestCase):
             self.assertIn("IN_PROGRESS", doc_content, f"{name} must report IN_PROGRESS for R02")
             self.assertIn("NOT_STARTED", doc_content, f"{name} must report NOT_STARTED for R03/R04")
             self.assertIn("245", doc_content, f"{name} must report exact 245 Python test count")
-            self.assertIn("76", doc_content, f"{name} must report exact 76 Swift unit test method count")
-            self.assertIn("NOT_RUN", doc_content, f"{name} must not claim the local Swift runtime suite passed")
+            self.assertIn("76", doc_content, f"{name} must report the executed Swift unit test count")
+            self.assertIn("5", doc_content, f"{name} must report the executed Swift UI test count")
+            self.assertNotIn("runtime suite локально `NOT_RUN`", doc_content, f"{name} must not retain stale runtime status")
 
 
 if __name__ == "__main__":

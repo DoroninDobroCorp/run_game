@@ -1,8 +1,8 @@
 # R02B Field Verification & Evidence Memo (Valparaíso Route Draft)
 
-**Дата обновления:** 11 августа 2026 года
+**Дата обновления:** 22 августа 2026 года
 
-**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC`; private handoff, independent Swift runtime, physical device, audio, walk-through and run evidence pending)
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC`; Swift unit/UI runtime passed; private transfer, physical device, audio, walk-through and run evidence pending)
 
 **Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 

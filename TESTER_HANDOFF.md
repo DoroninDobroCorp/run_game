@@ -31,10 +31,9 @@ green; see [`docs/SSH_REMOTE_PYTHON_CI.md`](docs/SSH_REMOTE_PYTHON_CI.md).
 - 245 Python tests pass; 6 real-asset tests skip because the private fixture is
   absent.
 - `ruff`, `mypy`, Python compile and the five-part privacy/history audit pass.
-- The synthetic iOS app and all test targets compile under Xcode 26.3 with 76
-  unit-test methods and 5 UI-test methods.
-- Swift runtime execution is `NOT_RUN` locally: Xcode's simulator launcher
-  stalled after compilation and executed 0 test methods.
+- Under macOS 26.0 / Xcode 26.3 on an iPhone 16 Pro Simulator with iOS 18.5,
+  all 76 unit-test methods and all 5 UI-test methods execute and pass with 0
+  failures. A fresh Simulator must finish its first boot before XCTest starts.
 - Pending evidence queue mutations now use durable transaction markers,
   fail-closed relaunch recovery and explicit quarantine/reset handling.
 - The original private binding/snapshot/AIFF are unrecoverable. A separate

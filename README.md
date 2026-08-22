@@ -6,7 +6,7 @@
 > **Current Project Phase:** Stage `R02` `IN_PROGRESS`; engineering candidate prepared, a reconstituted technical handoff and physical-device checks pending. Stages `R03`/`R04` are `NOT_STARTED`.
 > **Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
 > **Planned Field Fixture:** Valparaíso Central, Chile. The original private fixture is lost; a local, ignored replacement is technical-QA-only and has no field approval.
-> **Readiness truth:** clean-clone Python/static/privacy checks and synthetic iOS build pass; local Swift runtime execution is `NOT_RUN` because the Xcode simulator launcher stalls after compilation.
+> **Readiness truth:** clean-clone Python/static/privacy checks, synthetic iOS build, 76 Swift unit tests and 5 UI tests pass locally. Physical-iPhone signing/install and founder-only field approvals remain deliberately manual.
 
 ---
 
@@ -131,6 +131,11 @@ make ios-synthetic-test IOS_DEVELOPMENT_TEAM=""
 # Validate the exact real tester package before device installation
 make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
+
+On a newly created Simulator, wait for `xcrun simctl bootstatus <UDID> -b` to
+print `Finished` before judging an XCTest launch as stalled. The first iOS
+runtime initialization can take more than 90 seconds; test success still
+requires a non-zero executed-test count and exit 0.
 
 ### Specialized Field Tools
 ```bash

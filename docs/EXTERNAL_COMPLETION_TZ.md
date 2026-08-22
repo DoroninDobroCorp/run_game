@@ -13,7 +13,12 @@ Swift test targets. Нужно закрыть только перечислен�
 ворота. Любой результат должен содержать полный SHA коммита, команду, OS/Xcode
 и полный лог; `COMPILED` нельзя выдавать за `TESTED`.
 
-## Задача A — получить независимое Apple runtime evidence
+## Задача A — получить Apple runtime evidence
+
+**Статус 22.08.2026:** выполнено локально на macOS 26.0 / Xcode 26.3,
+iPhone 16 Pro Simulator / iOS 18.5: 76 unit tests и 5 UI tests прошли с 0
+ошибок. Повтор на независимом runner остаётся полезным, но больше не блокирует
+external technical QA.
 
 **Исполнитель:** Mac с Xcode 26.3+ и рабочим CoreSimulator либо self-hosted
 macOS runner/Xcode Cloud. Linux SSH для этой задачи не подходит.
