@@ -17,17 +17,16 @@ import math
 import os
 from pathlib import Path
 import re
-import struct
 import subprocess
 import sys
 import tempfile
-from typing import Any
+from typing import Any, Sequence
 import unicodedata
 import wave
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BEATS = ROOT / "research/r02/mission_01_beats.v0.1.json"
-DEFAULT_LOCAL_DIR = ROOT / "research/r02/local/valparaiso_central"
+DEFAULT_LOCAL_DIR = ROOT / "research/r02/local/el_bolson"
 DEFAULT_BINDING = DEFAULT_LOCAL_DIR / "current.binding.json"
 DEFAULT_FIXTURE_BINDING = ROOT / "research/r02/fixtures/field_binding.example.json"
 DEFAULT_OUTPUT_DIR = DEFAULT_LOCAL_DIR / "audio"
@@ -303,7 +302,7 @@ def tts_segment_to_wav(
     return {"voice": voice_name, "rate": rate}
 
 
-def read_wav_pcm(path: Path) -> list[int]:
+def read_wav_pcm(path: Path) -> array:
     with wave.open(str(path), "rb") as wav_file:
         if wav_file.getnchannels() != 1:
             raise RuntimeError(f"Synthesized WAV must be mono: {path.name}")
@@ -319,7 +318,11 @@ def read_wav_pcm(path: Path) -> list[int]:
         data = wav_file.readframes(frame_count)
     if len(data) != frame_count * 2:
         raise RuntimeError(f"Synthesized WAV is truncated: {path.name}")
-    return list(struct.unpack(f"<{frame_count}h", data))
+    samples = array("h")
+    samples.frombytes(data)
+    if sys.byteorder != "little":
+        samples.byteswap()
+    return samples
 
 
 def compute_sha256(path: Path) -> str:
@@ -495,7 +498,7 @@ def _configured_profile(role: str) -> dict[str, str]:
 
 def _synthesize_samples(
     text: str, role: str, temp_wav: Path
-) -> tuple[list[int], dict[str, str]]:
+) -> tuple[array, dict[str, str]]:
     try:
         profile = tts_segment_to_wav(text, role, temp_wav)
         samples = read_wav_pcm(temp_wav)
@@ -514,7 +517,7 @@ def _synthesize_samples(
     return samples, {"voice": voice, "rate": rate}
 
 
-def _mix_samples(pcm_buffer: array, start_sec: float, samples: list[int], label: str) -> None:
+def _mix_samples(pcm_buffer: array, start_sec: float, samples: Sequence[int], label: str) -> None:
     if not samples:
         raise RuntimeError(f"{label} has zero duration")
     start_sample = int(start_sec * SAMPLE_RATE)
@@ -601,39 +604,23 @@ def validate_rendered_timeline(
                 )
 
 
-def convert_master_formats(master_wav: Path, master_aiff: Path, master_m4a: Path) -> None:
-    subprocess.run(
-        [
-            "afconvert",
-            "-f",
-            "AIFF",
-            "-c",
-            "1",
-            "-d",
-            f"BEI16@{SAMPLE_RATE}",
-            str(master_wav),
-            str(master_aiff),
-        ],
-        check=True,
-        capture_output=True,
-        timeout=CONVERSION_TIMEOUT_SEC,
-    )
-    subprocess.run(
+def convert_master_formats(pcm: array, master_aiff: Path, master_m4a: Path) -> None:
+    """Stream PCM into both containers without a second full-size disk master."""
+    result = subprocess.run(
         [
             "ffmpeg",
-            "-y",
-            "-i",
-            str(master_wav),
-            "-c:a",
-            "aac",
-            "-b:a",
-            "192k",
-            str(master_m4a),
+            "-v", "error", "-y", "-f", "s16le" if sys.byteorder == "little" else "s16be",
+            "-ar", str(SAMPLE_RATE), "-ac", "1", "-i", "pipe:0",
+            "-c:a", "pcm_s16be", str(master_aiff),
+            "-c:a", "aac", "-b:a", "192k", str(master_m4a),
         ],
-        check=True,
+        input=memoryview(pcm).cast("B"),
         capture_output=True,
         timeout=CONVERSION_TIMEOUT_SEC,
     )
+    if result.returncode != 0:
+        detail = result.stderr.decode("utf-8", errors="replace").strip()
+        raise RuntimeError(f"Master audio encoding failed: {detail or result.returncode}")
     if not master_aiff.is_file() or not master_m4a.is_file():
         raise RuntimeError("audio conversion did not produce both master files")
 
@@ -721,7 +708,6 @@ def build_master_audio(
         prefix=f".{output_dir.name}.r02-stage-", dir=output_dir.parent
     ) as staging_name:
         staging_dir = Path(staging_name)
-        master_wav = staging_dir / f"{MASTER_STEM}.working.wav"
         master_aiff = staging_dir / filenames["aiff"]
         master_m4a = staging_dir / filenames["m4a"]
         manifest_path = staging_dir / filenames["manifest"]
@@ -750,7 +736,7 @@ def build_master_audio(
 
         cues_manifest: list[dict[str, Any]] = []
         for cue in story_plan:
-            cue_samples: list[int] = []
+            cue_samples = array("h")
             spoken_segments: list[dict[str, Any]] = []
             for segment_index, (segment_role, segment_text) in enumerate(
                 cue["segments"], start=1
@@ -803,16 +789,7 @@ def build_master_audio(
             TARGET_DURATION_SEC,
         )
 
-        with wave.open(str(master_wav), "wb") as wav_file:
-            wav_file.setnchannels(1)
-            wav_file.setsampwidth(2)
-            wav_file.setframerate(SAMPLE_RATE)
-            if sys.byteorder != "little":
-                pcm_buffer.byteswap()
-            wav_file.writeframes(pcm_buffer.tobytes())
-
-        convert_master_formats(master_wav, master_aiff, master_m4a)
-        master_wav.unlink(missing_ok=True)
+        convert_master_formats(pcm_buffer, master_aiff, master_m4a)
 
         duration_aiff = get_audio_duration_afinfo(master_aiff)
         duration_m4a = get_audio_duration_afinfo(master_m4a)

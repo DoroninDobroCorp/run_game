@@ -1,5 +1,9 @@
 # R02B Field Verification & Evidence Memo (Valparaíso Route Draft)
 
+> Исторический документ Valparaíso. Текущий маршрут и пакет Эль-Больсона:
+> [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md); текущие результаты:
+> [PRE_FIRST_TEST_READINESS.md](PRE_FIRST_TEST_READINESS.md).
+
 **Дата обновления:** 22 августа 2026 года
 
 **Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC`; Swift unit/UI runtime passed; private transfer, physical device, audio, walk-through and run evidence pending)

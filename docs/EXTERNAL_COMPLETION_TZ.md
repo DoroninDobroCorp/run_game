@@ -1,5 +1,9 @@
 # ТЗ: закрыть оставшиеся release-gates перед передачей тестеру
 
+> Исторический документ Valparaíso. Текущий маршрут и пакет Эль-Больсона:
+> [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md); текущие результаты:
+> [PRE_FIRST_TEST_READINESS.md](PRE_FIRST_TEST_READINESS.md).
+
 ## Контекст и жёсткие правила
 
 Репозиторий: `DoroninDobroCorp/run_game`, ветка-кандидат:

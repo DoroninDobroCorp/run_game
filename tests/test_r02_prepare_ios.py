@@ -156,6 +156,30 @@ class R02PrepareIOSTests(unittest.TestCase):
             r02_prepare_ios.compute_sha256(self.output / r02_prepare_ios.EXPECTED_M4A_FILE),
         )
 
+    def test_offline_geometry_is_validated_hashed_and_published(self):
+        coordinates = [
+            dict(latitude=10.0001, longitude=20.0001),
+            dict(latitude=10.0011, longitude=20.0001),
+            dict(latitude=10.0011, longitude=20.0011),
+            dict(latitude=10.0001, longitude=20.0011),
+            dict(latitude=10.0001, longitude=20.0001),
+        ]
+        for role, point in zip(r02_prepare_ios.REQUIRED_ROUTE_ROLES, coordinates):
+            self.snapshot["osm_candidates"][role].update(point)
+        route = dict(coordinates=coordinates, waypointIndices=[0, 1, 2, 3, 4],
+                     source="Synthetic", attribution="Synthetic", note="Unit test")
+        self.snapshot["offline_route"] = route
+        self.write_fixture()
+        mission = r02_prepare_ios.prepare(self.fixture, self.output)
+        self.assertEqual(mission["offlineRoute"], route)
+        self.assertEqual(mission["offlineRouteSHA256"], r02_prepare_ios.canonical_json_sha256(route))
+        previous = (self.output / "mission.json").read_bytes()
+        route["waypointIndices"] = [0, 2, 1, 3, 4]
+        self.write_fixture()
+        with self.assertRaisesRegex(ValueError, "increase"):
+            r02_prepare_ios.prepare(self.fixture, self.output)
+        self.assertEqual(previous, (self.output / "mission.json").read_bytes())
+
     def test_display_and_prefix_have_safe_fixture_fallbacks(self):
         self.snapshot.pop("fixture_metadata")
         self.write_fixture()

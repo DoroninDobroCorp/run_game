@@ -154,14 +154,14 @@ class DocumentationIntegrityTests(unittest.TestCase):
         self.assertNotIn("$250", content, "README.md must not contain stale $250 budget figure")
         self.assertNotIn("3.0%", content, "README.md must not contain stale 3.0% PDCR figure")
         self.assertNotIn("156 tests", content, "README.md must not contain outdated 156 test count")
-        self.assertIn("245 tests", content, "README.md must reflect exact 245 Python test count")
+        self.assertIn("make verify-synthetic", content, "README.md must provide the executable Python verification command")
 
         self.assertIn("R02", content, "README.md must mention Stage R02")
         self.assertIn("IN_PROGRESS", content, "README.md must report R02 as IN_PROGRESS")
         self.assertIn("NOT_STARTED", content, "README.md must report R03/R04 as NOT_STARTED")
 
     def test_execution_status_and_readiness_report_honest_counts_and_status(self) -> None:
-        """Verify EXECUTION_STATUS.md and PRE_FIRST_TEST_READINESS.md report honest R02 IN_PROGRESS, R03/R04 NOT_STARTED, and exact test counts."""
+        """Readiness docs retain honest research stages and reproducible test commands."""
         exec_status_path = ROOT / "docs" / "EXECUTION_STATUS.md"
         readiness_path = ROOT / "docs" / "PRE_FIRST_TEST_READINESS.md"
 
@@ -175,9 +175,8 @@ class DocumentationIntegrityTests(unittest.TestCase):
             self.assertIn("R02", doc_content, f"{name} must contain R02 stage")
             self.assertIn("IN_PROGRESS", doc_content, f"{name} must report IN_PROGRESS for R02")
             self.assertIn("NOT_STARTED", doc_content, f"{name} must report NOT_STARTED for R03/R04")
-            self.assertIn("245", doc_content, f"{name} must report exact 245 Python test count")
-            self.assertIn("76", doc_content, f"{name} must report the executed Swift unit test count")
-            self.assertIn("5", doc_content, f"{name} must report the executed Swift UI test count")
+            self.assertIn("make verify-synthetic", doc_content, f"{name} must identify Python suite verification")
+            self.assertIn("make el-bolson-test", doc_content, f"{name} must identify real-bundle iOS verification")
             self.assertNotIn("runtime suite локально `NOT_RUN`", doc_content, f"{name} must not retain stale runtime status")
 
 

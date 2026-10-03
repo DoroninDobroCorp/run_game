@@ -1,26 +1,27 @@
 # Run Game Founder — инструкция первого теста с нуля
 
-**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / BLOCKED_ON_PRIVATE_HANDOFF_AND_DEVICE`)
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / DEVICE_AND_FIELD_REVIEW_PENDING`)
 
-**Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+**Accepted Master Audio SHA-256:** `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`
 
 Это инструкция для владельца проекта. Приложение — локальный founder-only
 research instrument, не медицинская рекомендация и не публичный продукт.
 Fitness-сетка ещё не прошла профильный review. До внешних участников она не
 допускается.
 
-Активная фикстура — **центральный Вальпараисо**. Santiago неактивен: сохранённая
-рядом папка `santiago_cumming/` не должна молча подменять Valparaíso.
+Активная фикстура — **Эль-Больсон**, со стартом в середине Avenida Patagonia
+Argentina. Подготовка и пробный круг описаны в [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md).
 
-На 16 августа 2026 года private bundle отсутствует на проверочной машине, а
-physical-device smoke, дневной walk-through, полное
+На 2 октября 2026 года локальный offline bundle подготовлен и проверен.
+Physical-device smoke, дневной walk-through, полное
 lock-screen прослушивание и M1-A founder run ещё не считаются выполненными.
 Первый сюжетный run запрещён, пока приложение не показывает **3/3** и текущая
 попытка не прошла отдельный GPS/pre-run checklist.
 
 ## Что делает и не делает текущая версия
 
-Приложение содержит offline master, Apple Maps pedestrian preview, локальный
+Приложение содержит offline master, сохранённую геометрию маршрута, пробный
+круг в симуляции, Apple Maps preview, локальный
 GPS→GPX, recovery checkpoints, route/audio gates и unique-run JSON-дебриф.
 
 Важное ограничение: master фиксирован по времени. Его 27 `NAV` cues —
@@ -30,16 +31,15 @@ run должен быть знаком после отдельного обхо�
 проверить и при необходимости retime до сюжетного теста.
 
 У проекта нет backend, аккаунта или аналитики. GPX и evidence сохраняются в
-Documents приложения и никуда не отправляются автоматически. Однако карта и
-pedestrian preview используют онлайн-сервис Apple Maps; Apple получает
-необходимые для этого запросы. Нажатие Share/Export передаёт выбранный файл в
+Documents приложения и никуда не отправляются автоматически. Сохранённая геометрия Эль-Больсона и схема работают без сети. Подложка карты
+использует Apple Maps; legacy bundles без геометрии также обращаются к Apple
+за pedestrian routing. Apple получает необходимые для этих функций запросы. Нажатие Share/Export передаёт выбранный файл в
 указанное вами место.
 
 ## Часть A. Offline preflight на Mac
 
 1. Откройте Terminal в корне существующего репозитория `run_game`. Не создавайте
-   второй clone и не переключайте текущий Valparaíso checkout на старый Santiago
-   commit.
+   второй clone; проверяйте commit, указанный в локальном release manifest.
 2. Проверьте, что доступны Xcode command-line tools, Python 3 и хотя бы один
    системный audio probe (`afinfo` уже входит в macOS; `ffprobe` подходит как
    первый вариант):
@@ -53,8 +53,9 @@ command -v ffprobe || command -v afinfo
 `xcodegen` нужен только для явной регенерации project через `make ios-prepare`,
 но не для `make r02-preflight`.
 
-3. Убедитесь, что локально существует папка
-   `research/r02/local/valparaiso_central/` с binding, snapshot, manifest и M4A.
+3. Выполните `make el-bolson-setup`, если материалы ещё не подготовлены.
+   Убедитесь, что локально существует папка
+   `research/r02/local/el_bolson/` с binding, snapshot, manifest и M4A.
    Полный handoff также обязан содержать AIFF и пройти manifest verification.
 4. Выполните из точного manifest-bound commit:
 
@@ -65,7 +66,7 @@ make verify-pretest
 make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
 ```
 
-Команда явно готовит iOS resources из Valparaíso и запускает offline integrity
+Команда явно готовит iOS resources из Эль-Больсона и запускает offline integrity
 check. Продолжать можно только при JSON-статусе:
 
 ```text
@@ -109,9 +110,10 @@ gate пока также остаётся незакрытой; она не вх
 
 ## Часть C. Короткий device smoke дома
 
-1. Откройте «Проверить маршрут». Нужен интернет: Apple Maps должен построить
-   **все четыре** пешеходных сегмента между пятью route points. Partial preview
-   считается ошибкой, а не маршрутом.
+1. Откройте «Проверить маршрут». Должны загрузиться **все четыре** сохранённых
+   сегмента между пятью route points. Для подложки Apple Maps может понадобиться
+   интернет; сама геометрия Эль-Больсона и схема «Попробовать маршрут» офлайн.
+   Partial preview считается ошибкой, а не маршрутом.
 2. Не ставьте route checklist дома: preview не проверяет безопасность и не
    заменяет обход.
 3. В безопасном месте запустите короткую диагностическую GPX-запись, разрешите
@@ -224,7 +226,7 @@ approval record на устройстве, привязанная к route/worko
 
 Отдельно перенесите четыре значения из `binding_field_values`, честные
 `route_surface_notes`/`crossing_notes` и локальную ISO-8601 дату с timezone в
-`research/r02/local/valparaiso_central/current.binding.json`.
+`research/r02/local/el_bolson/current.binding.json`.
 Установите route/workout/human и три slot approvals в `true` только после
 реального review, затем снова выполните `make r02-preflight`. Перед M1-A массив
 `human_blockers_to_m1_a` должен быть пуст. После этого **не удаляйте приложение**:
@@ -261,7 +263,7 @@ dashboard **3/3**.
 Начинайте только при **3/3**, днём и на знакомом после walk-through маршруте.
 Fixed-time master не ведёт по поворотам: маршрут должен быть известен заранее.
 
-1. Откройте «Начать M1-A».
+1. Откройте «Начать миссию».
 2. Честно подтвердите четыре pre-run пункта: маршрут знаком; условия и
    самочувствие подходят; громкость сохраняет слышимость окружения; перед
    экраном/pause вы сначала остановите движение.

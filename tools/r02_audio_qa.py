@@ -10,6 +10,7 @@ or granting human audio approval.
 from __future__ import annotations
 
 import argparse
+import importlib
 import hashlib
 import json
 from pathlib import Path
@@ -18,9 +19,11 @@ import subprocess
 import sys
 from typing import Any
 
+profiles = importlib.import_module("tools.r02_release_profiles" if __package__ else "r02_release_profiles")
+
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_M4A_PATH = ROOT / "research/r02/local/valparaiso_central/audio/m01_solo_founder_30min.m4a"
-DEFAULT_MANIFEST_PATH = ROOT / "research/r02/local/valparaiso_central/audio/m01_solo_founder_30min.manifest.json"
+DEFAULT_M4A_PATH = ROOT / "research/r02/local/el_bolson/audio/m01_solo_founder_30min.m4a"
+DEFAULT_MANIFEST_PATH = ROOT / "research/r02/local/el_bolson/audio/m01_solo_founder_30min.manifest.json"
 
 EXPECTED_DURATION_SEC = 1800.0
 DURATION_TOLERANCE_SEC = 0.5
@@ -276,7 +279,11 @@ def probe_audio(
                 }
 
     sha_matches_manifest = (manifest_sha is not None) and (actual_sha256 == manifest_sha)
-    sha_matches_expected_master = (actual_sha256 == EXPECTED_MASTER_SHA256)
+    expected_master = profiles.expected_master(
+        manifest_data.get("binding_id") if isinstance(manifest_data, dict) else None,
+        EXPECTED_MASTER_SHA256,
+    )
+    sha_matches_expected_master = (actual_sha256 == expected_master)
     sha_match = sha_matches_manifest if manifest_path is not None else sha_matches_expected_master
 
     try:
@@ -346,7 +353,7 @@ def probe_audio(
         "m4a_file": m4a_path.name,
         "manifest_file": manifest_path.name if manifest_path else None,
         "actual_sha256": actual_sha256,
-        "expected_sha256": manifest_sha or EXPECTED_MASTER_SHA256,
+        "expected_sha256": expected_master,
         "probed_duration_sec": format_info["duration_sec"],
         "expected_duration_sec": EXPECTED_DURATION_SEC,
         "format": {

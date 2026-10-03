@@ -23,6 +23,7 @@ final class AppModel: ObservableObject {
     @Published private(set) var audioApprovalEvidence: AudioApprovalRecord?
     @Published private(set) var recoveredTrackURLs: [URL] = []
     @Published private(set) var localEvidenceURLs: [URL] = []
+    @Published private(set) var simulationReportURLs: [URL] = []
     @Published private(set) var pendingDebriefs: [RunSessionContext] = []
     @Published private(set) var pendingRecalls: [PendingRecall] = []
     @Published private(set) var queueQuarantineURLs: [URL] = []
@@ -183,12 +184,20 @@ final class AppModel: ObservableObject {
             .filter { $0.lastPathComponent.hasSuffix(".partial.gpx") }
             .sorted { $0.lastPathComponent < $1.lastPathComponent }
         let isRecallPending = !pendingRecalls.isEmpty
+        simulationReportURLs = urls
+            .filter { $0.lastPathComponent.hasPrefix("simulation-") && $0.pathExtension.lowercased() == "json" }
+            .sorted {
+                let left = (try? $0.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                let right = (try? $1.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate ?? .distantPast
+                return left > right
+            }
         localEvidenceURLs = urls
             .filter { url in
                 let name = url.lastPathComponent
                 let ext = url.pathExtension.lowercased()
                 if name.hasSuffix(".partial.gpx") { return false }
                 if name.hasSuffix("-draft.json") { return false }
+                if name.hasPrefix("simulation-") { return false }
                 if name == "pending_debriefs.json" || name == "pending_recalls.json" || name == "pending_queue_transaction.json" || name == ActiveRunJournal.journalFilename { return false }
                 if isRecallPending && ext == "json" { return false }
                 return ["gpx", "json"].contains(ext)

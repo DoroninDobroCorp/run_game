@@ -34,12 +34,14 @@ private struct DashboardView: View {
                 recoveryErrorBanner
                 queueQuarantineFiles
                 hero
+                rehearsalCard
                 readiness
                 debriefQueue
                 recallQueue
                 recoveredTracks
-                localEvidence
                 actionCards
+                simulationReports
+                localEvidence
                 evidenceNotice
                 resetButton
             }
@@ -108,6 +110,24 @@ private struct DashboardView: View {
                 }
             }
             .runGamePanel()
+        }
+    }
+
+    @ViewBuilder
+    private var simulationReports: some View {
+        if !appModel.simulationReportURLs.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Пробные забеги", systemImage: "play.desktopcomputer").font(.headline)
+                Text("Результаты симуляции. Настоящий GPS здесь не записывался.")
+                    .font(.footnote).foregroundStyle(.secondary)
+                ForEach(appModel.simulationReportURLs.prefix(5), id: \.self) { url in
+                    ShareLink(item: url) {
+                        let date = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+                        Label(date?.formatted(date: .abbreviated, time: .shortened) ?? "Отчёт тестового круга", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }.runGamePanel()
+            .accessibilityIdentifier("simulationReports")
         }
     }
 
@@ -203,15 +223,21 @@ private struct DashboardView: View {
             Text(mission.locationDisplayName)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(.secondary)
-            HStack(spacing: 10) {
-                Label("\(Int(mission.durationSeconds / 60)) минут", systemImage: "timer")
-                Label("\(mission.timeline.filter { $0.kind == "run" }.count) интервалов", systemImage: "figure.run")
-                Label("офлайн-аудио", systemImage: "airplane")
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 10) { missionStats }
+                VStack(alignment: .leading, spacing: 8) { missionStats }
             }
             .font(.caption.weight(.semibold))
             .foregroundStyle(.secondary)
         }
         .padding(.vertical, 8)
+    }
+
+    @ViewBuilder
+    private var missionStats: some View {
+                Label("\(Int(mission.durationSeconds / 60)) минут", systemImage: "timer")
+                Label("\(mission.timeline.filter { $0.kind == "run" }.count) интервалов", systemImage: "figure.run")
+                Label("офлайн-аудио", systemImage: "airplane")
     }
 
     private var readiness: some View {
@@ -226,13 +252,39 @@ private struct DashboardView: View {
             }
             ProgressView(value: Double(appModel.readinessCompletedSteps), total: 3)
                 .tint(RunGameTheme.electric)
-            readinessRow("Bundle и SHA master проверены", complete: true)
+            readinessRow("История и аудио сохранены на iPhone", complete: true)
             readinessRow("Маршрут записан GPX и одобрен", complete: appModel.routeApproved)
-            readinessRow("Master полностью проверен дома", complete: appModel.homeAudioCompleted)
+            readinessRow("Аудио полностью проверено дома", complete: appModel.homeAudioCompleted)
             Divider()
-            readinessRow("Отдельный Mac gate: field review в binding", complete: mission.m1HumanApprovalComplete)
+            readinessRow("Полевой маршрут подтверждён", complete: mission.m1HumanApprovalComplete)
         }
         .runGamePanel()
+    }
+
+    @ViewBuilder
+    private var rehearsalCard: some View {
+        if let route = mission.offlineRoute {
+            NavigationLink {
+                RehearsalView(mission: mission)
+            } label: {
+                VStack(alignment: .leading, spacing: 14) {
+                    RouteDiagram(route: route).frame(height: 210)
+                    HStack {
+                        VStack(alignment: .leading, spacing: 5) {
+                            Text("Попробовать маршрут").font(.headline).foregroundStyle(.primary)
+                            Text(String(format: "%.2f км · тестовый круг за минуту", route.distanceMeters / 1000))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "play.circle.fill").font(.largeTitle).foregroundStyle(RunGameTheme.electric)
+                    }
+                    Text("Старт: \(mission.routePoints.first?.name ?? "")")
+                        .font(.caption).foregroundStyle(.secondary)
+                }.runGamePanel()
+            }
+            .accessibilityIdentifier("rehearsalLink")
+            .disabled(appModel.evidenceCaptureLocked)
+        }
     }
 
     @ViewBuilder
@@ -291,7 +343,7 @@ private struct DashboardView: View {
             } label: {
                 actionLabel(
                     number: "03",
-                    title: "Начать M1-A",
+                    title: "Начать миссию",
                     detail: missionStartDetail,
                     icon: "figure.run.circle.fill",
                     complete: false,
@@ -311,11 +363,11 @@ private struct DashboardView: View {
             return "Новая M1 откроется после обязательного 24-часового recall"
         }
         if appModel.canStartMission {
-            return "Founder run готов к запуску"
+            return "Маршрут, GPS и история готовы к старту"
         }
         return mission.m1HumanApprovalComplete
             ? "Откроется после шагов 01 и 02"
-            : "Сначала закрой human_blockers_to_m1_a на Mac"
+            : "Сначала пройди маршрут и заверши полевую проверку"
     }
 
     private var evidenceNotice: some View {

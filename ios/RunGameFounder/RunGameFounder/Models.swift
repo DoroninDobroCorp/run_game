@@ -25,6 +25,8 @@ struct MissionConfig: Codable {
     let timeline: [TimelineBlock]
     let timelineSHA256: String
     let evidenceNotice: String
+    var offlineRoute: OfflineRoute? = nil
+    var offlineRouteSHA256: String? = nil
 
     static func loadFromBundle(bundle: Bundle = .main) throws -> MissionConfig {
         guard let url = bundle.url(forResource: "mission", withExtension: "json") else {
@@ -136,6 +138,16 @@ struct MissionConfig: Codable {
         if !problems.isEmpty {
             throw FounderAppError.invalidMission(problems.joined(separator: "; "))
         }
+        if let offlineRoute {
+            try offlineRoute.validate(waypoints: routePoints)
+            guard let expected = offlineRouteSHA256,
+                  let actual = try? BundleIntegrity.canonicalSHA256(of: offlineRoute),
+                  expected.caseInsensitiveCompare(actual) == .orderedSame else {
+                throw FounderAppError.invalidMission("SHA-256 офлайн-маршрута не совпадает")
+            }
+        } else if offlineRouteSHA256 != nil {
+            throw FounderAppError.invalidMission("Отсутствует геометрия офлайн-маршрута")
+        }
         guard let actualRouteSHA = try? BundleIntegrity.canonicalSHA256(of: routePoints),
               actualRouteSHA.caseInsensitiveCompare(routeSHA256) == .orderedSame else {
             throw FounderAppError.invalidMission("routeSHA256 не совпадает с routePoints")
@@ -155,7 +167,8 @@ struct MissionConfig: Codable {
             gpxPrefix: gpxPrefix,
             durationSeconds: durationSeconds,
             routePoints: routePoints,
-            timeline: timeline
+            timeline: timeline,
+            offlineRoute: offlineRoute
         )
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
@@ -173,6 +186,7 @@ private struct RouteWorkoutFingerprint: Codable {
     let durationSeconds: TimeInterval
     let routePoints: [RoutePoint]
     let timeline: [TimelineBlock]
+    let offlineRoute: OfflineRoute?
 }
 
 enum BundleIntegrity {

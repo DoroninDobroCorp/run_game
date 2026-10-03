@@ -49,7 +49,7 @@ struct RouteWalkthroughView: View {
             Button("Остановить и сохранить GPX", role: .destructive) { finishWalkthrough() }
             Button("Продолжить", role: .cancel) {}
         }
-        .task { await planner.load(points: mission.routePoints) }
+        .task { await planner.load(points: mission.routePoints, offlineRoute: mission.offlineRoute) }
         .onAppear {
             if walkthroughEvidence == nil && !appModel.routeApproved {
                 walkthroughEvidence = appModel.pendingWalkthroughEvidence
@@ -89,7 +89,7 @@ struct RouteWalkthroughView: View {
 
     private var routeSummary: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Пешеходный preview Apple Maps")
+            Text(planner.usesOfflineGeometry ? "Маршрут сохранён на iPhone" : "Пешеходный preview Apple Maps")
                 .font(.headline)
             if let error = planner.errorMessage {
                 Label(error, systemImage: "wifi.exclamationmark")
@@ -101,6 +101,10 @@ struct RouteWalkthroughView: View {
             } else {
                 Text("Маршрут рассчитывается. Это preview, а не safety approval.")
                     .foregroundStyle(.secondary)
+            }
+            if let route = mission.offlineRoute {
+                Text(route.note).font(.footnote).foregroundStyle(.secondary)
+                Text(route.attribution).font(.caption2).foregroundStyle(.secondary)
             }
         }
         .runGamePanel()

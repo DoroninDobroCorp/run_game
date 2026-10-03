@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 from datetime import datetime
 import hashlib
 import json
@@ -18,8 +19,10 @@ import tempfile
 import unicodedata
 from typing import Any, Callable
 
+route_geometry = importlib.import_module("tools.route_geometry" if __package__ else "route_geometry")
+
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_FIXTURE = ROOT / "research/r02/local/valparaiso_central"
+DEFAULT_FIXTURE = ROOT / "research/r02/local/el_bolson"
 DEFAULT_OUTPUT = ROOT / "ios/RunGameFounder/Resources/Local"
 
 EXPECTED_M4A_FILE = "m01_solo_founder_30min.m4a"
@@ -667,6 +670,10 @@ def validate_fixture(fixture_dir: Path) -> dict[str, Any]:
         "timeline": timeline,
         "evidenceNotice": "Маршрут и нагрузка становятся доступными для боевого запуска только после дневного обхода и домашней аудиопроверки.",
     }
+    if "offline_route" in snapshot:
+        offline_route = route_geometry.validate_route(snapshot["offline_route"], route_points)
+        mission["offlineRoute"] = offline_route
+        mission["offlineRouteSHA256"] = canonical_json_sha256(offline_route)
     return {
         "binding": binding,
         "snapshot": snapshot,

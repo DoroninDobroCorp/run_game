@@ -35,6 +35,17 @@ def _write_json(path: Path, value: Any) -> None:
 
 
 def _generate_silent_m4a(output: Path) -> None:
+    if shutil.which("ffmpeg"):
+        # Stream silence into AAC instead of materializing a 30-minute WAV.
+        result = subprocess.run(
+            ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
+             "anullsrc=r=8000:cl=mono", "-t", str(SYNTHETIC_AUDIO_DURATION_SECONDS),
+             "-c:a", "aac", "-b:a", "16k", str(output)],
+            capture_output=True, text=True, timeout=60,
+        )
+        if result.returncode == 0 and output.is_file() and output.stat().st_size > 0:
+            return
+        raise RuntimeError(f"Synthetic AAC encoding failed: {result.stderr.strip()}")
     with tempfile.TemporaryDirectory(prefix="r02-synthetic-audio-") as temp_dir:
         wav_path = Path(temp_dir) / "silence.wav"
         sample_rate = 8_000
@@ -164,6 +175,15 @@ def prepare(output_dir: Path = DEFAULT_OUTPUT) -> dict[str, Any]:
             "timelineSHA256": r02_prepare_ios.canonical_json_sha256(timeline),
             "evidenceNotice": "SYNTHETIC TEST BUNDLE: запрещено использовать для device smoke, маршрута или founder evidence.",
         }
+        offline_route = {
+            "coordinates": [{key: point[key] for key in ("latitude", "longitude")} for point in route_points],
+            "waypointIndices": list(range(len(route_points))),
+            "source": "Synthetic test geometry",
+            "attribution": "Synthetic test data — no real map or field route",
+            "note": "Только для автоматизированных проверок интерфейса и симуляции.",
+        }
+        mission["offlineRoute"] = offline_route
+        mission["offlineRouteSHA256"] = r02_prepare_ios.canonical_json_sha256(offline_route)
 
         validated = {
             "mission": mission,

@@ -9,6 +9,7 @@ Outputs machine-readable JSON status (PASS/WARN/BLOCKED).
 from __future__ import annotations
 
 import argparse
+import importlib
 import json
 import platform
 from pathlib import Path
@@ -19,10 +20,12 @@ from typing import Any
 import os
 import shutil
 
+profiles = importlib.import_module("tools.r02_release_profiles" if __package__ else "r02_release_profiles")
+
 ROOT = Path(__file__).resolve().parents[1]
 
 EXPECTED_MASTER_SHA256 = "17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22"
-DEFAULT_FIXTURE = ROOT / "research/r02/local/valparaiso_central"
+DEFAULT_FIXTURE = ROOT / "research/r02/local/el_bolson"
 DEFAULT_IOS_RESOURCES = ROOT / "ios/RunGameFounder/Resources/Local"
 DEFAULT_PROJECT_YML = ROOT / "ios/RunGameFounder/project.yml"
 
@@ -129,6 +132,15 @@ def inspect_git() -> dict[str, Any]:
         return {"status": "WARN", "detail": f"Git inspection failed: {exc}"}
 
 
+def expected_master_sha(fixture_dir: Path) -> str:
+    try:
+        binding = json.loads((fixture_dir / "current.binding.json").read_text(encoding="utf-8"))
+        binding_id = binding.get("binding_id") if isinstance(binding, dict) else None
+    except (OSError, ValueError):
+        binding_id = None
+    return profiles.expected_master(binding_id, EXPECTED_MASTER_SHA256)
+
+
 def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[str, Any]:
     fixture_exists = fixture_dir.is_dir()
     ios_resources_exist = ios_resources_dir.is_dir()
@@ -175,7 +187,7 @@ def inspect_local_fixtures(fixture_dir: Path, ios_resources_dir: Path) -> dict[s
             while chunk := f.read(65536):
                 digest.update(chunk)
         m4a_sha = digest.hexdigest()
-        master_sha_matches = (m4a_sha == EXPECTED_MASTER_SHA256)
+        master_sha_matches = (m4a_sha == expected_master_sha(fixture_dir))
 
     prepared_missing = [name for name, path in prepared_paths.items() if not path.is_file()]
     if prepared_missing and ios_resources_exist:

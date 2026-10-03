@@ -1,8 +1,10 @@
 import hashlib
+from array import array
 import json
 import os
 from pathlib import Path
 import tempfile
+import shutil
 import unittest
 from unittest import mock
 import wave
@@ -90,8 +92,8 @@ class R02BuildMasterTests(unittest.TestCase):
         return {"voice": f"synthetic-{role}", "rate": "100"}
 
     @staticmethod
-    def _fake_conversion(master_wav, master_aiff, master_m4a):
-        payload = master_wav.read_bytes()
+    def _fake_conversion(pcm, master_aiff, master_m4a):
+        payload = pcm.tobytes()
         master_aiff.write_bytes(payload + b"-aiff")
         master_m4a.write_bytes(payload + b"-m4a")
 
@@ -106,6 +108,26 @@ class R02BuildMasterTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(ValueError, "condition must be A or B"):
             r02_build_master.master_filenames("b")
+
+    @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("afinfo"), "Audio encoders unavailable")
+    def test_streamed_pcm_roundtrips_as_real_aiff_and_aac(self):
+        pcm = array("h", [2000, -2000]) * (r02_build_master.SAMPLE_RATE // 2)
+        aiff, m4a = self.root / "test.aiff", self.root / "test.m4a"
+        r02_build_master.convert_master_formats(pcm, aiff, m4a)
+        self.assertAlmostEqual(r02_build_master.get_audio_duration_afinfo(aiff), 1, delta=.05)
+        self.assertAlmostEqual(r02_build_master.get_audio_duration_afinfo(m4a), 1, delta=.05)
+        self.assertEqual({p.name for p in self.root.iterdir()}, {"beats.json", "binding.json", "test.aiff", "test.m4a"})
+
+    def test_pcm_read_preserves_signed_samples_without_python_integer_list(self):
+        path = self.root / "samples.wav"
+        with wave.open(str(path), "wb") as output:
+            output.setnchannels(1)
+            output.setsampwidth(2)
+            output.setframerate(r02_build_master.SAMPLE_RATE)
+            output.writeframes(b"\x00\x80\xff\x7f\x00\x00")
+        samples = r02_build_master.read_wav_pcm(path)
+        self.assertIsInstance(samples, array)
+        self.assertEqual(list(samples), [-32768, 32767, 0])
 
     def test_build_plan_selects_and_binds_the_requested_condition(self):
         with self._patch_small_timeline():

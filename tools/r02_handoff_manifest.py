@@ -21,7 +21,7 @@ import tempfile
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_FIXTURE = ROOT / "research/r02/local/valparaiso_central"
+DEFAULT_FIXTURE = ROOT / "research/r02/local/el_bolson"
 EXPECTED_FILES = (
     "current.binding.json",
     "osm_snapshot.json",
@@ -113,10 +113,11 @@ def create_manifest(fixture_dir: Path, release_commit: str | None = None) -> dic
     m4a_entry = next(
         entry for entry in files if entry["path"] == "audio/m01_solo_founder_30min.m4a"
     )
-    if m4a_entry["sha256"] != r02_doctor.EXPECTED_MASTER_SHA256:
+    expected_sha = r02_doctor.expected_master_sha(fixture_dir)
+    if m4a_entry["sha256"] != expected_sha:
         raise ValueError(
             "M4A does not match accepted release SHA-256: "
-            f"{m4a_entry['sha256']} != {r02_doctor.EXPECTED_MASTER_SHA256}"
+            f"{m4a_entry['sha256']} != {expected_sha}"
         )
     if release_commit is None:
         _ensure_clean_worktree()
@@ -128,7 +129,7 @@ def create_manifest(fixture_dir: Path, release_commit: str | None = None) -> dic
         "artifact": "r02-private-tester-handoff",
         "release_commit": commit,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "accepted_m4a_sha256": r02_doctor.EXPECTED_MASTER_SHA256,
+        "accepted_m4a_sha256": expected_sha,
         "fixture_class": fixture_class(fixture_dir),
         "transport_encryption_verified": False,
         "files": files,
@@ -175,7 +176,7 @@ def verify_manifest(
     actual_entries = inspect_fixture(fixture_dir)
     if expected_entries != actual_entries:
         raise ValueError("Handoff asset inventory/hash mismatch")
-    if manifest.get("accepted_m4a_sha256") != r02_doctor.EXPECTED_MASTER_SHA256:
+    if manifest.get("accepted_m4a_sha256") != r02_doctor.expected_master_sha(fixture_dir):
         raise ValueError("Handoff manifest accepted M4A hash is stale")
     if manifest.get("fixture_class") != fixture_class(fixture_dir):
         raise ValueError("Handoff fixture class does not match the current private bundle")

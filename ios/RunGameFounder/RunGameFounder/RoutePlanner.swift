@@ -8,10 +8,37 @@ final class RoutePlanner: ObservableObject {
     @Published private(set) var completedLegs = 0
     @Published private(set) var isLoading = false
     @Published private(set) var errorMessage: String?
+    @Published private(set) var usesOfflineGeometry = false
+    private var generation = UUID()
 
     var isComplete: Bool { completedLegs > 0 && completedLegs == polylines.count }
 
-    func load(points: [RoutePoint]) async {
+    func load(points: [RoutePoint], offlineRoute: OfflineRoute? = nil) async {
+        let requestGeneration = UUID()
+        generation = requestGeneration
+        polylines = []
+        completedLegs = 0
+        distanceMeters = 0
+        expectedTravelTime = 0
+        errorMessage = nil
+        usesOfflineGeometry = false
+        isLoading = false
+        if let offlineRoute {
+            do {
+                try offlineRoute.validate(waypoints: points)
+                for (start, end) in zip(offlineRoute.waypointIndices, offlineRoute.waypointIndices.dropFirst()) {
+                    let coordinates = offlineRoute.coordinates[start...end].map(\.coordinate)
+                    polylines.append(MKPolyline(coordinates: coordinates, count: coordinates.count))
+                }
+                distanceMeters = offlineRoute.distanceMeters
+                expectedTravelTime = distanceMeters / 1.3
+                completedLegs = polylines.count
+                usesOfflineGeometry = true
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            return
+        }
         guard points.count >= 2 else {
             polylines = []
             distanceMeters = 0
@@ -35,6 +62,7 @@ final class RoutePlanner: ObservableObject {
                 request.transportType = .walking
                 request.requestsAlternateRoutes = false
                 let response = try await MKDirections(request: request).calculate()
+                guard generation == requestGeneration, !Task.isCancelled else { return }
                 guard let route = response.routes.first else {
                     throw RoutePlannerError.missingLeg(pair.0.name, pair.1.name)
                 }
@@ -50,6 +78,7 @@ final class RoutePlanner: ObservableObject {
             expectedTravelTime = newTime
             completedLegs = newPolylines.count
         } catch {
+            guard generation == requestGeneration else { return }
             polylines = []
             distanceMeters = 0
             expectedTravelTime = 0

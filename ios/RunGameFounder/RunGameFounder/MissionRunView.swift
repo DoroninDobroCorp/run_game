@@ -28,7 +28,7 @@ struct MissionRunView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 24) {
-                if appModel.evidenceCaptureLocked {
+                if appModel.evidenceCaptureLocked && coordinator.currentContext == nil {
                     VStack(alignment: .leading, spacing: 6) {
                         Label("Evidence Capture Locked", systemImage: "lock.fill")
                             .font(.headline)
@@ -57,7 +57,7 @@ struct MissionRunView: View {
                     .accessibilityIdentifier("evidenceLockBanner")
                 }
 
-                if !appModel.evidenceCaptureLocked {
+                if !appModel.evidenceCaptureLocked || coordinator.currentContext != nil {
                     statusHeader
                     timelineCard
                     if coordinator.isReady { preRunChecklist }

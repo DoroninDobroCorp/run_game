@@ -1,15 +1,47 @@
 PYTHON ?= /usr/bin/python3
+.DEFAULT_GOAL := ios-prepare
 
 IOS_DIR := ios/RunGameFounder
 SIMULATOR ?= $(shell $(PYTHON) tools/r02_resolve_simulator.py)
 ALLOW_UNSUPPORTED_SANITIZERS ?= 0
 IOS_BUNDLE_ID ?= com.doronindobro.rungame.founder
 IOS_DEVELOPMENT_TEAM ?=
-R02_FIXTURE ?= research/r02/local/valparaiso_central
+R02_FIXTURE ?= research/r02/local/el_bolson
 R02_IOS_RESOURCES ?= $(IOS_DIR)/Resources/Local
 R02_AUDIO_MANIFEST := $(R02_IOS_RESOURCES)/m01_solo_founder_30min.manifest.json
+EL_BOLSON_FIXTURE ?= research/r02/local/el_bolson
+
+
+# The fixture command refuses to overwrite local route reviews. Preparation and
+# builds can be repeated without downloading OSM or re-rendering existing audio.
+el-bolson-fixture:
+	$(PYTHON) tools/r02_prepare_el_bolson.py --output-dir "$(EL_BOLSON_FIXTURE)"
+
+el-bolson-audio:
+	$(PYTHON) tools/r02_build_master.py --binding "$(EL_BOLSON_FIXTURE)/current.binding.json" --output-dir "$(EL_BOLSON_FIXTURE)/audio"
+
+el-bolson-setup:
+	@if [ ! -f "$(EL_BOLSON_FIXTURE)/current.binding.json" ] && [ ! -f "$(EL_BOLSON_FIXTURE)/osm_snapshot.json" ]; then $(MAKE) el-bolson-fixture; fi
+	@if [ ! -f "$(EL_BOLSON_FIXTURE)/audio/m01_solo_founder_30min.m4a" ]; then $(MAKE) el-bolson-audio; fi
+	$(MAKE) el-bolson-prepare
+
+el-bolson-prepare:
+	$(MAKE) r02-preflight R02_FIXTURE="$(EL_BOLSON_FIXTURE)"
+	$(PYTHON) tools/r02_audio_qa.py --m4a "$(R02_IOS_RESOURCES)/m01_solo_founder_30min.m4a" --manifest "$(R02_AUDIO_MANIFEST)"
+
+el-bolson-build:
+	$(MAKE) ios-build R02_FIXTURE="$(EL_BOLSON_FIXTURE)"
+
+el-bolson-test:
+	$(MAKE) ios-test R02_FIXTURE="$(EL_BOLSON_FIXTURE)"
+
+el-bolson-preview: el-bolson-setup
+	$(MAKE) el-bolson-build
+	$(PYTHON) tools/r02_launch_simulator.py --destination '$(SIMULATOR)' --bundle-id '$(IOS_BUNDLE_ID)'
 
 .PHONY: ios-prepare ios-synthetic-prepare ios-open ios-build ios-unit-test ios-ui-test ios-test ios-synthetic-build ios-synthetic-build-for-testing ios-synthetic-unit-test ios-synthetic-ui-test ios-synthetic-test test-asan test-tsan quality r02-doctor r02-audit-privacy r02-preflight r02-synthetic-ios r02-handoff-create r02-handoff-verify r02-recover-cached-assets r02-reconstitute-cached-fixture remote-python-ci r02-audio-qa r02-validate-evidence r02-analyze-gpx verify-synthetic verify-pretest verify-tester-package verify-clean-room verify py-compile ast-cross-contract r02-story-validate strict-ab-validate r02-evidence-validate negative-smoke-test r03-synthetic-validate r04-unset-reject
+
+.PHONY: el-bolson-fixture el-bolson-audio el-bolson-setup el-bolson-prepare el-bolson-build el-bolson-test el-bolson-preview
 
 ios-prepare: r02-preflight
 	cd $(IOS_DIR) && RUN_GAME_BUNDLE_ID='$(IOS_BUNDLE_ID)' RUN_GAME_DEVELOPMENT_TEAM='$(IOS_DEVELOPMENT_TEAM)' xcodegen generate

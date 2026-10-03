@@ -254,11 +254,11 @@ operability. Он не проверяет неожиданность повор�
 
 По founder decision от 7 августа 2026 года первый тест проводится не через россыпь Wizard-of-Oz файлов, а через локальное нативное iPhone-приложение. Это изменение оптимизирует повторяемые итерации сюжета и маршрута; оно не является разрешением строить production backend или публичный iOS-продукт.
 
-Активная фикстура — `research/r02/local/valparaiso_central/`. Santiago не
-активен и не подменяет её при простом копировании папки. Подготовить и пройти
-**M1-A в Вальпараисо**:
+С 2 октября 2026 активная фикстура — `research/r02/local/el_bolson/`,
+со стартом в середине Avenida Patagonia Argentina. Подготовить и пройти
+**M1-A в Эль-Больсоне**:
 
-1. подготовить iOS resources из явной Valparaíso fixture и выполнить offline
+1. подготовить iOS resources из явной El Bolsón fixture и выполнить offline
    `r02_preflight`; максимум — `READY_FOR_DEVICE_SMOKE`, не field approval;
 2. установить `RunGameFounder` на физический iPhone и дома проверить сам запуск,
    целостность bundle, разрешение точной геопозиции и создание тестового GPX;
@@ -294,10 +294,10 @@ Offline preparation:
 
 ```bash
 python3 tools/r02_prepare_ios.py \
-  --fixture-dir research/r02/local/valparaiso_central \
+  --fixture-dir research/r02/local/el_bolson \
   --output-dir ios/RunGameFounder/Resources/Local
 python3 tools/r02_preflight.py \
-  --fixture-dir research/r02/local/valparaiso_central \
+  --fixture-dir research/r02/local/el_bolson \
   --ios-resources-dir ios/RunGameFounder/Resources/Local
 ```
 
@@ -319,7 +319,7 @@ Derived report не содержит координат, place names, абсол
 python3 tools/r02_story.py linearize \
   --mission m01 \
   --condition A \
-  --binding research/r02/local/valparaiso_central/current.binding.json \
+  --binding research/r02/local/el_bolson/current.binding.json \
   --participant
 ```
 

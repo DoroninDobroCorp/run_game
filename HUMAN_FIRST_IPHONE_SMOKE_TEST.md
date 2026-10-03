@@ -15,10 +15,10 @@
 - полный 40-символьный `release_commit`;
 - `RELEASE_MANIFEST.json`;
 - по зашифрованному приватному каналу папку
-  `research/r02/local/valparaiso_central/` с `current.binding.json`,
+  `research/r02/local/el_bolson/` с `current.binding.json`,
   `osm_snapshot.json`, AIFF, M4A и audio manifest;
 - ожидаемый M4A SHA-256
-  `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`.
+  `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`.
 
 ```bash
 git clone https://github.com/DoroninDobroCorp/run_game.git
@@ -70,7 +70,9 @@ synthetic warning или разрешает M1-A без human gates — неме
 
 Не двигайтесь ради GPS и не выходите на дорогу.
 
-1. В «Проверить маршрут» Apple Maps должен построить все четыре сегмента.
+1. В «Проверить маршрут» должны загрузиться все четыре сохранённых сегмента.
+   Подложка Apple Maps может требовать сеть; схема в «Попробовать маршрут»
+   должна работать и без неё.
 2. Не ставьте route/workout/safety approvals.
 3. Запустите диагностическую GPX-запись с `While Using` и Precise Location,
    заблокируйте экран на 30–60 секунд, вернитесь и завершите как

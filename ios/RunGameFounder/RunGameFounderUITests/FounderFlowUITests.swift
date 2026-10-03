@@ -2,6 +2,13 @@ import XCTest
 
 @MainActor
 final class FounderFlowUITests: XCTestCase {
+    private func reveal(_ element: XCUIElement, in app: XCUIApplication) {
+        for _ in 0..<8 {
+            if element.isHittable { return }
+            app.swipeUp()
+        }
+        XCTAssertTrue(element.isHittable, "Control should be reachable by scrolling: \(element.identifier)")
+    }
     private func launchedApp() -> XCUIApplication {
         continueAfterFailure = false
         let app = XCUIApplication()
@@ -14,12 +21,12 @@ final class FounderFlowUITests: XCTestCase {
         let app = launchedApp()
         XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
         XCTAssertTrue(app.staticTexts["Готовность устройства"].exists)
-        XCTAssertTrue(app.staticTexts["Отдельный Mac gate: field review в binding"].exists)
+        XCTAssertTrue(app.staticTexts["Полевой маршрут подтверждён"].exists)
         XCTAssertFalse(app.buttons["missionRunLink"].isEnabled)
 
         let walkthroughLink = app.buttons["routeWalkthroughLink"]
         XCTAssertTrue(walkthroughLink.exists)
-        app.swipeUp()
+        reveal(walkthroughLink, in: app)
         walkthroughLink.tap()
 
         XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
@@ -38,7 +45,7 @@ final class FounderFlowUITests: XCTestCase {
         let app = launchedApp()
         let homeAudioLink = app.buttons["homeAudioLink"]
         XCTAssertTrue(homeAudioLink.exists)
-        app.swipeUp()
+        reveal(homeAudioLink, in: app)
         homeAudioLink.tap()
 
         XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
@@ -69,7 +76,7 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertEqual(missionRunLink.identifier, "missionRunLink")
 
         // 2. Route Walkthrough controls & labels
-        app.swipeUp()
+        reveal(walkthroughLink, in: app)
         walkthroughLink.tap()
         XCTAssertTrue(app.navigationBars["Дневной обход"].waitForExistence(timeout: 4))
 
@@ -86,7 +93,7 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Линия, которой нет"].waitForExistence(timeout: 4))
 
         // 3. Home Audio Check controls & labels
-        app.swipeUp()
+        reveal(app.buttons["homeAudioLink"], in: app)
         app.buttons["homeAudioLink"].tap()
         XCTAssertTrue(app.navigationBars["Проверка аудио"].waitForExistence(timeout: 4))
 
@@ -147,5 +154,30 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertFalse(walkthroughLink.isEnabled)
         XCTAssertFalse(homeAudioLink.isEnabled)
         XCTAssertFalse(missionRunLink.isEnabled)
+    }
+
+    func testRehearsalCompletesAndDoesNotUnlockPhysicalMission() {
+        let app = launchedApp()
+        let link = app.buttons["rehearsalLink"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        reveal(link, in: app)
+        link.tap()
+        XCTAssertTrue(app.navigationBars["Тестовый забег"].waitForExistence(timeout: 5))
+        let speed = app.segmentedControls["rehearsalSpeed"]
+        reveal(speed, in: app)
+        speed.buttons["120× · 15 с"].tap()
+        let play = app.buttons["rehearsalPlayPause"]
+        reveal(play, in: app)
+        play.tap()
+        XCTAssertTrue(app.staticTexts["rehearsalResult"].waitForExistence(timeout: 30))
+        XCTAssertTrue(app.staticTexts["Тестовый круг пройден"].exists)
+        let reset = app.buttons["rehearsalReset"]
+        reveal(reset, in: app)
+        reset.tap()
+        XCTAssertFalse(app.staticTexts["rehearsalResult"].exists)
+        app.navigationBars["Тестовый забег"].buttons.element(boundBy: 0).tap()
+        XCTAssertFalse(app.buttons["missionRunLink"].isEnabled)
+        XCTAssertFalse(app.staticTexts["Незавершённый immediate-дебриф"].exists)
+        XCTAssertFalse(app.staticTexts["24-часовой recall"].exists)
     }
 }

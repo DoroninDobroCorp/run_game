@@ -264,10 +264,12 @@ final class AppModelLockTests: XCTestCase {
         try Data("partial".utf8).write(to: directory.appendingPathComponent("run.partial.gpx"))
         try Data("draft".utf8).write(to: directory.appendingPathComponent("m01-run1-draft.json"))
         try Data("immediate".utf8).write(to: directory.appendingPathComponent("m01-run1-immediate.json"))
+        try Data("simulation".utf8).write(to: directory.appendingPathComponent("simulation-test.json"))
 
         let model = AppModel(defaults: defaults, documentsDirectory: directory)
         XCTAssertEqual(model.localEvidenceURLs.map(\.lastPathComponent), ["m01-run1-immediate.json"])
         XCTAssertEqual(model.recoveredTrackURLs.map(\.lastPathComponent), ["run.partial.gpx"])
+        XCTAssertEqual(model.simulationReportURLs.map(\.lastPathComponent), ["simulation-test.json"])
     }
 
     @MainActor

@@ -125,7 +125,11 @@ struct SessionStateMachine: Equatable, Sendable {
             actions.append(.setStatusMessage(nil))
 
         case (.acquiringGPS(let runID, let startedAt, let count), .receiveGPSFix(let accuracy, let distance)):
-            if accuracy > 35 {
+            if !accuracy.isFinite || !distance.isFinite || accuracy < 0 || distance < 0
+                || accuracy > 40_100_000 || distance > 40_100_000 {
+                state = .acquiringGPS(runID: runID, startedAt: startedAt, qualifyingFixes: 0)
+                actions.append(.setStatusMessage("GPS вернул некорректную позицию; ожидаем новую точку."))
+            } else if accuracy > 35 {
                 state = .acquiringGPS(runID: runID, startedAt: startedAt, qualifyingFixes: 0)
                 actions.append(.setStatusMessage("GPS accuracy пока ±\(Int(accuracy)) м; ждём значение ≤35 м."))
             } else if distance > 100 {
@@ -318,6 +322,7 @@ struct SessionStateMachine: Equatable, Sendable {
                 && routeTraversal?.isSufficient(for: mission) == true
                 && audioIncidents.isEmpty
                 && locationIncidents.isEmpty
+                && elapsed.isFinite && abs(elapsed - mission.durationSeconds) <= 0.5
 
             var failureReasons: [String] = []
             if summary?.isSufficientMissionEvidence(for: mission) != true {
@@ -328,6 +333,9 @@ struct SessionStateMachine: Equatable, Sendable {
             }
             if !audioIncidents.isEmpty { failureReasons.append("audio incident recorded") }
             if !locationIncidents.isEmpty { failureReasons.append("location incident recorded") }
+            if !elapsed.isFinite || abs(elapsed - mission.durationSeconds) > 0.5 {
+                failureReasons.append("master audio did not reach its expected duration")
+            }
 
             let context = RunSessionContext(
                 participantID: participantID,
@@ -343,7 +351,7 @@ struct SessionStateMachine: Equatable, Sendable {
                 completed: successful,
                 aborted: !successful,
                 abortReason: successful ? "" : failureReasons.joined(separator: "; "),
-                audioElapsedSeconds: elapsed,
+                audioElapsedSeconds: elapsed.isFinite ? max(0, elapsed) : 0,
                 pauseCount: pauseCount,
                 track: summary,
                 routeTraversalEvidence: routeTraversal,

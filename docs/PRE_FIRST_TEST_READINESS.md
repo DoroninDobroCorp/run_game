@@ -1,69 +1,65 @@
 # Pre-First-Test Readiness
 
-**Date:** August 22, 2026
+**Date:** October 2, 2026
 
 **Phase:** Stage `R02` `IN_PROGRESS`; Stages `R03`/`R04` `NOT_STARTED`
 
-**Branch:** `codex/tester-readiness`
+**Branch:** `codex/el-bolson-finish`
 
-**Overall status:** `READY_FOR_EXTERNAL_TECHNICAL_QA`
+**Overall status:** `LOCAL_TEST_CANDIDATE / DEVICE_AND_FIELD_REVIEW_PENDING`
 
-**Accepted M4A SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+**Pinned El Bolsón M4A SHA-256:** `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`
 
-This is the current evidence ledger. `PASS` means the named command was run on
-this checkout. `COMPILED` is not a runtime-test pass. `BLOCKED` means required
-evidence is unavailable, not that the check was waived.
+The local route starts halfway along Avenida Patagonia Argentina and follows
+a 1.91 km closed OSM street loop. The geometry, Russian audio and explicit
+simulation are prepared. No physical run or human approval is claimed.
 
 ## Readiness matrix
 
-| Lane | Status | Evidence / remaining gate |
+| Lane | Status | Evidence / remaining work |
 | :--- | :--- | :--- |
-| Git branch consolidation | `PASS` | All six remote development tips were inspected; they form one linear history and this candidate is based on the newest tip. |
-| Python runtime | `PASS` | `/usr/bin/python3` imports `pyexpat`; the broken Homebrew interpreter is no longer the Makefile default. |
-| Python suite | `PASS_WITH_SKIPS` | 245 tests pass; 6 master-audio/fixture tests skip because the private bundle is absent. |
-| Static analysis | `PASS` | `ruff check tools tests` and `mypy tools` pass with pinned versions in `requirements-dev.txt`. |
-| Privacy audit | `PASS` | Five checks cover ignored private paths, tracked raw GPX/private fixtures, scoped JSON coordinates/paths, current secrets, and reachable Git patch history. Public R01 OSM research is explicitly allowlisted. |
-| Clean-clone iOS resources | `PASS` | A visibly marked synthetic bundle builds without private data and keeps every human approval false. |
-| iOS strict compile | `PASS` | Xcode 26.3 compiles app, 76 unit-test methods and 5 UI-test methods with strict concurrency and warnings-as-errors. |
-| iOS runtime suites on this Mac | `PASS` | macOS 26.0 / Xcode 26.3 / iPhone 16 Pro Simulator / iOS 18.5: 76 unit tests and 5 UI tests executed, 0 failures, exit 0. The fresh device was allowed to reach `bootstatus ... Finished` before XCTest launch. |
-| Durable evidence queues | `PASS` | Runtime-tested queue mutations use write-ahead durable markers, read-back verification, fail-closed relaunch recovery and recoverable quarantine/reset UI. |
-| Signing portability | `PASS` | Bundle ID and Apple team are parameters; the generated project has no required personal team. |
-| CI definition | `BLOCKED_ACCOUNT_BILLING` | Branch push created [Actions run #1](https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276), but GitHub started neither job because the account is locked by a billing issue. Workflow execution remains required after the owner unlocks Actions. |
-| Reconstituted technical inventory | `PASS_LOCAL_TECHNICAL_ONLY` | The ignored five-file replacement and manifest validate together, preserve the accepted M4A, derive an AIFF and reconstruct route JSON from a retained installed-app projection; all approvals remain false. Original binding/snapshot/AIFF remain lost. |
-| Accepted master hash | `PASS` | The recovered M4A rehashes to the fixed accepted SHA-256 above. |
-| Reconstituted preflight/audio QA | `PASS_LOCAL` | Explicit package verification reports `READY_FOR_DEVICE_SMOKE`; the accepted M4A hash, AAC/44.1 kHz mono format, 1800-second duration and peak checks pass. |
-| Private handoff binding | `PASS_LOCAL_PENDING_TRANSFER` | The manifest declares `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`, binds exactly five private files and rejects tampering/wrong Git HEAD. It must be regenerated for the final release commit and transferred privately. |
-| Physical iPhone smoke | `BLOCKED` | Requires tester hardware, Apple signing, install, map/GPS/recovery/audio checks. |
-| Daylight route/workout review | `BLOCKED` | Founder-only field gate; an external QA tester must not approve it. |
-| Full lock-screen audio and M1-A | `BLOCKED` | Requires the accepted real master and the founder-only sequence after the route gate. |
+| Git base | `PASS` | After fetch, starting commit `5ffe87a` contained every remote tip and was 73 commits ahead of `origin/main`. |
+| Python suite | `PASS_WITH_SKIPS` | `make verify-synthetic`: 261 tests, no failures, 6 skips for unavailable historical private assets. |
+| Static analysis | `PASS` | `make quality py-compile`: Ruff, mypy and bytecode compilation pass. |
+| Real-bundle iOS runtime | `PASS` | `make el-bolson-test`: 86 Swift unit tests and 6 UI tests, no failures. |
+| Address / Thread Sanitizer | `PASS` | Each sanitizer executes 86 unit tests without failures. |
+| Route and audio integrity | `PASS` | `make el-bolson-prepare`: `READY_FOR_DEVICE_SMOKE`; independent pinned SHA, 1800.0 s, AAC / 44.1 kHz / mono, peak −1.6 dB, no clipping. |
+| Offline rehearsal | `PASS_SIMULATED` | Manual and UI-automated 30-minute completion: 5/5 waypoints including finish, 8 run intervals, 901 virtual GPS samples. The separate report says `fieldEvidence: false` and `audioPlaybackVerified: false`. |
+| Durable evidence queues | `PASS` | Existing queue, recovery, corruption and lock tests still pass. Simulation reports are separated from field evidence and do not create research queues. |
+| Research validators | `PASS` | Strict A/B checks, synthetic R03 analysis and rejection of unset R04 decisions pass; no real R03/R04 results are asserted. |
+| Signing | `MANUAL` | Choose the owner's Apple Team and connected physical iPhone. |
+| Physical iPhone smoke | `PENDING` | GPS, background recovery, audio and lock-screen controls require hardware. |
+| Daylight route/workout review | `PENDING` | Surface, crossings, accessibility, grade and actual arrival timing require an on-foot review. All corresponding fixture approvals remain false. |
+| Full listening / M1-A | `PENDING` | Home listening and founder field run remain separate from simulation. |
+| GitHub Actions | `NOT_RECHECKED` | The historical run was blocked by account billing. Local results do not claim current cloud CI success. |
 
-## Commands
+## Run locally
 
-Clean clone, no private assets:
-
-```bash
-/usr/bin/python3 -m pip install -r requirements-dev.txt
-make verify-clean-room IOS_DEVELOPMENT_TEAM=""
-make ios-synthetic-unit-test IOS_DEVELOPMENT_TEAM=""
-make ios-synthetic-ui-test IOS_DEVELOPMENT_TEAM=""
+```sh
+make el-bolson-preview
 ```
 
-For a fresh Simulator, wait for `xcrun simctl bootstatus <UDID> -b` to report
-`Finished`; first-boot migration can exceed 90 seconds.
+Then select **Попробовать маршрут**. See the Russian
+[test-run guide](EL_BOLSON_TEST_RUN.md) for map sources, GPX, playback and
+physical-device preparation.
 
-Maintainer, for the reconstituted technical fixture:
+For a clean clone without private data, `make verify-clean-room` and
+`make ios-synthetic-test` generate a visibly marked synthetic bundle.
+Restore the actual route afterwards with `make el-bolson-prepare`.
 
-```bash
-make r02-handoff-verify R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
-make verify-tester-package R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+## Final local package
+
+From a clean release commit, create and verify the ignored local manifest:
+
+```sh
+make r02-handoff-create HANDOFF_MANIFEST=research/r02/local/el_bolson/RELEASE_MANIFEST.json
+make verify-tester-package HANDOFF_MANIFEST=research/r02/local/el_bolson/RELEASE_MANIFEST.json
 ```
 
-Create the handoff manifest only from the final clean release commit:
+The manifest binds the exact commit and five private source/audio files.
+Its snapshot includes the checksum-protected offline route. GPX and OSM source
+are local planning aids, not recorded field evidence. Keep private assets out
+of Git. Changing a source file or release commit requires a new manifest.
 
-```bash
-make r02-handoff-create R02_FIXTURE=research/r02/local/valparaiso_central_reconstituted_20260821 HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
-```
-
-The five private files and the manifest must be sent through encrypted private
-transport. Do not commit them, attach raw GPX to issues, or interpret a
-synthetic build as permission for a route test.
+The original Valparaíso inventory loss and its technical reconstruction are
+historical. They do not describe the new El Bolsón package.

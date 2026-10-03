@@ -20,6 +20,17 @@ final class SessionStateMachineTests: XCTestCase {
     }
 
     // MARK: - 1. GPS Acquisition Tests
+    func testInvalidGPSFixesNeverStartAudioOrCrash() {
+        let now = Date()
+        for (accuracy, distance) in [(Double.nan, 0.0), (.infinity, 0), (-1, 0), (5, Double.nan), (5, .infinity), (5, -1), (Double.greatestFiniteMagnitude, 0), (5, Double.greatestFiniteMagnitude)] {
+            var machine = SessionStateMachine(initialState: .acquiringGPS(runID: "bad-fix", startedAt: now, qualifyingFixes: 1))
+            let actions = machine.handle(event: .receiveGPSFix(accuracy: accuracy, distanceToStartMeters: distance),
+                mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
+            XCTAssertFalse(actions.contains(.startAudioPlayback))
+            XCTAssertEqual(machine.state, .acquiringGPS(runID: "bad-fix", startedAt: now, qualifyingFixes: 0))
+        }
+    }
+
     func testGPSAcquisition_RequiresTwoConsecutiveFixes() {
         var sm = SessionStateMachine()
         XCTAssertTrue(sm.isReady)
@@ -408,6 +419,24 @@ final class SessionStateMachineTests: XCTestCase {
         let containsScheduleRecall = actions.contains { if case .scheduleRecall = $0 { return true }; return false }
         XCTAssertTrue(containsScheduleDebrief)
         XCTAssertFalse(containsScheduleRecall)
+    }
+
+    func testEarlyOrInvalidAudioFinishCannotPassEvenWithCompleteGPS() throws {
+        let samples = makeTrackSamples(for: sampleMission)
+        let summary = try TrackSummary.make(fileName: "complete.gpx", samples: samples)
+        let traversal = WalkthroughEvidence.make(mission: sampleMission, summary: summary, samples: samples)
+        for elapsed in [0.0, 900.0, Double.nan, Double.infinity] {
+            let now = Date()
+            var machine = SessionStateMachine(initialState: .running(runID: "early-audio",
+                startedAt: now, runStartedAt: now, pauseCount: 0, isPlaying: true))
+            _ = machine.handle(event: .audioFinishedNaturally(summary: summary, routeTraversal: traversal,
+                audioIncidents: [], locationIncidents: [], elapsed: elapsed),
+                mission: sampleMission, precommittedNextWorkoutAt: defaultPrecommittedDate)
+            XCTAssertTrue(machine.isAborted)
+            if case .aborted(let context, _) = machine.state {
+                XCTAssertNoThrow(try JSONEncoder().encode(context))
+            }
+        }
     }
 
     func testNaturalFinish_InsufficientEvidence_AbortsRunWithoutRecall() throws {

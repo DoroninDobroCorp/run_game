@@ -1,12 +1,24 @@
 # Run Game — Geo-Narrative Running Companion
 
-> **Human handoff:** Before installing on a physical iPhone, follow
-> [`HUMAN_FIRST_IPHONE_SMOKE_TEST.md`](./HUMAN_FIRST_IPHONE_SMOKE_TEST.md).
 
-> **Current Project Phase:** Stage `R02` `IN_PROGRESS`; engineering candidate prepared, a reconstituted technical handoff and physical-device checks pending. Stages `R03`/`R04` are `NOT_STARTED`.
-> **Accepted Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
-> **Planned Field Fixture:** Valparaíso Central, Chile. The original private fixture is lost; a local, ignored replacement is technical-QA-only and has no field approval.
-> **Readiness truth:** clean-clone Python/static/privacy checks, synthetic iOS build, 76 Swift unit tests and 5 UI tests pass locally. Physical-iPhone signing/install and founder-only field approvals remain deliberately manual.
+> **Active test route:** El Bolsón, Río Negro, Argentina. A 1.91 km loop starts
+> halfway along Avenida Patagonia Argentina and returns to the same point.
+> **Try it:** `make el-bolson-preview`, then **Попробовать маршрут** in the app.
+> [Russian walkthrough and setup guide](docs/EL_BOLSON_TEST_RUN.md).
+>
+> **Current status (2026-10-02):** Local iPhone test candidate with offline route
+> geometry, a separate accelerated rehearsal, and a newly rendered 30-minute
+> Russian audio master. Real-bundle Simulator verification: 86 Swift unit tests
+> and 6 UI tests pass. A simulated run is explicitly marked and does not create
+> field evidence or approve the route. Physical-iPhone audio/GPS checks and the
+> daylight route review remain pending.
+> Research stages: `R02 IN_PROGRESS`; `R03` and `R04 NOT_STARTED`.
+>
+> **Pinned El Bolsón audio SHA-256:**
+> `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`.
+> Historical Valparaíso assets and release hashes are retained separately.
+> Before installing on a physical iPhone, follow the
+> [device smoke protocol](HUMAN_FIRST_IPHONE_SMOKE_TEST.md).
 
 ---
 
@@ -21,7 +33,7 @@
 * **Strict Privacy by Default:** Raw GPX coordinates and exact start locations remain strictly local to the device. LLMs receive no raw coordinate traces, and derived research reports strip precise start locations.
 * **Home-Territory Product Scope vs. Traveler Founder Research:**
   * **Product Scope:** Home-territory-based. A user develops a single home territory over time. Cross-city continuity and travel mechanics are explicitly out of MVP scope.
-  * **Founder Research Scope:** Traveler-based. Current field research uses Valparaíso Central as an interchangeable field fixture without baking temporary cities into narrative canon.
+  * **Founder Research Scope:** Traveler-based. Current field research uses El Bolsón as an interchangeable field fixture without baking temporary cities into narrative canon.
 
 ### Explicit Product Boundaries
 * **No Production Backend:** Operates entirely offline; no cloud server infrastructure.
@@ -32,10 +44,10 @@
 
 ## 2. Hardened R02 Founder Research Instrument
 
-The local iOS slice (`ios/RunGameFounder`) provides a deterministic, offline-first instrument for executing field walkthroughs, GPS-triggered audio playback, lock-screen audio checks, and post-run debriefs for Mission 1 (M1 - "Layer Zero" / *Нулевой слой* universe).
+The local iOS slice (`ios/RunGameFounder`) provides a deterministic, offline-first instrument for executing field walkthroughs, a GPS-gated start with fixed-time offline narration, lock-screen audio checks, and post-run debriefs for Mission 1 (M1 - "Layer Zero" / *Нулевой слой* universe).
 
 ### Key iOS Components
-* **`SessionStateMachine`:** Pure, state-driven execution engine managing pre-run validation, countdown, active tracking, audio playback, pause/resume, and mission completion with full state replay test coverage.
+* **`SessionStateMachine`:** Pure, state-driven execution engine managing pre-run validation, GPS acquisition, active tracking, audio playback, pause/resume, and mission completion with full state replay test coverage.
 * **`ActiveRunJournal`:** Atomic session state persistence ensuring crash recovery and context restoration without data loss.
 * **`LocationRecorder`:** GPS filter and distance accumulator with accuracy-gated waypoint matching (`START_DISTANCE_LIMIT_M = 100m`, `ROUTE_POINT_RADIUS_M = 100m`).
 * **`FileDurability`:** Fail-safe file writing helpers using atomic temporary writes and `.withoutOverwriting` protection.
@@ -51,10 +63,10 @@ The repository includes a Python-based utility suite in `tools/` for preflight v
 | **Pre-Test Doctor** | `tools/r02_doctor.py` | Reports environment/tool availability and validates the exact private fixture inventory; `make quality` performs static checks. |
 | **Privacy Audit** | `tools/r02_audit_privacy.py` | Scans tracked files, JSON outputs, and git history for coordinate leaks, personal identifiers, or API keys. |
 | **Offline Preflight** | `tools/r02_preflight.py` | Verifies route bundle integrity, audio file presence, manifest checksums, and iOS resource alignment. |
-| **Audio QA Probe** | `tools/r02_audio_qa.py` | Validates master audio format (AAC/44.1kHz mono), exact 30-min duration (1800.0s), peak levels (-1.6dB), and SHA-256 fingerprint (`17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`). |
+| **Audio QA Probe** | `tools/r02_audio_qa.py` | Validates master audio format (AAC/44.1kHz mono), exact 30-min duration (1800.0s), peak levels (-1.6dB), and the independently pinned route-specific SHA-256 fingerprint. |
 | **Offline GPX Analyzer** | `tools/r02_analyze_gpx.py` | Derives distance, pace, bounding box, and POI arrival timestamps from raw GPX tracks without saving raw coordinates in public artifacts. |
 | **Evidence Validator** | `tools/r02_validate_evidence.py` | Enforces fail-closed evidence locking rules (`evidenceCaptureLocked = true`) until all pending queues and human gates pass. |
-| **iOS Resource Sync** | `tools/r02_prepare_ios.py` | Packages research fixtures (`research/r02/local/valparaiso_central`) into iOS bundle resources (`ios/RunGameFounder/Resources/Local`). |
+| **iOS Resource Sync** | `tools/r02_prepare_ios.py` | Packages research fixtures (`research/r02/local/el_bolson`) into iOS bundle resources (`ios/RunGameFounder/Resources/Local`). |
 | **Synthetic iOS Bundle** | `tools/r02_prepare_synthetic_ios.py` | Creates a visibly marked, fail-closed bundle for clean-clone compilation and CI only; it is forbidden for field use. |
 | **Private Handoff Manifest** | `tools/r02_handoff_manifest.py` | Binds the five private files and accepted audio hash to one full release commit without placing private data in Git. |
 | **Story Authoring** | `tools/r02_story.py` | Validates authoring graph nodes, clue setups, and deterministic linearization for the M1 narrative. |
@@ -110,7 +122,7 @@ All project verification workflows are accessible via `Makefile` targets:
 # Clean-clone verification without private field assets
 make verify-clean-room
 
-# Full maintainer verification; requires the real private Valparaíso bundle
+# Full maintainer verification; requires the prepared local El Bolsón bundle
 make verify-pretest
 
 # Run Pre-Test Environment Doctor
@@ -122,7 +134,7 @@ make r02-audit-privacy
 # Run Preflight Bundle & Asset Checks
 make r02-preflight
 
-# Run Python Unit Tests & Synthetic Harness (245 tests; 6 asset-dependent skips here)
+# Run Python Unit Tests & Synthetic Harness (includes route geometry, audio generation, and release-profile checks)
 make verify-synthetic
 
 # Run iOS Unit & UI Tests with the explicitly marked synthetic bundle
@@ -153,9 +165,9 @@ make r02-audio-qa
 
 ## 7. Fail-Closed Human Safety & Approval Gates
 
-The engineering candidate is intentionally not declared field-ready on this checkout. `make verify-pretest` and `make verify-tester-package` require the missing private Valparaíso source bundle, and physical field testing remains governed by fail-closed human approval gates:
+The El Bolsón source bundle, offline geometry and new audio are prepared locally. `make el-bolson-prepare` validates the package. Simulator rehearsal does not establish physical field readiness; field testing retains the following human approval gates:
 
-1. **Human Route Approval (`binding.human_route_approved`):** Requires physical daylight walkthrough of the Valparaíso Central route by the founder.
+1. **Human Route Approval (`binding.human_route_approved`):** Requires physical daylight walkthrough of the El Bolsón route by the founder.
 2. **Workout Approval (`binding.workout_approved`):** Requires physical verification of Couch-to-5K interval timing safety and ground conditions.
 3. **M1-A Human Approval (`binding.human_approved`):** Requires explicit founder confirmation following route and workout approval.
 4. **Public Start Confirmation (`binding.public_start`):** Requires physical check of starting location accessibility and GPS visibility.
