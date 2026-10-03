@@ -24,7 +24,7 @@ simulation are prepared. No physical run or human approval is claimed.
 | Real-bundle iOS runtime | `PASS` | Final `make el-bolson-test` after report-list polish: 86 Swift unit tests and 6 UI tests, no failures. Logs are saved in ignored `research/r02/local/el_bolson/final-ios-tests.log`. |
 | Address / Thread Sanitizer | `PASS` | Each sanitizer executes 86 unit tests without failures. |
 | Route and audio integrity | `PASS` | `make el-bolson-prepare`: `READY_FOR_DEVICE_SMOKE`; independent pinned SHA, 1800.0 s, AAC / 44.1 kHz / mono, peak −1.6 dB, no clipping. |
-| Offline rehearsal | `PASS_SIMULATED` | Manual and UI-automated 30-minute completion: 5/5 waypoints including finish, 8 run intervals, 901 virtual GPS samples. The separate report says `fieldEvidence: false` and `audioPlaybackVerified: false`. |
+| Offline rehearsal | `PASS_SIMULATED` | Manual completion on iOS 26.2 and UI-automated completion on iOS 18.5: 5/5 waypoints including finish, 8 run intervals, 901 virtual GPS samples. A full-disk save failure recovered after freeing space and retrying; the saved report appeared on the dashboard. The report says `fieldEvidence: false` and `audioPlaybackVerified: false`. |
 | Durable evidence queues | `PASS` | Existing queue, recovery, corruption and lock tests still pass. Simulation reports are separated from field evidence and do not create research queues. |
 | Research validators | `PASS` | Strict A/B checks, synthetic R03 analysis and rejection of unset R04 decisions pass; no real R03/R04 results are asserted. |
 | Signing | `MANUAL` | Choose the owner's Apple Team and connected physical iPhone. |

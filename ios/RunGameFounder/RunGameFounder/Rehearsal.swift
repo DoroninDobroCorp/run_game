@@ -80,7 +80,7 @@ final class Rehearsal: ObservableObject {
             reportURL = url
             errorMessage = nil
         } catch {
-            errorMessage = "Не удалось сохранить результат симуляции: \(error.localizedDescription)"
+            errorMessage = "Не удалось сохранить отчёт. Проверь свободное место и нажми «Сохранить результат теста» ещё раз, пока этот экран открыт."
         }
     }
 
