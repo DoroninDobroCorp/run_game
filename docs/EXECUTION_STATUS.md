@@ -42,6 +42,11 @@
   диска; после остановки второго симулятора проверка полностью прошла.
   Лог сохранён в `research/r02/local/el_bolson/final-ios-tests.log`.
   AddressSanitizer и ThreadSanitizer также ранее прошли по 86 тестов.
+- Дополнительно выполнена Debug ARM64-сборка для `generic/platform=iOS` с
+  `CODE_SIGNING_ALLOWED=NO` — PASS. Подписанная сборка остановилась на
+  отклонённой авторизации Apple ID в Xcode и отсутствии provisioning profile.
+  Сертификат разработки существует; paired iPhone сейчас `unavailable`.
+  Это внешние блокеры установки, а не ошибка компиляции приложения.
 - Запуск: `make el-bolson-preview`. Подробности:
   [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md).
 

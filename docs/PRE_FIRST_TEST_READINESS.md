@@ -27,8 +27,9 @@ simulation are prepared. No physical run or human approval is claimed.
 | Offline rehearsal | `PASS_SIMULATED` | Manual completion on iOS 26.2 and UI-automated completion on iOS 18.5: 5/5 waypoints including finish, 8 run intervals, 901 virtual GPS samples. A full-disk save failure recovered after freeing space and retrying; the saved report appeared on the dashboard. The report says `fieldEvidence: false` and `audioPlaybackVerified: false`. |
 | Durable evidence queues | `PASS` | Existing queue, recovery, corruption and lock tests still pass. Simulation reports are separated from field evidence and do not create research queues. |
 | Research validators | `PASS` | Strict A/B checks, synthetic R03 analysis and rejection of unset R04 decisions pass; no real R03/R04 results are asserted. |
-| Signing | `MANUAL` | Choose the owner's Apple Team and connected physical iPhone. |
-| Physical iPhone smoke | `PENDING` | GPS, background recovery, audio and lock-screen controls require hardware. |
+| Physical-device compilation | `PASS_COMPILED` | Debug ARM64 build for `generic/platform=iOS` succeeds with `CODE_SIGNING_ALLOWED=NO`. This is compile evidence, not an install or physical runtime pass. |
+| Signing | `BLOCKED_ACCOUNT_AUTH` | A valid local Apple Development identity exists, but Xcode rejects the saved Apple ID login and cannot obtain the app provisioning profile. Reauthenticate in Xcode Settings → Accounts. Personal account/team identifiers stay out of Git. |
+| Physical iPhone smoke | `PENDING` | `devicectl` currently reports the paired phone unavailable. Connect and unlock it after restoring Xcode account authentication; GPS, background recovery, audio and lock-screen controls still require hardware. |
 | Daylight route/workout review | `PENDING` | Surface, crossings, accessibility, grade and actual arrival timing require an on-foot review. All corresponding fixture approvals remain false. |
 | Full listening / M1-A | `PENDING` | Home listening and founder field run remain separate from simulation. |
 | GitHub Actions | `NOT_RECHECKED` | The historical run was blocked by account billing. Local results do not claim current cloud CI success. |
