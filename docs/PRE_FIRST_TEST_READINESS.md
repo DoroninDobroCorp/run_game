@@ -19,9 +19,9 @@ simulation are prepared. No physical run or human approval is claimed.
 | Lane | Status | Evidence / remaining work |
 | :--- | :--- | :--- |
 | Git base | `PASS` | After fetch, starting commit `5ffe87a` contained every remote tip and was 73 commits ahead of `origin/main`. |
-| Python suite | `PASS_WITH_SKIPS` | `make verify-synthetic`: 261 tests, no failures, 6 skips for unavailable historical private assets. |
+| Python suite | `PASS_WITH_SKIPS` | `make verify-synthetic`: 262 tests, no failures, 6 skips for unavailable historical private assets. |
 | Static analysis | `PASS` | `make quality py-compile`: Ruff, mypy and bytecode compilation pass. |
-| Real-bundle iOS runtime | `PASS_WITH_RERUN_LIMIT` | `make el-bolson-test`: latest unit run executes 86 tests without failures; the earlier full UI run executes 6 without failures. A repeat UI run after the final report-list polish was interrupted when the host disk filled; it is not counted as a pass. |
+| Real-bundle iOS runtime | `PASS` | Final `make el-bolson-test` after report-list polish: 86 Swift unit tests and 6 UI tests, no failures. Logs are saved in ignored `research/r02/local/el_bolson/final-ios-tests.log`. |
 | Address / Thread Sanitizer | `PASS` | Each sanitizer executes 86 unit tests without failures. |
 | Route and audio integrity | `PASS` | `make el-bolson-prepare`: `READY_FOR_DEVICE_SMOKE`; independent pinned SHA, 1800.0 s, AAC / 44.1 kHz / mono, peak −1.6 dB, no clipping. |
 | Offline rehearsal | `PASS_SIMULATED` | Manual and UI-automated 30-minute completion: 5/5 waypoints including finish, 8 run intervals, 901 virtual GPS samples. The separate report says `fieldEvidence: false` and `audioPlaybackVerified: false`. |
@@ -63,3 +63,8 @@ of Git. Changing a source file or release commit requires a new manifest.
 
 The original Valparaíso inventory loss and its technical reconstruction are
 historical. They do not describe the new El Bolsón package.
+
+The earlier UI rerun interrupted by a full host disk was repeated successfully
+after stopping an idle second simulator. The launcher now recognizes renamed
+iPhones by their device type and reuses a booted device instead of starting an
+unnecessary second runtime. The interruption is resolved, not counted as a pass.

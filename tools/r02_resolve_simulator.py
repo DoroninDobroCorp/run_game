@@ -33,7 +33,15 @@ def resolve_from_simctl(payload: dict[str, Any]) -> str | None:
                 continue
             name = device.get("name")
             udid = device.get("udid")
-            if not isinstance(name, str) or not name.startswith("iPhone") or not isinstance(udid, str):
+            device_type = device.get("deviceTypeIdentifier")
+            # A renamed QA iPhone is still an iPhone. Ignoring it can boot a
+            # second runtime unnecessarily and exhaust RAM/disk on small Macs.
+            is_iphone = (
+                device_type.startswith("com.apple.CoreSimulator.SimDeviceType.iPhone-")
+                if isinstance(device_type, str)
+                else isinstance(name, str) and name.startswith("iPhone")
+            )
+            if not is_iphone or not isinstance(udid, str):
                 continue
             candidates.append(
                 (

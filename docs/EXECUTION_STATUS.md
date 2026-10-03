@@ -33,12 +33,15 @@
 - На реальном El Bolsón bundle прошли 86 Swift unit tests и 6 UI tests.
   Полный автоматический пробный круг посетил 5/5 точек с финишем,
   завершил 8 интервалов и обработал 901 виртуальную GPS-точку.
-- `make verify-synthetic`: 261 Python tests, 0 ошибок, 6 пропусков для
+- Исправлен выбор Simulator: переименованный QA iPhone распознаётся по типу
+  устройства и используется повторно, без лишнего запуска второго runtime.
+- `make verify-synthetic`: 262 Python tests, 0 ошибок, 6 пропусков для
   отсутствующих исторических приватных assets. `make quality py-compile` — PASS.
-- Последние 86 unit tests, AddressSanitizer и ThreadSanitizer — PASS.
-  Шесть UI tests прошли до финального разделения списков отчётов на dashboard.
-  Повтор UI после этой правки прерван из-за заполнения диска Mac; этот повтор
-  не записан как успешный. Само разделение покрыто unit-тестом AppModel.
+- Финальный `make el-bolson-test`: 86 unit tests и 6 UI tests — PASS уже после
+  разделения списков отчётов. Предыдущий повтор был прерван при заполнении
+  диска; после остановки второго симулятора проверка полностью прошла.
+  Лог сохранён в `research/r02/local/el_bolson/final-ios-tests.log`.
+  AddressSanitizer и ThreadSanitizer также ранее прошли по 86 тестов.
 - Запуск: `make el-bolson-preview`. Подробности:
   [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md).
 

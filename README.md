@@ -13,9 +13,9 @@
 > field evidence or approve the route. Physical-iPhone audio/GPS checks and the
 > daylight route review remain pending.
 > Research stages: `R02 IN_PROGRESS`; `R03` and `R04 NOT_STARTED`.
-> The last UI rerun after report-list polish was interrupted by host disk
-> exhaustion; the six-test UI pass predates that final polish. See the
-> [verification ledger](docs/PRE_FIRST_TEST_READINESS.md) for exact limits.
+> Final verification after report-list polish: all 86 unit and 6 UI tests pass.
+> See the [verification ledger](docs/PRE_FIRST_TEST_READINESS.md) for evidence
+> and the remaining physical-device checks.
 >
 > **Pinned El Bolsón audio SHA-256:**
 > `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`.
