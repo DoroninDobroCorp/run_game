@@ -32,9 +32,11 @@ def launch(destination: str, bundle_id: str, app: Path) -> None:
     if device["state"] != "Booted":
         subprocess.run(["xcrun", "simctl", "boot", udid], check=True, timeout=60)
     subprocess.run(["xcrun", "simctl", "bootstatus", udid, "-b"], check=True, timeout=300)
-    subprocess.run(["xcrun", "simctl", "install", udid, str(app)], check=True, timeout=120)
-    subprocess.run(["xcrun", "simctl", "launch", udid, bundle_id], check=True, timeout=30)
     subprocess.run(["open", "-a", "Simulator", "--args", "-CurrentDeviceUDID", udid], check=True, timeout=30)
+    subprocess.run(["xcrun", "simctl", "install", udid, str(app)], check=True, timeout=120)
+    # A freshly booted runtime can still be preparing its launch services after
+    # bootstatus finishes. Keep the visible device open while that request waits.
+    subprocess.run(["xcrun", "simctl", "launch", udid, bundle_id], check=True, timeout=180)
 
 
 def main() -> int:
