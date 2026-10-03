@@ -34,6 +34,15 @@ final class FounderAppTests: XCTestCase {
         XCTAssertEqual(Formatters.clock(1800), "30:00")
     }
 
+    func testClockFormattingHandlesInvalidAndExtremeRuntimeValues() {
+        for value in [Double.nan, .infinity, -.infinity, .greatestFiniteMagnitude, Double(Int.max)] {
+            XCTAssertEqual(Formatters.clock(value), "--:--")
+        }
+        XCTAssertEqual(Formatters.clock(-Double.greatestFiniteMagnitude), "00:00")
+        XCTAssertEqual(Formatters.clock(-0.1), "00:00")
+        XCTAssertEqual(Formatters.clock(536_870_912_000), "8947848533:20")
+    }
+
     func testBundledMissionAndAudioIntegrityValidate() throws {
         let mission = try MissionConfig.loadFromBundle()
         XCTAssertEqual(mission.missionID, "m01")

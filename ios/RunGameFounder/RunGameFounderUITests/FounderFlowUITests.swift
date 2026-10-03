@@ -184,4 +184,42 @@ final class FounderFlowUITests: XCTestCase {
         XCTAssertFalse(app.staticTexts["Незавершённый immediate-дебриф"].exists)
         XCTAssertFalse(app.staticTexts["24-часовой recall"].exists)
     }
+
+    func testRehearsalPausesAndPreservesProgressAcrossNavigationAndBackground() {
+        let app = launchedApp()
+        let link = app.buttons["rehearsalLink"]
+        XCTAssertTrue(link.waitForExistence(timeout: 5))
+        reveal(link, in: app)
+        link.tap()
+        let play = app.buttons["rehearsalPlayPause"]
+        let clock = app.staticTexts["rehearsalClock"]
+        reveal(play, in: app)
+        play.tap()
+        let progressed = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            clock.label != "00:00"
+        }, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [progressed], timeout: 5), .completed)
+        play.tap()
+        let pausedTime = clock.label
+        XCTAssertTrue(play.label.contains("Продолжить"))
+
+        app.navigationBars["Тестовый забег"].buttons.element(boundBy: 0).tap()
+        reveal(link, in: app)
+        link.tap()
+        XCTAssertEqual(clock.label, pausedTime)
+        reveal(play, in: app)
+        XCTAssertTrue(play.label.contains("Продолжить"))
+        play.tap()
+
+        XCUIDevice.shared.press(.home)
+        app.activate()
+        XCTAssertTrue(play.waitForExistence(timeout: 5))
+        XCTAssertTrue(play.label.contains("Продолжить"), "Backgrounding must pause the rehearsal")
+        let returnedTime = clock.label
+        let advancedWhilePaused = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            clock.label != returnedTime
+        }, object: nil)
+        advancedWhilePaused.isInverted = true
+        XCTAssertEqual(XCTWaiter.wait(for: [advancedWhilePaused], timeout: 1), .completed)
+    }
 }

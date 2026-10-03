@@ -840,7 +840,11 @@ enum FounderAppError: LocalizedError {
 
 enum Formatters {
     static func clock(_ seconds: TimeInterval) -> String {
-        let value = max(0, Int(seconds.rounded(.down)))
-        return String(format: "%02d:%02d", value / 60, value % 60)
+        guard seconds.isFinite else { return "--:--" }
+        guard seconds > 0 else { return "00:00" }
+        // Double(Int.max) rounds up on 64-bit platforms; equality is unsafe too.
+        guard seconds < Double(Int.max) else { return "--:--" }
+        let value = Int(seconds.rounded(.down))
+        return String(format: "%02ld:%02ld", value / 60, value % 60)
     }
 }

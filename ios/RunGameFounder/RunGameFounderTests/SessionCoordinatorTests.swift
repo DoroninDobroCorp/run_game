@@ -393,6 +393,74 @@ final class SessionCoordinatorTests: XCTestCase {
         XCTAssertEqual(journal.currentAttempt?.audioElapsedSeconds, 16.0)
     }
 
+    func testInvalidPlayerTimeDoesNotBreakCheckpointPauseOrAbortPersistence() throws {
+        for elapsed in [Double.nan, .infinity, -.infinity, -1] {
+            let audio = FakeAudioController()
+            let recorder = FakeLocationRecorder()
+            let coordinator = SessionCoordinator(mission: sampleMission, appModel: appModel,
+                audio: audio, recorder: recorder)
+            startRunning(coordinator)
+            audio.elapsed = elapsed
+            audio.incidents = [AudioIncident(kind: .decodeError, occurredAt: Date(),
+                elapsed: elapsed, message: "Invalid playback timestamp")]
+            let checkpoint = try XCTUnwrap(coordinator.saveJournalCheckpoint())
+            XCTAssertEqual(checkpoint.audioElapsedSeconds, 0)
+            XCTAssertNoThrow(try JSONEncoder().encode(checkpoint))
+
+            coordinator.send(.pauseRequested)
+            XCTAssertTrue(coordinator.isRunning)
+            XCTAssertEqual(coordinator.audioElapsedSeconds, 0)
+            XCTAssertFalse(appModel.journalPersistenceFailed)
+
+            let previousDebriefs = appModel.pendingDebriefs.count
+            coordinator.abortSession(reason: "Invalid player timestamp")
+            let context = try XCTUnwrap(coordinator.currentContext)
+            XCTAssertTrue(context.aborted)
+            XCTAssertFalse(context.completed)
+            XCTAssertEqual(context.audioElapsedSeconds, 0)
+            XCTAssertNoThrow(try JSONEncoder().encode(context))
+            XCTAssertEqual(appModel.pendingDebriefs.count, previousDebriefs + 1)
+            XCTAssertTrue(appModel.pendingRecalls.isEmpty)
+            XCTAssertFalse(appModel.journalPersistenceFailed)
+            XCTAssertFalse(appModel.queuePersistenceFailed)
+            XCTAssertFalse(audio.isPlaying)
+            XCTAssertFalse(recorder.isRecording)
+        }
+    }
+
+    func testGPXSaveErrorDuringStopCannotReenterRecorderOrCompleteTheRun() throws {
+        for naturalFinish in [true, false] {
+            let audio = FakeAudioController()
+            let recorder = FakeLocationRecorder()
+            let coordinator = SessionCoordinator(mission: sampleMission, appModel: appModel,
+                audio: audio, recorder: recorder)
+            startRunning(coordinator)
+            audio.elapsed = sampleMission.durationSeconds
+            // Match LocationRecorder.stop's synchronous error publication.
+            // Emit once so a regression fails by count rather than overflowing
+            // the test process stack through repeated failed writes.
+            recorder.onStop = {
+                recorder.onStop = nil
+                recorder.lastErrorSubject.send("No space left while saving GPX")
+            }
+            let previousDebriefs = appModel.pendingDebriefs.count
+            if naturalFinish { audio.onFinished?() }
+            else { coordinator.abortSession(reason: "User stopped") }
+
+            XCTAssertEqual(recorder.stopCallCount, 1)
+            XCTAssertTrue(coordinator.isAborted)
+            XCTAssertFalse(coordinator.isCompleted)
+            XCTAssertFalse(audio.isPlaying)
+            XCTAssertFalse(recorder.isRecording)
+            XCTAssertEqual(appModel.pendingDebriefs.count, previousDebriefs + 1)
+            let context = try XCTUnwrap(coordinator.currentContext)
+            XCTAssertTrue(context.abortReason.contains("No space left"))
+            XCTAssertNil(context.track)
+            XCTAssertTrue(appModel.pendingRecalls.isEmpty)
+            XCTAssertNoThrow(try JSONEncoder().encode(context))
+        }
+    }
+
     // MARK: - Helpers
     @MainActor
     private func startRunning(_ coordinator: SessionCoordinator) {

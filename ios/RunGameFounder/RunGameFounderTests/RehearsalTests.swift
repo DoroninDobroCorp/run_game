@@ -122,4 +122,38 @@ final class RehearsalTests: XCTestCase {
         XCTAssertEqual(try Data(contentsOf: url), foreignData)
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path).count, 1)
     }
+
+    func testSeparateRunsSurviveAppModelReloadWithoutCreatingResearchEvidence() throws {
+        let rehearsal = Rehearsal(mission: try OfflineRouteTests.missionWithGeometry())
+        let identifier = "RehearsalReload.\(UUID().uuidString)"
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(identifier)
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: identifier))
+        defer {
+            defaults.removePersistentDomain(forName: identifier)
+            try? FileManager.default.removeItem(at: directory)
+        }
+        var savedURLs: Set<URL> = []
+        for _ in 0..<2 {
+            rehearsal.play()
+            rehearsal.advance(by: 1800)
+            rehearsal.saveReport(directory: directory)
+            savedURLs.insert(try XCTUnwrap(rehearsal.reportURL))
+            rehearsal.reset()
+        }
+        XCTAssertEqual(savedURLs.count, 2)
+        let restored = AppModel(defaults: defaults, documentsDirectory: directory)
+        XCTAssertEqual(Set(restored.simulationReportURLs), savedURLs)
+        XCTAssertTrue(restored.localEvidenceURLs.isEmpty)
+        XCTAssertTrue(restored.pendingDebriefs.isEmpty)
+        XCTAssertTrue(restored.pendingRecalls.isEmpty)
+        XCTAssertFalse(restored.canBeginMission)
+        for url in savedURLs {
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let report = try decoder.decode(RehearsalReport.self, from: Data(contentsOf: url))
+            XCTAssertTrue(report.sessionCompleted)
+            XCTAssertTrue(report.simulated)
+            XCTAssertFalse(report.fieldEvidence)
+        }
+    }
 }

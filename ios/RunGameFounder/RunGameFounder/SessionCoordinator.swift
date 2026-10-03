@@ -21,6 +21,7 @@ final class SessionCoordinator: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
     private var firstFixTimeout: Task<Void, Never>?
+    private var recorderStopInProgress = false
     private var precommittedNextWorkoutAt: Date
 
     init(
@@ -39,7 +40,7 @@ final class SessionCoordinator: ObservableObject {
         self.currentRunState = initialState
         self.isRecording = recorder.isRecording
         self.recordedPointsCount = recorder.samples.count
-        self.audioElapsedSeconds = audio.elapsed
+        self.audioElapsedSeconds = Self.serializableElapsed(audio.elapsed)
         self.activeIncidentCount = audio.incidents.count + recorder.incidents.count
         self.precommittedNextWorkoutAt = precommittedNextWorkoutAt
 
@@ -107,11 +108,17 @@ final class SessionCoordinator: ObservableObject {
     private var lastCheckpointElapsed: TimeInterval = 0
     private var lastSavedIncidentCount: Int = 0
 
+    private static func serializableElapsed(_ elapsed: TimeInterval) -> TimeInterval {
+        // Persistence and UI use a finite value. Lifecycle events keep the raw
+        // player value so invalid completion times still fail the session gate.
+        elapsed.isFinite ? max(0, elapsed) : 0
+    }
+
     private func updatePublishedSnapshots() {
         currentRunState = stateMachine.state
         isRecording = recorder.isRecording
         recordedPointsCount = recorder.samples.count
-        audioElapsedSeconds = audio.elapsed
+        audioElapsedSeconds = Self.serializableElapsed(audio.elapsed)
         let currentIncidents = audio.incidents.count + recorder.incidents.count
         activeIncidentCount = currentIncidents
 
@@ -120,8 +127,8 @@ final class SessionCoordinator: ObservableObject {
             _ = try? saveJournalCheckpoint()
         }
 
-        if isRunning && abs(audio.elapsed - lastCheckpointElapsed) >= 15.0 {
-            lastCheckpointElapsed = audio.elapsed
+        if isRunning && abs(audioElapsedSeconds - lastCheckpointElapsed) >= 15.0 {
+            lastCheckpointElapsed = audioElapsedSeconds
             _ = try? saveJournalCheckpoint()
         }
     }
@@ -167,7 +174,7 @@ final class SessionCoordinator: ObservableObject {
                 phase: .running,
                 startedAt: startedAt,
                 precommittedNextWorkoutAt: precommittedNextWorkoutAt,
-                audioElapsedSeconds: audio.elapsed,
+                audioElapsedSeconds: Self.serializableElapsed(audio.elapsed),
                 pauseCount: pauseCount,
                 audioIncidents: audioIncidentStrings,
                 locationIncidents: recorder.incidents
@@ -203,7 +210,8 @@ final class SessionCoordinator: ObservableObject {
             phase: attempt.phase,
             startedAt: attempt.startedAt,
             precommittedNextWorkoutAt: attempt.precommittedNextWorkoutAt,
-            audioElapsedSeconds: audio.elapsed > 0 ? audio.elapsed : attempt.audioElapsedSeconds,
+            audioElapsedSeconds: audio.elapsed.isFinite && audio.elapsed > 0
+                ? audio.elapsed : Self.serializableElapsed(attempt.audioElapsedSeconds),
             pauseCount: attempt.pauseCount,
             audioIncidents: audioIncidentStrings.isEmpty ? attempt.audioIncidents : audioIncidentStrings,
             locationIncidents: recorder.incidents.isEmpty ? attempt.locationIncidents : recorder.incidents
@@ -211,6 +219,11 @@ final class SessionCoordinator: ObservableObject {
     }
 
     private func stopRecorderAndMakeEvidence(completed: Bool) -> (summary: TrackSummary?, routeTraversal: WalkthroughEvidence?) {
+        // Saving GPX can synchronously publish lastError while stop() is still
+        // running. That callback may abort the session; it must not stop again.
+        guard !recorderStopInProgress else { return (nil, nil) }
+        recorderStopInProgress = true
+        defer { recorderStopInProgress = false }
         let summary = recorder.stop(completed: completed)
         let routeTraversal = summary.map {
             WalkthroughEvidence.make(
@@ -238,8 +251,8 @@ final class SessionCoordinator: ObservableObject {
             case .cancelGPSRecording:
                 recorder.cancelPendingStart()
             case .stopGPSRecording(let completed):
-                if recorder.isRecording {
-                    _ = recorder.stop(completed: completed)
+                if recorder.isRecording && !recorderStopInProgress {
+                    _ = stopRecorderAndMakeEvidence(completed: completed)
                 }
             case .startFirstFixTimer(let seconds):
                 firstFixTimeout?.cancel()

@@ -6,16 +6,19 @@
 > **Try it:** `make el-bolson-preview`, then **Попробовать маршрут** in the app.
 > [Russian walkthrough and setup guide](docs/EL_BOLSON_TEST_RUN.md).
 >
-> **Current status (2026-10-02):** Local iPhone test candidate with offline route
+> **Current status (2026-10-03):** Local iPhone test candidate with offline route
 > geometry, a separate accelerated rehearsal, and a newly rendered 30-minute
-> Russian audio master. Real-bundle Simulator verification: 90 Swift unit tests
-> and 6 UI tests pass. A simulated run is explicitly marked and does not create
+> Russian audio master. Real-bundle Simulator verification: 94 Swift unit tests
+> and 7 UI tests pass. A simulated run is explicitly marked and does not create
 > field evidence or approve the route. Physical-iPhone audio/GPS checks and the
 > daylight route review remain pending.
 > Research stages: `R02 IN_PROGRESS`; `R03` and `R04 NOT_STARTED`.
-> Recheck: 271 Python tests (6 historical-asset skips), 90 Swift unit tests and
-> 6 UI tests pass. Save retries, interrupted sessions and fixture publication
-> are covered by failure tests. Real-account setup is deferred by the owner.
+> Final audit: 271 Python tests (6 historical-asset skips), including an isolated
+> checkout without private assets. The package rebuilds byte-for-byte.
+> Failure tests cover GPX write errors, invalid player times and report recovery;
+> UI tests cover a full rehearsal, navigation and background pause/resume.
+> AddressSanitizer also passes all 94 unit tests.
+> Real-account setup is deferred by the owner.
 > See the [verification ledger](docs/PRE_FIRST_TEST_READINESS.md) for evidence
 > and the remaining physical-device checks.
 >

@@ -78,6 +78,7 @@ final class FakeLocationRecorder: LocationRecording {
     var incidents: [String] = []
     var partialGPXBasename: String? = nil
     var stopCallCount: Int = 0
+    var onStop: (() -> Void)?
 
     let latestSampleSubject = CurrentValueSubject<TrackSample?, Never>(nil)
     var latestSamplePublisher: AnyPublisher<TrackSample?, Never> {
@@ -110,6 +111,7 @@ final class FakeLocationRecorder: LocationRecording {
         stopCallCount += 1
         isRecording = false
         completedNormally = completed
+        onStop?()
         return lastSummary
     }
 
