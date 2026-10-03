@@ -1,15 +1,12 @@
 import SwiftUI
 
 struct RehearsalView: View {
-    @StateObject private var rehearsal: Rehearsal
+    @ObservedObject var rehearsal: Rehearsal
     @State private var speed = 30.0
-    @State private var lastTick: Date?
+    @State private var lastTick: TimeInterval?
+    @State private var showDiscardConfirmation = false
     @Environment(\.scenePhase) private var scenePhase
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
-
-    init(mission: MissionConfig) {
-        _rehearsal = StateObject(wrappedValue: Rehearsal(mission: mission))
-    }
 
     var body: some View {
         ScrollView {
@@ -54,7 +51,10 @@ struct RehearsalView: View {
                         } else {
                             Button("Сохранить результат теста") { rehearsal.saveReport() }
                         }
-                        Button("Пройти ещё раз") { rehearsal.reset(); lastTick = nil }
+                        Button("Пройти ещё раз") {
+                            if rehearsal.hasUnsavedReport { showDiscardConfirmation = true }
+                            else { rehearsal.reset(); lastTick = nil }
+                        }
                             .accessibilityIdentifier("rehearsalReset")
                     }.runGamePanel()
                 } else {
@@ -64,7 +64,7 @@ struct RehearsalView: View {
                     Button {
                         if rehearsal.isPlaying { rehearsal.pause() }
                         else { rehearsal.play() }
-                        lastTick = Date()
+                        lastTick = ProcessInfo.processInfo.systemUptime
                     } label: {
                         Label(rehearsal.isPlaying ? "Пауза" : (rehearsal.elapsed == 0 ? "Начать тестовый круг" : "Продолжить"), systemImage: rehearsal.isPlaying ? "pause.fill" : "play.fill")
                             .font(.headline).frame(maxWidth: .infinity).padding(.vertical, 12)
@@ -84,10 +84,16 @@ struct RehearsalView: View {
         .background(RunGameTheme.ink.ignoresSafeArea())
         .navigationTitle("Тестовый забег")
         .navigationBarTitleDisplayMode(.inline)
-        .onReceive(timer) { now in
+        .confirmationDialog("Начать заново без сохранения?", isPresented: $showDiscardConfirmation) {
+            Button("Начать заново", role: .destructive) { rehearsal.reset(); lastTick = nil }
+        } message: {
+            Text("Результат этого тестового круга ещё не сохранён. При новом старте он будет удалён.")
+        }
+        .onReceive(timer) { _ in
+            let now = ProcessInfo.processInfo.systemUptime
             defer { lastTick = now }
             guard let lastTick, rehearsal.isPlaying else { return }
-            rehearsal.advance(by: min(1, max(0, now.timeIntervalSince(lastTick))) * speed)
+            rehearsal.advance(by: min(1, max(0, now - lastTick)) * speed)
             if rehearsal.report != nil { rehearsal.saveReport() }
         }
         .onChange(of: scenePhase) { _, phase in

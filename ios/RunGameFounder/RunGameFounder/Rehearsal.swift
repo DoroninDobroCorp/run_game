@@ -12,6 +12,7 @@ final class Rehearsal: ObservableObject {
     let mission: MissionConfig
     private(set) var stateMachine = SessionStateMachine()
     private var startedAt = Date()
+    private var reportID = UUID().uuidString.lowercased()
 
     init(mission: MissionConfig) { self.mission = mission }
 
@@ -20,6 +21,7 @@ final class Rehearsal: ObservableObject {
     }
 
     var progress: Double { min(1, max(0, elapsed / mission.durationSeconds)) }
+    var hasUnsavedReport: Bool { report != nil && reportURL == nil }
     var routeProgress: Double { Self.routeProgress(at: elapsed, mission: mission) }
 
     static func routeProgress(at elapsed: TimeInterval, mission: MissionConfig) -> Double {
@@ -64,6 +66,7 @@ final class Rehearsal: ObservableObject {
         elapsed = 0
         report = nil
         reportURL = nil
+        reportID = UUID().uuidString.lowercased()
         errorMessage = nil
         stateMachine = SessionStateMachine()
     }
@@ -72,15 +75,22 @@ final class Rehearsal: ObservableObject {
         guard let report, reportURL == nil else { return }
         do {
             let destination = directory ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
-            let url = destination.appendingPathComponent("simulation-\(UUID().uuidString.lowercased()).json")
+            let url = destination.appendingPathComponent("simulation-\(reportID).json")
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
-            try FileDurability.writeAtomicStaging(data: encoder.encode(report), to: url, overwrite: false)
+            let data = try encoder.encode(report)
+            // A directory sync can fail after publication. Retrying must finish
+            // durability for this same report, not create a duplicate result.
+            let exists = FileManager.default.fileExists(atPath: url.path)
+            if exists, try Data(contentsOf: url) != data {
+                throw CocoaError(.fileWriteFileExists)
+            }
+            try FileDurability.writeAtomicStaging(data: data, to: url, overwrite: exists)
             reportURL = url
             errorMessage = nil
         } catch {
-            errorMessage = "Не удалось сохранить отчёт. Проверь свободное место и нажми «Сохранить результат теста» ещё раз, пока этот экран открыт."
+            errorMessage = "Не удалось сохранить отчёт. Результат пока в памяти приложения. Проверь свободное место и нажми «Сохранить результат теста» ещё раз."
         }
     }
 

@@ -1,15 +1,15 @@
 # Local founder resources
 
 The selected research fixture is currently
-`research/r02/local/valparaiso_central/`. Santiago is inactive. From the
+`research/r02/local/el_bolson/`. Valparaíso and Santiago are inactive. From the
 repository root, prepare and verify the ignored `Local/` bundle explicitly:
 
 ```bash
 python3 tools/r02_prepare_ios.py \
-  --fixture-dir research/r02/local/valparaiso_central \
+  --fixture-dir research/r02/local/el_bolson \
   --output-dir ios/RunGameFounder/Resources/Local
 python3 tools/r02_preflight.py \
-  --fixture-dir research/r02/local/valparaiso_central \
+  --fixture-dir research/r02/local/el_bolson \
   --ios-resources-dir ios/RunGameFounder/Resources/Local
 ```
 
@@ -20,5 +20,7 @@ M1-A approval.
 
 The prepared inventory is exactly `mission.json`, the M4A master, and its
 manifest. These files contain exact public research-route coordinates and must
-remain ignored/local. Do not commit or broadly share them. Apple Maps preview is
-an online Apple service; the app otherwise has no project backend or analytics.
+remain ignored/local. Do not commit or broadly share them. El Bolsón uses saved
+route geometry and an offline schematic; Apple Maps background tiles and the
+legacy directions fallback may use Apple's online service. The app has no
+project backend or analytics.

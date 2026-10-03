@@ -19,9 +19,9 @@ story mechanic and never enters canonical story state.
 
 Exact coordinates, start/end points, GPX, and raw traces belong in
 `research/r02/local/`, which is ignored by git. The active fixture is
-`local/valparaiso_central/`. A copied `local/santiago_cumming/` directory is an
-inactive archive unless the owner explicitly selects it; merely placing it next
-to Valparaíso must not change the bundle.
+`local/el_bolson/`. The Valparaíso and Santiago directories are inactive
+archives unless the owner explicitly selects one; their presence does not
+change the active bundle. See [the El Bolsón guide](../../docs/EL_BOLSON_TEST_RUN.md).
 
 ## Commands
 
@@ -30,17 +30,17 @@ python3 tools/r02_story.py validate
 python3 tools/r02_story.py paths
 python3 tools/r02_story.py linearize --mission m01 --condition B
 python3 tools/r02_verify_geo.py \
-  --snapshot research/r02/local/valparaiso_central/osm_snapshot.json
+  --snapshot research/r02/local/el_bolson/osm_snapshot.json
 python3 tools/r02_build_master.py \
-  --binding research/r02/local/valparaiso_central/current.binding.json \
-  --output-dir research/r02/local/valparaiso_central/audio
+  --binding research/r02/local/el_bolson/current.binding.json \
+  --output-dir research/r02/local/el_bolson/audio
 python3 tools/r02_verify_field.py \
-  --audio-dir research/r02/local/valparaiso_central/audio
+  --audio-dir research/r02/local/el_bolson/audio
 python3 tools/r02_prepare_ios.py \
-  --fixture-dir research/r02/local/valparaiso_central \
+  --fixture-dir research/r02/local/el_bolson \
   --output-dir ios/RunGameFounder/Resources/Local
 python3 tools/r02_preflight.py \
-  --fixture-dir research/r02/local/valparaiso_central \
+  --fixture-dir research/r02/local/el_bolson \
   --ios-resources-dir ios/RunGameFounder/Resources/Local
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
@@ -65,7 +65,7 @@ no coordinates, place names, exact start time, or input path and makes no safety
 or approval decision. Missing/invalid points, required arrivals, or cues fail
 closed with a non-zero exit status.
 
-The active founder fixture is `local/valparaiso_central/`. It remains local and
+The active founder fixture is `local/el_bolson/`. It remains local and
 git-ignored because its binding, audio, route measurements, and run evidence may
 contain sensitive location data. OSM identity checks do not imply that a route
 is safe or workout-ready; those approvals stay false until the founder performs

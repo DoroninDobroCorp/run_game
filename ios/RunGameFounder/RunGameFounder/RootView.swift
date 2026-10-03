@@ -25,8 +25,14 @@ struct RootView: View {
 private struct DashboardView: View {
     @EnvironmentObject private var appModel: AppModel
     let mission: MissionConfig
+    @StateObject private var rehearsal: Rehearsal
     @State private var showResetConfirmation = false
     @State private var showQueueResetConfirmation = false
+
+    init(mission: MissionConfig) {
+        self.mission = mission
+        _rehearsal = StateObject(wrappedValue: Rehearsal(mission: mission))
+    }
 
     var body: some View {
         ScrollView {
@@ -235,9 +241,9 @@ private struct DashboardView: View {
 
     @ViewBuilder
     private var missionStats: some View {
-                Label("\(Int(mission.durationSeconds / 60)) минут", systemImage: "timer")
-                Label("\(mission.timeline.filter { $0.kind == "run" }.count) интервалов", systemImage: "figure.run")
-                Label("офлайн-аудио", systemImage: "airplane")
+        Label("\(Int(mission.durationSeconds / 60)) минут", systemImage: "timer")
+        Label("\(mission.timeline.filter { $0.kind == "run" }.count) интервалов", systemImage: "figure.run")
+        Label("офлайн-аудио", systemImage: "airplane")
     }
 
     private var readiness: some View {
@@ -265,7 +271,7 @@ private struct DashboardView: View {
     private var rehearsalCard: some View {
         if let route = mission.offlineRoute {
             NavigationLink {
-                RehearsalView(mission: mission)
+                RehearsalView(rehearsal: rehearsal)
             } label: {
                 VStack(alignment: .leading, spacing: 14) {
                     RouteDiagram(route: route).frame(height: 210)

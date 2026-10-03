@@ -171,6 +171,10 @@ final class FounderFlowUITests: XCTestCase {
         play.tap()
         XCTAssertTrue(app.staticTexts["rehearsalResult"].waitForExistence(timeout: 30))
         XCTAssertTrue(app.staticTexts["Тестовый круг пройден"].exists)
+        app.navigationBars["Тестовый забег"].buttons.element(boundBy: 0).tap()
+        reveal(link, in: app)
+        link.tap()
+        XCTAssertTrue(app.staticTexts["rehearsalResult"].waitForExistence(timeout: 5), "Returning to the test must preserve its result")
         let reset = app.buttons["rehearsalReset"]
         reveal(reset, in: app)
         reset.tap()

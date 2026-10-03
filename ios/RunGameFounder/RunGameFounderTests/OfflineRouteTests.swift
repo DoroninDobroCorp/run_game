@@ -49,6 +49,18 @@ final class OfflineRouteTests: XCTestCase {
         XCTAssertNotEqual(fingerprint, mission.routeWorkoutFingerprint)
     }
 
+    func testCancelledOnlinePreviewStopsLoadingWithoutRequestOrError() async throws {
+        let mission = try Self.missionWithGeometry()
+        let planner = RoutePlanner()
+        let request = Task { await planner.load(points: mission.routePoints) }
+        request.cancel()
+        await request.value
+        XCTAssertFalse(planner.isLoading)
+        XCTAssertNil(planner.errorMessage)
+        XCTAssertFalse(planner.isComplete)
+        XCTAssertTrue(planner.polylines.isEmpty)
+    }
+
     func testWaypointReorderingAndDetachedHashAreRejected() throws {
         var mission = try Self.missionWithGeometry()
         let route = try XCTUnwrap(mission.offlineRoute)

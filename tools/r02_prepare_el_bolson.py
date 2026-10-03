@@ -12,8 +12,10 @@ import argparse
 from datetime import datetime, timezone
 import importlib
 import json
+import os
 from pathlib import Path
 import sys
+import tempfile
 import urllib.request
 import xml.etree.ElementTree as ET
 from typing import Any
@@ -103,13 +105,17 @@ def build_fixture(osm_map: dict[str, Any]) -> tuple[dict[str, Any], dict[str, An
     )
     selected_indices = [0, junction_indices[0], junction_indices[2], junction_indices[3]]
     selected_ids = [AVENUE, junctions[0], junctions[2], junctions[3]]
+    connected_ways = [None, list(LOOP_WAYS[0:2]), list(LOOP_WAYS[2:4]), list(LOOP_WAYS[3:5])]
     candidates: dict[str, Any] = {}
-    for role, name, index, osm_id in zip(roles, names, selected_indices, selected_ids):
+    for role, name, index, osm_id, way_ids in zip(roles, names, selected_indices, selected_ids, connected_ways):
         osm_type = "way" if role == "start_and_finish" else "node"
         candidates[role] = {
             "name": name, "osm_type": osm_type, "osm_id": osm_id,
             "osm_url": f"{OSM}/{osm_type}/{osm_id}", **route[index],
+            "osm_name": "Avenida Patagonia Argentina" if osm_type == "way" else None,
         }
+        if way_ids:
+            candidates[role]["osm_way_ids"] = way_ids
     offline_route = {
         "coordinates": route,
         "waypointIndices": selected_indices + [len(route) - 1],
@@ -172,16 +178,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     args = parser.parse_args(argv)
     try:
-        for name in ("current.binding.json", "osm_snapshot.json", "source.osm.json", "planned-route.gpx"):
-            if (args.output_dir / name).exists():
-                raise ValueError("Fixture already exists; use a new output directory to preserve reviews")
+        if args.output_dir.is_symlink() or (args.output_dir.exists() and (
+            not args.output_dir.is_dir() or any(args.output_dir.iterdir())
+        )):
+            raise ValueError("Fixture already exists; use a new or empty output directory to preserve reviews")
         osm_map = json.loads(args.osm_map.read_text()) if args.osm_map else download_map()
         binding, snapshot = build_fixture(osm_map)
         snapshot["prepared_at_utc"] = datetime.now(timezone.utc).isoformat()
-        args.output_dir.mkdir(parents=True, exist_ok=True)
-        for name, value in (("current.binding.json", binding), ("osm_snapshot.json", snapshot), ("source.osm.json", osm_map)):
-            (args.output_dir / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-        (args.output_dir / "planned-route.gpx").write_bytes(planned_gpx(snapshot))
+        args.output_dir.parent.mkdir(parents=True, exist_ok=True)
+        # Publish all four files together on the same filesystem. A failed
+        # write (including ENOSPC) leaves the destination ready for a retry.
+        with tempfile.TemporaryDirectory(prefix=f".{args.output_dir.name}.stage-", dir=args.output_dir.parent) as temp:
+            stage = Path(temp)
+            for name, value in (("current.binding.json", binding), ("osm_snapshot.json", snapshot), ("source.osm.json", osm_map)):
+                (stage / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            (stage / "planned-route.gpx").write_bytes(planned_gpx(snapshot))
+            os.rename(stage, args.output_dir)
         print(f"El Bolsón fixture prepared: {snapshot['planned_loop_length_meters']} m; start at avenue midpoint; human approvals remain false.")
         return 0
     except (OSError, ValueError, KeyError, StopIteration) as exc:

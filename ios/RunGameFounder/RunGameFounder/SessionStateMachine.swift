@@ -478,7 +478,7 @@ struct SessionStateMachine: Equatable, Sendable {
             completed: false,
             aborted: true,
             abortReason: reason,
-            audioElapsedSeconds: elapsed,
+            audioElapsedSeconds: elapsed.isFinite ? max(0, elapsed) : 0,
             pauseCount: pauseCount,
             track: summary,
             routeTraversalEvidence: routeTraversal,

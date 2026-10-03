@@ -72,4 +72,54 @@ final class RehearsalTests: XCTestCase {
         XCTAssertFalse(rehearsal.isPlaying)
         XCTAssertNil(rehearsal.report)
     }
+
+    func testSaveFailuresKeepReportAndRetryCreatesExactlyOneResult() throws {
+        for failure: FileDurability.FailureInjection in [.failStagingWrite, .failPublication, .failParentOpen, .failParentSync] {
+            let rehearsal = Rehearsal(mission: try OfflineRouteTests.missionWithGeometry())
+            let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+            defer {
+                FileDurability.injectedFailure = .none
+                try? FileManager.default.removeItem(at: directory)
+            }
+            rehearsal.play()
+            rehearsal.advance(by: 1800)
+            let createdAt = try XCTUnwrap(rehearsal.report).createdAt
+            FileDurability.injectedFailure = failure
+            rehearsal.saveReport(directory: directory)
+            XCTAssertTrue(rehearsal.hasUnsavedReport)
+            XCTAssertNotNil(rehearsal.errorMessage)
+            XCTAssertNil(rehearsal.reportURL)
+            FileDurability.injectedFailure = .none
+            rehearsal.saveReport(directory: directory)
+            XCTAssertFalse(rehearsal.hasUnsavedReport)
+            XCTAssertNil(rehearsal.errorMessage)
+            let url = try XCTUnwrap(rehearsal.reportURL)
+            let json = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(contentsOf: url)) as? [String: Any])
+            XCTAssertEqual(json["sessionCompleted"] as? Bool, true)
+            XCTAssertEqual(rehearsal.report?.createdAt, createdAt)
+            XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path), [url.lastPathComponent])
+        }
+    }
+
+    func testRetryNeverOverwritesConflictingReport() throws {
+        let rehearsal = Rehearsal(mission: try OfflineRouteTests.missionWithGeometry())
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer {
+            FileDurability.injectedFailure = .none
+            try? FileManager.default.removeItem(at: directory)
+        }
+        rehearsal.play()
+        rehearsal.advance(by: 1800)
+        FileDurability.injectedFailure = .failParentSync
+        rehearsal.saveReport(directory: directory)
+        let url = try XCTUnwrap(FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil).first)
+        let foreignData = Data("different result".utf8)
+        try foreignData.write(to: url)
+        FileDurability.injectedFailure = .none
+        rehearsal.saveReport(directory: directory)
+        XCTAssertTrue(rehearsal.hasUnsavedReport)
+        XCTAssertNotNil(rehearsal.errorMessage)
+        XCTAssertEqual(try Data(contentsOf: url), foreignData)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: directory.path).count, 1)
+    }
 }

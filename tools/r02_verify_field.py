@@ -21,7 +21,7 @@ import sys
 from typing import Any, Callable
 
 ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_AUDIO_DIR = ROOT / "research/r02/local/valparaiso_central/audio"
+DEFAULT_AUDIO_DIR = ROOT / "research/r02/local/el_bolson/audio"
 
 MANIFEST_SCHEMA_VERSION = "0.1"
 STRICT_TOOL_SCHEMA = "r02_build_master_manifest/0.2"

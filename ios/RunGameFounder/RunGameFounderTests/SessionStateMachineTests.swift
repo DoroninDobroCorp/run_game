@@ -480,6 +480,34 @@ final class SessionStateMachineTests: XCTestCase {
         XCTAssertFalse(containsScheduleRecall)
     }
 
+    func testAbortedSessionsKeepSerializableElapsedTimeForEveryStopSource() throws {
+        let now = Date()
+        for elapsed in [Double.nan, .infinity, -.infinity, -1, 42] {
+            let events: [SessionStateMachine.Event] = [
+                .gpsFailed(reason: "GPS unavailable", elapsed: elapsed),
+                .audioStartFailed(reason: "Audio unavailable", elapsed: elapsed),
+                .audioInterrupted(reason: "Interrupted", elapsed: elapsed),
+                .routeDisconnected(elapsed: elapsed),
+                .remoteStopRequested(elapsed: elapsed),
+                .userAborted(reason: "Stopped", summary: nil, routeTraversal: nil,
+                    audioIncidents: [], locationIncidents: [], elapsed: elapsed, now: now)
+            ]
+            for event in events {
+                var machine = SessionStateMachine(initialState: .running(runID: "abort",
+                    startedAt: now, runStartedAt: now, pauseCount: 0, isPlaying: true))
+                let actions = machine.handle(event: event, mission: sampleMission,
+                    precommittedNextWorkoutAt: defaultPrecommittedDate)
+                guard case .aborted(let context, _) = machine.state else {
+                    XCTFail("Stop event must abort the session: \(event)")
+                    continue
+                }
+                XCTAssertEqual(context.audioElapsedSeconds, elapsed.isFinite ? max(0, elapsed) : 0)
+                XCTAssertNoThrow(try JSONEncoder().encode(context))
+                XCTAssertTrue(actions.contains(.scheduleDebrief(context)))
+            }
+        }
+    }
+
     // MARK: - 5. Crash Recovery Tests
     func testProcessCrashRecovered_RestoresAbortedSession() {
         var sm = SessionStateMachine()

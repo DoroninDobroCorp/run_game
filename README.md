@@ -8,12 +8,14 @@
 >
 > **Current status (2026-10-02):** Local iPhone test candidate with offline route
 > geometry, a separate accelerated rehearsal, and a newly rendered 30-minute
-> Russian audio master. Real-bundle Simulator verification: 86 Swift unit tests
+> Russian audio master. Real-bundle Simulator verification: 90 Swift unit tests
 > and 6 UI tests pass. A simulated run is explicitly marked and does not create
 > field evidence or approve the route. Physical-iPhone audio/GPS checks and the
 > daylight route review remain pending.
 > Research stages: `R02 IN_PROGRESS`; `R03` and `R04 NOT_STARTED`.
-> Final verification after report-list polish: all 86 unit and 6 UI tests pass.
+> Recheck: 271 Python tests (6 historical-asset skips), 90 Swift unit tests and
+> 6 UI tests pass. Save retries, interrupted sessions and fixture publication
+> are covered by failure tests. Real-account setup is deferred by the owner.
 > See the [verification ledger](docs/PRE_FIRST_TEST_READINESS.md) for evidence
 > and the remaining physical-device checks.
 >

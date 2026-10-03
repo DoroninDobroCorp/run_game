@@ -1,5 +1,12 @@
 import copy
+import errno
+import io
+import json
+from contextlib import redirect_stderr, redirect_stdout
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 from tools import r02_prepare_el_bolson as bolson
@@ -79,6 +86,54 @@ class ElBolsonFixtureTests(unittest.TestCase):
         self.assertEqual(len(root.findall(".//g:rtept", ns)), len(snapshot["offline_route"]["coordinates"]))
         self.assertEqual(root.findall(".//g:trkpt", ns), [])
         self.assertEqual(root.findall(".//g:time", ns), [])
+
+    def test_failed_final_write_leaves_no_partial_fixture_and_retry_succeeds(self):
+        with tempfile.TemporaryDirectory() as temp, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            root = Path(temp)
+            source = root / "map.json"
+            source.write_text(json.dumps(synthetic_map()))
+            output = root / "fixture"
+            args = ["--osm-map", str(source), "--output-dir", str(output)]
+            with patch.object(Path, "write_bytes", side_effect=OSError(errno.ENOSPC, "No space left")):
+                self.assertEqual(bolson.main(args), 1)
+            self.assertFalse(output.exists())
+            self.assertEqual(list(root.iterdir()), [source])
+            self.assertEqual(bolson.main(args), 0)
+            self.assertEqual({file.name for file in output.iterdir()}, {
+                "current.binding.json", "osm_snapshot.json", "source.osm.json", "planned-route.gpx",
+            })
+
+    def test_existing_reviews_are_preserved_and_empty_destination_is_supported(self):
+        with tempfile.TemporaryDirectory() as temp, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            root = Path(temp)
+            source = root / "map.json"
+            source.write_text(json.dumps(synthetic_map()))
+            output = root / "fixture"
+            output.mkdir()
+            args = ["--osm-map", str(source), "--output-dir", str(output)]
+            self.assertEqual(bolson.main(args), 0)
+            original = {file.name: file.read_bytes() for file in output.iterdir()}
+            self.assertEqual(bolson.main(args), 1)
+            self.assertEqual({file.name: file.read_bytes() for file in output.iterdir()}, original)
+
+    def test_publication_failure_preserves_files_created_during_preparation(self):
+        with tempfile.TemporaryDirectory() as temp, redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            root = Path(temp)
+            source = root / "map.json"
+            source.write_text(json.dumps(synthetic_map()))
+            output = root / "fixture"
+            rename = bolson.os.rename
+
+            def concurrent_review(stage, destination):
+                destination.mkdir()
+                (destination / "review.txt").write_text("keep this review")
+                rename(stage, destination)
+
+            with patch.object(bolson.os, "rename", side_effect=concurrent_review):
+                self.assertEqual(bolson.main(["--osm-map", str(source), "--output-dir", str(output)]), 1)
+            self.assertEqual({file.name for file in output.iterdir()}, {"review.txt"})
+            self.assertEqual((output / "review.txt").read_text(), "keep this review")
+            self.assertEqual({file.name for file in root.iterdir()}, {"map.json", "fixture"})
 
 
 if __name__ == "__main__":

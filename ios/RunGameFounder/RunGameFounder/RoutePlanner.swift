@@ -48,6 +48,9 @@ final class RoutePlanner: ObservableObject {
             return
         }
         isLoading = true
+        defer {
+            if generation == requestGeneration { isLoading = false }
+        }
         errorMessage = nil
         completedLegs = 0
         var newPolylines: [MKPolyline] = []
@@ -56,6 +59,7 @@ final class RoutePlanner: ObservableObject {
 
         do {
             for pair in zip(points, points.dropFirst()) {
+                try Task.checkCancellation()
                 let request = MKDirections.Request()
                 request.source = MKMapItem(placemark: MKPlacemark(coordinate: pair.0.coordinate))
                 request.destination = MKMapItem(placemark: MKPlacemark(coordinate: pair.1.coordinate))
@@ -78,14 +82,13 @@ final class RoutePlanner: ObservableObject {
             expectedTravelTime = newTime
             completedLegs = newPolylines.count
         } catch {
-            guard generation == requestGeneration else { return }
+            guard generation == requestGeneration, !Task.isCancelled else { return }
             polylines = []
             distanceMeters = 0
             expectedTravelTime = 0
             completedLegs = 0
             errorMessage = "Apple Maps не смог построить пешеходный preview: \(error.localizedDescription)"
         }
-        isLoading = false
     }
 }
 
