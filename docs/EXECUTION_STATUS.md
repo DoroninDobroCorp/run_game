@@ -35,7 +35,10 @@
   завершил 8 интервалов и обработал 901 виртуальную GPS-точку.
 - `make verify-synthetic`: 261 Python tests, 0 ошибок, 6 пропусков для
   отсутствующих исторических приватных assets. `make quality py-compile` — PASS.
-- `make el-bolson-test`, AddressSanitizer и ThreadSanitizer — PASS.
+- Последние 86 unit tests, AddressSanitizer и ThreadSanitizer — PASS.
+  Шесть UI tests прошли до финального разделения списков отчётов на dashboard.
+  Повтор UI после этой правки прерван из-за заполнения диска Mac; этот повтор
+  не записан как успешный. Само разделение покрыто unit-тестом AppModel.
 - Запуск: `make el-bolson-preview`. Подробности:
   [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md).
 
