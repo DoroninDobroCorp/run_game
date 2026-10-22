@@ -4,13 +4,13 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 BEATS_PATH = ROOT / "research/r02/mission_01_beats.v0.1.json"
-SANTIAGO_DIR = ROOT / "research/r02/local/santiago_cumming"
-AUDIO_DIR = SANTIAGO_DIR / "audio"
+ACTIVE_FIXTURE_DIR = ROOT / "research/r02/local/valparaiso_central"
+AUDIO_DIR = ACTIVE_FIXTURE_DIR / "audio"
 MASTER_M4A = AUDIO_DIR / "m01_solo_founder_30min.m4a"
 MANIFEST_PATH = AUDIO_DIR / "m01_solo_founder_30min.manifest.json"
-BINDING_PATH = SANTIAGO_DIR / "current.binding.json"
+BINDING_PATH = ACTIVE_FIXTURE_DIR / "current.binding.json"
 FIXTURE_BINDING_PATH = ROOT / "research/r02/fixtures/field_binding.example.json"
-OSM_SNAPSHOT_PATH = SANTIAGO_DIR / "osm_snapshot.json"
+OSM_SNAPSHOT_PATH = ACTIVE_FIXTURE_DIR / "osm_snapshot.json"
 
 RUN_INTERVALS = [
     (300, 360),
@@ -61,7 +61,7 @@ class TestR02MasterAudioSpecs(unittest.TestCase):
 
     def test_osm_snapshot_ids_and_names(self):
         if not OSM_SNAPSHOT_PATH.exists():
-            self.skipTest("Local Santiago OSM snapshot not present (git-ignored)")
+            self.skipTest("Local Valparaiso OSM snapshot not present (git-ignored)")
         with OSM_SNAPSHOT_PATH.open("r", encoding="utf-8") as f:
             snapshot = json.load(f)
 
@@ -71,21 +71,21 @@ class TestR02MasterAudioSpecs(unittest.TestCase):
         witness = candidates.get("witness", {})
         triangulation = candidates.get("triangulation", {})
 
-        self.assertEqual(start.get("osm_id"), 253281419)
-        self.assertEqual(start.get("osm_type"), "node")
-        self.assertEqual(start.get("name"), "Cumming")
+        self.assertEqual(start.get("osm_id"), 313292626)
+        self.assertEqual(start.get("osm_type"), "way")
+        self.assertEqual(start.get("name"), "Plaza de la Victoria")
 
-        self.assertEqual(threshold.get("osm_id"), 592372641)
+        self.assertEqual(threshold.get("osm_id"), 479821102)
         self.assertEqual(threshold.get("osm_type"), "way")
-        self.assertIn("Palacio Álamos", threshold.get("name", ""))
+        self.assertEqual(threshold.get("name"), "Arco Británico")
 
-        self.assertEqual(witness.get("osm_id"), 180191510)
+        self.assertEqual(witness.get("osm_id"), 313291642)
         self.assertEqual(witness.get("osm_type"), "way")
-        self.assertEqual(witness.get("name"), "Basílica del Salvador")
+        self.assertEqual(witness.get("name"), "Parque Italia")
 
-        self.assertEqual(triangulation.get("osm_id"), 23389924)
+        self.assertEqual(triangulation.get("osm_id"), 313290496)
         self.assertEqual(triangulation.get("osm_type"), "way")
-        self.assertEqual(triangulation.get("name"), "Plaza Brasil")
+        self.assertEqual(triangulation.get("name"), "Plaza O'Higgins")
 
     def test_manifest_if_local_master_audio_present(self):
         if not MANIFEST_PATH.exists():

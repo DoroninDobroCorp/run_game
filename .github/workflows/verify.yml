@@ -1,0 +1,45 @@
+name: Verify release candidate
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - "codex/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  python-quality:
+    runs-on: macos-15
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Install pinned development tools
+        run: python3 -m pip install -r requirements-dev.txt
+      - name: Static checks, privacy audit, and Python suite
+        run: |
+          make PYTHON=python3 quality py-compile
+          make PYTHON=python3 r02-audit-privacy
+          make PYTHON=python3 verify-synthetic
+
+  ios-synthetic:
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Build and test privacy-safe synthetic bundle
+        run: make ios-synthetic-test IOS_DEVELOPMENT_TEAM=""

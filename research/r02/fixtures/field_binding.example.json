@@ -12,7 +12,7 @@
   "slots": {
     "threshold": {
       "name": "REPLACE_WITH_VISIBLE_BOUNDARY",
-      "archetype": "bridge_or_gate_or_path_transition",
+      "archetype": "path_transition",
       "visible_attributes": [],
       "source_refs": [],
       "operator_trigger": "REPLACE_WITH_RELATIVE_TRIGGER",
@@ -20,7 +20,7 @@
     },
     "witness": {
       "name": "REPLACE_WITH_STABLE_VISIBLE_LANDMARK",
-      "archetype": "public_building_or_monument_or_open_space",
+      "archetype": "distinct_structure",
       "visible_attributes": [],
       "source_refs": [],
       "operator_trigger": "REPLACE_WITH_RELATIVE_TRIGGER",
@@ -28,7 +28,7 @@
     },
     "triangulation": {
       "name": "REPLACE_WITH_OPEN_PUBLIC_SEGMENT",
-      "archetype": "open_square_or_waterfront_or_long_straight",
+      "archetype": "open_square",
       "visible_attributes": [],
       "source_refs": [],
       "operator_trigger": "REPLACE_WITH_RELATIVE_TRIGGER",

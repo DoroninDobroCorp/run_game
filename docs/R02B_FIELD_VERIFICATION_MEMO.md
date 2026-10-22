@@ -1,79 +1,184 @@
-# R02B Field Verification & Evidence Memo (Santiago Master Audio & Route Draft)
+# R02B Field Verification & Evidence Memo (Valparaíso Route Draft)
 
-**Дата составления:** 1 августа 2026 года
-**Текущий статус:** `generated_unverified, route walk-through pending`
-**Исследовательский режим:** `SOLO_FOUNDER_NARRATIVE_RUN` (самостоятельный забег, телефон заблокирован в кармане)
-**Активная локация:** г. Сантьяго, Чили (стартовая зона возле Metro Cumming, Баррио Юнгай / Брасил)
-**Архивный fixture:** г. Ла-Пас, Боливия сохранён как замороженный исторический фикстура
+> Исторический документ Valparaíso. Текущий маршрут и пакет Эль-Больсона:
+> [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md); текущие результаты:
+> [PRE_FIRST_TEST_READINESS.md](PRE_FIRST_TEST_READINESS.md).
+
+**Дата обновления:** 22 августа 2026 года
+
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC`; Swift unit/UI runtime passed; private transfer, physical device, audio, walk-through and run evidence pending)
+
+**Bundled Master Audio SHA-256:** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+
+**Исследовательский режим:** `SOLO_FOUNDER_NARRATIVE_RUN` — самостоятельная
+личная проверка с заблокированным телефоном на уже знакомом маршруте.
+
+**Активная локация:** г. Вальпараисо, Чили, предварительный центральный контур.
+
+**Неактивная локация:** Santiago / Metro Cumming относится к предыдущей
+фикстуре. Её локальную папку можно хранить как архив, но она не выбирается
+автоматически и не подменяет Valparaíso.
+
 **Зафиксированная ветка M1:** `atlas_disclosure = concealed`
+
 **Выбранный канон:** «Нулевой слой»
-**Тестовое покрытие:** 19 standard unit tests + live OSM geo verifier (`tools/r02_verify_santiago_geo.py`) + field verification (`tools/r02_verify_field.py`)
 
 ---
 
-## 1. Спецификация проверенных OSM кандидатов (г. Сантьяго, Чили)
+## 1. Что существует и чего ещё нет
 
-Маршрут имеет предварительный статус `provisional_unverified`. Проверенные через live OpenStreetMap API кандидаты вокруг Metro Cumming:
+В репозитории есть founder-only SwiftUI research shell, offline master,
+подготовка/проверка bundle, Apple Maps preview, локальный GPS→GPX, recovery
+checkpoint, route/audio gates и unique-run JSON-дебриф. Это не production
+iPhone product и не прохождение следующих инвестиционных ворот.
 
-- **Старт и Финиш**: Cumming ([OSM node 253281419](https://www.openstreetmap.org/node/253281419))
-- **`threshold` (Slot 1)**: Centro Comunitario Palacio Álamos ([OSM way 592372641](https://www.openstreetmap.org/way/592372641)) — здание общественного центра на ул. Santo Domingo 2398
-- **`witness` (Slot 2)**: Basílica del Salvador ([OSM way 180191510](https://www.openstreetmap.org/way/180191510)) — неоготическое культовое сооружение на ул. Huérfanos
-- **`triangulation` (Slot 3)**: Plaza Brasil ([OSM way 23389924](https://www.openstreetmap.org/way/23389924)) — открытый городской парк
+Offline preflight может подтвердить только согласованность binding, snapshot,
+audio/manifest SHA, route/timeline fingerprints и подготовленных iOS resources.
+Его максимальный статус — `READY_FOR_DEVICE_SMOKE`; он не выдаёт route safety,
+workout, participant или M1-A approval.
 
-### Подтверждённость и допущения
-- **OSM identity verified**: Подлинность объектов, типы и OSM IDs подтверждены через живой запрос к OSM API.
-- **NOT YET VERIFIED (Provisional Assumptions)**: Пешеходная безопасность, фактическая ширина тротуаров, точная пешеходная длина маршрута, времена прибытия к POI и тип покрытия остаются непроверенными гипотезами до выполнения дневного обхода основателем.
-- **Параметры расстояния и высоты**: `measured_loop_length_meters`, `measured_elevation_gain_meters`, `poi_leg_distances_meters` и `expected_poi_arrival_cue_sec` в `current.binding.json` сохранены в значении **`null`**.
-- **Статус аппрува**: все `human_approved`, `human_route_approved` и `workout_approved` **остаются `false`** до пешего прохождения основателем.
+На дату memo **не существуют** следующие human evidence:
 
-Файл snapshot зафиксирован: `research/r02/local/santiago_cumming/osm_snapshot.json`.
+- установка и smoke на физическом iPhone;
+- подтверждённое поведение background audio/GPS и lock-screen controls;
+- дневной walk-through с полным GPX;
+- измеренные distance/elevation/legs/arrival times;
+- route/workout/slot approvals;
+- полное домашнее прослушивание master;
+- M1-A founder run, immediate debrief и 24-hour recall.
 
----
-
-## 2. Спецификация 30-минутного Master Audio (`1800.0s`)
-
-Скомпилирован один единый непрерывный master-файл с чистой озвучкой реплик (без проговаривания дикторских меток `NAV:`, `ЛЕА:`, `АТЛАС:` и сценических указаний в скобках `[...]`), цифровой тишиной между cues и 27 голосовыми NAV-сигналами.
-
-- **Master Audio Files**:
-  - `research/r02/local/santiago_cumming/audio/m01_solo_founder_30min.aiff` (151 MB, длительность: **1800.00s**, SHA-256: `051b613003e7c382ceef786def51503944b4d6c6a1000345e51b86157345886d`)
-  - `research/r02/local/santiago_cumming/audio/m01_solo_founder_30min.m4a` (4.8 MB, длительность: **1800.00s**, SHA-256: `732c1db66000954f317f5f696a1fc7743ebed835c5136963821cb46b205041c1`)
-- **Manifest File**: `research/r02/local/santiago_cumming/audio/m01_solo_founder_30min.manifest.json`.
-
-### Тайминг-сетка Master Audio:
-- `0s`: NAV Старт тренировки + `c001` (8s)
-- `240s`: `c002`
-- `270s`: NAV Предупреждение о беге 1
-- `300s`: NAV Бег 1 (60s)
-- `360s`: NAV Переход на ходьбу (90s)
-- `365s`: `c003` (Centro Comunitario Palacio Álamos)
-- `660s`: NAV Переход на ходьбу 3
-- `665s`: `c004` (Basílica del Salvador)
-- `810s`: NAV Переход на ходьбу 4
-- `815s`: `c005` (фиксация concealed)
-- `960s`: NAV Переход на ходьбу 5
-- `965s`: `c006a` (реакция concealed)
-- `1110s`: NAV Переход на ходьбу 6
-- `1115s`: `c007` (Plaza Brasil)
-- `1410s`: NAV Переход на ходьбу 8
-- `1415s`: `c008` (замыкание контура, восстановлена сильная реплика: «Я появилась не там, где меня забыли, а там, где ты прошёл»)
-- `1500s`: NAV Заминка (5 мин)
-- `1510s`: `c009` (фрагменты)
-- `1650s`: `c010` (финал Леа, без фразы завершения NAV)
-- `1792s`: NAV Финальное завершение тренировки (завершается до 1800.0s)
+R02 остаётся `IN_PROGRESS`.
 
 ---
 
-## 3. Последовательность следующих шагов
+## 2. Предварительные OSM-кандидаты
 
-1. **A. Дневной пеший проход маршрута возле Metro Cumming (Walk-Through):**
-   - Основатель днём выходит к публичной стартовой точке возле Metro Cumming с открытой картой (без аудиотрека), проходит контур пешком, замеряет время прибытия к Palacio Álamos, Basílica del Salvador, Plaza Brasil, проверяет тротуары, переходы и освещение.
-2. **B. Корректировка таймингов по результатам замера / GPX:**
-   - Рассчитываются пешеходная длина, набор высоты и фактические времена прибытия в `current.binding.json`.
-   - При необходимости изменяются параметры точек или выбираются более близкие POI.
-   - Устанавливаются флаги `human_route_approved = true`, `workout_approved = true`, `human_approved = true`.
-3. **C. Финальная пересборка Master Audio:**
-   - Перезапуск `python3 tools/r02_build_master.py --beats research/r02/mission_01_beats.v0.1.json --binding research/r02/local/santiago_cumming/current.binding.json --output-dir research/r02/local/santiago_cumming/audio`.
-4. **D. Домашняя проверка Master Audio:**
-   - Проверка воспроизведения `m01_solo_founder_30min.m4a` дома с заблокированным экраном телефона через `python3 tools/r02_verify_field.py --audio-dir research/r02/local/santiago_cumming/audio`.
-5. **E. Физическая пробежка Основателя (Solo Founder Run):**
-   - Пробежка M1-A ➔ дебрифинг в `founder_m01_run.json` ➔ 24-часовой опрос.
+Для активной фикстуры выбраны четыре публичных ориентира:
+
+- **Старт и финиш:** Plaza de la Victoria ([OSM way 313292626](https://www.openstreetmap.org/way/313292626))
+- **`threshold`:** Arco Británico ([OSM way 479821102](https://www.openstreetmap.org/way/479821102))
+- **`witness`:** Parque Italia ([OSM way 313291642](https://www.openstreetmap.org/way/313291642))
+- **`triangulation`:** Plaza O'Higgins ([OSM way 313290496](https://www.openstreetmap.org/way/313290496))
+
+Локальные данные находятся в
+`research/r02/local/valparaiso_central/` и не попадают в Git. Live identity
+check запускается явно:
+
+```bash
+python3 tools/r02_verify_geo.py \
+  --snapshot research/r02/local/valparaiso_central/osm_snapshot.json
+```
+
+OSM подтверждает только существование/type/ID/name объекта. Он не подтверждает
+тротуар, переходы, трафик, ремонт, освещение, доступность, покрытие, лестницы,
+приятность или соответствие нагрузке. Прямое расстояние особенно недостаточно
+для рельефа Вальпараисо. Пока реального обхода нет, route metadata остаётся
+неизмеренной, а human approvals — `false`.
+
+Apple Maps preview строится через онлайн-сервис Apple и также не является safety
+approval. Founder app не имеет собственного backend, аккаунтов или аналитики.
+
+---
+
+## 3. Master audio и пространственно-временное ограничение
+
+Текущий M4A — 30-минутный fixed-time research master. Manifest фиксирует его
+SHA/duration, 10 narrative cues и 27 workout `NAV` events. Эти 27 сигналов —
+run/walk/start/finish transitions, **не turn-by-turn navigation**.
+
+Ключевая сетка:
+
+- `0s`: стартовый workout NAV; `8s`: `c001`;
+- `240s`: `c002`;
+- `365s`: `c003` (`threshold`);
+- `665s`: `c004` (`witness`);
+- `815s`: `c005`; `965s`: выбранная ветка `c006a`;
+- `1115s`: `c007` (`triangulation`);
+- `1415s`: `c008` (предполагаемое замыкание контура);
+- `1510s`: `c009`; `1650s`: `c010`;
+- `1792s`: финальный workout NAV до конца master в `1800s`.
+
+Geo cues не запускаются приложением по live location. Authored fallback существует
+в script contract, но текущий player не выбирает его автоматически при
+пропущенном POI. Поэтому первый silent walk-through обязан измерить фактические
+arrivals. Основатель не ускоряется и не меняет безопасный путь ради cue.
+
+После GPX запускается offline analyzer:
+
+```bash
+python3 tools/r02_analyze_gpx.py \
+  --gpx /absolute/local/path/to/walkthrough.gpx \
+  --mission ios/RunGameFounder/Resources/Local/mission.json \
+  --manifest ios/RunGameFounder/Resources/Local/m01_solo_founder_30min.manifest.json
+```
+
+Он выдаёт derived distance, unsmoothed elevation gain, четыре ordered leg
+distances, closure, closest approaches, relative arrivals и cue deltas без raw
+coordinates, place names, абсолютного времени старта или input path. Числовые
+значения для binding собраны в `binding_field_values`; высота требует отдельной
+человеческой проверки. Report не делает вывод о safety/approval.
+Неполные/невалидные данные дают non-zero exit. Если меняется route/binding,
+повторяются preparation, preflight и walk-through, а старый route
+fingerprint/approval не переносится. Если меняется только audio timing,
+повторяются preparation, preflight и полное домашнее прослушивание того же
+нового SHA; старое audio approval недействительно.
+
+---
+
+## 4. Offline preparation перед человеком
+
+```bash
+python3 tools/r02_prepare_ios.py \
+  --fixture-dir research/r02/local/valparaiso_central \
+  --output-dir ios/RunGameFounder/Resources/Local
+python3 tools/r02_preflight.py \
+  --fixture-dir research/r02/local/valparaiso_central \
+  --ios-resources-dir ios/RunGameFounder/Resources/Local
+```
+
+Эквивалент: `make r02-preflight`. Только результат
+`READY_FOR_DEVICE_SMOKE` разрешает перейти к установке; он не разрешает field run.
+
+На 10 августа offline preflight фактически прошёл со статусом
+`READY_FOR_DEVICE_SMOKE`; все route/workout/slot approvals и семь field-review
+полей при этом остались отдельными human blockers. Финальные automated test
+counts фиксируются после единого проверочного прогона текущего shared worktree.
+
+---
+
+## 5. Следующая последовательность
+
+1. **Physical-device smoke дома.** Установить build, подтвердить bundle load,
+   точное location permission, локальную тестовую запись/recovery GPX и сам факт
+   lock-screen playback. Это ещё не полное аудио-одобрение.
+2. **Дневной walk-through.** Без сюжета, бега и наушников пройти все POI и
+   вернуться к публичному старту. Partial/incomplete GPX хранить как aborted
+   evidence, не как approval.
+3. **Derived analysis и human review.** Сохранить raw GPX локально, передавать в
+   LLM по умолчанию только derived report; взять числовые поля из
+   `binding_field_values`, отдельно записать покрытие, переходы, рельеф и route
+   defects. После реального review перенести measurements/notes в локальный
+   `current.binding.json` и выставить approval flags только по факту; повторный
+   preflight должен убрать `human_blockers_to_m1_a`, после чего нужен обычный
+   Xcode Build & Run поверх установленного приложения и видимый закрытый Mac gate.
+4. **Retiming/rebuild при необходимости.** После любого изменения повторить
+   preparation и preflight. Audio-only rebuild требует нового полного домашнего
+   прослушивания; изменение route/binding — также нового walk-through. Не
+   переносить старое `3/3` между fingerprints/SHA.
+5. **Route approval.** Только достаточный сохранённый GPX через все контрольные
+   точки плюс ручной checklist создают device-local fingerprint-bound approval.
+   Оно не редактирует binding, не открывает participant export и не является
+   production safety certification.
+6. **Полная домашняя аудиопроверка.** Прослушать весь master без seeking,
+   заблокировать экран, проверить Pause/Play и явно подтвердить отсутствие
+   остановок, пропусков и конфликтов. Любой критичный incident отменяет approval.
+7. **M1-A founder run.** Только при `3/3`, свежей GPS-точке с accuracy ≤35 м не
+   дальше 100 м от публичного старта, знакомом маршруте и заранее назначенной
+   следующей тренировке.
+8. **Evidence capture.** Сохранить GPX и immediate JSON с единым run ID;
+   recovered `.partial.gpx` считать aborted. Сохранение immediate JSON ставит
+   локальный 24-hour recall в очередь. Не раньше `dueAt` заполнить его без
+   просмотра immediate и экспортировать отдельный recall JSON с тем же run ID.
+
+R02 не отмечается `COMPLETE` до реальной последовательности выше, закрытия
+критичных defects и R02C A/B parity lock.

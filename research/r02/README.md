@@ -18,7 +18,10 @@ story mechanic and never enters canonical story state.
 - `fixtures/field_run.example.json` — pre-run, immediate, and 24-hour founder evidence form.
 
 Exact coordinates, start/end points, GPX, and raw traces belong in
-`research/r02/local/`, which is ignored by git.
+`research/r02/local/`, which is ignored by git. The active fixture is
+`local/el_bolson/`. The Valparaíso and Santiago directories are inactive
+archives unless the owner explicitly selects one; their presence does not
+change the active bundle. See [the El Bolsón guide](../../docs/EL_BOLSON_TEST_RUN.md).
 
 ## Commands
 
@@ -26,8 +29,54 @@ Exact coordinates, start/end points, GPX, and raw traces belong in
 python3 tools/r02_story.py validate
 python3 tools/r02_story.py paths
 python3 tools/r02_story.py linearize --mission m01 --condition B
+python3 tools/r02_verify_geo.py \
+  --snapshot research/r02/local/el_bolson/osm_snapshot.json
+python3 tools/r02_build_master.py \
+  --binding research/r02/local/el_bolson/current.binding.json \
+  --output-dir research/r02/local/el_bolson/audio
+python3 tools/r02_verify_field.py \
+  --audio-dir research/r02/local/el_bolson/audio
+python3 tools/r02_prepare_ios.py \
+  --fixture-dir research/r02/local/el_bolson \
+  --output-dir ios/RunGameFounder/Resources/Local
+python3 tools/r02_preflight.py \
+  --fixture-dir research/r02/local/el_bolson \
+  --ios-resources-dir ios/RunGameFounder/Resources/Local
 python3 -m unittest discover -s tests -p 'test_*.py' -v
 ```
+
+Equivalent bundle command: `make r02-preflight`. Its strongest possible result
+is `READY_FOR_DEVICE_SMOKE`: it checks offline integrity and prepared-resource
+identity but never grants route, workout, participant, or M1-A approval.
+
+After a real walkthrough, analyze the local GPX offline, with the standard-library
+tool and no network calls, without sending the raw trace to an LLM:
+
+```bash
+python3 tools/r02_analyze_gpx.py \
+  --gpx /absolute/local/path/to/walkthrough.gpx \
+  --mission ios/RunGameFounder/Resources/Local/mission.json \
+  --manifest ios/RunGameFounder/Resources/Local/m01_solo_founder_30min.manifest.json
+```
+
+Or run `make r02-analyze-gpx GPX=/absolute/local/path/to/walkthrough.gpx`.
+The JSON output contains only derived geometry and relative timing. It contains
+no coordinates, place names, exact start time, or input path and makes no safety
+or approval decision. Missing/invalid points, required arrivals, or cues fail
+closed with a non-zero exit status.
+
+The active founder fixture is `local/el_bolson/`. It remains local and
+git-ignored because its binding, audio, route measurements, and run evidence may
+contain sensitive location data. OSM identity checks do not imply that a route
+is safe or workout-ready; those approvals stay false until the founder performs
+the documented daytime walk-through.
+
+The current master is a fixed-time research asset. Its 27 `NAV` events are
+workout/run-walk cues, not turn-by-turn route instructions. Geo prose and its
+authored fallbacks are present in the script, but the native founder slice does
+not select them from live geofences. The first silent walkthrough is therefore
+required to measure arrivals and decide whether the master must be retimed and
+rebuilt before the run.
 
 Condition A requires a manually approved field binding for participant export.
 Draft linearization may retain placeholders; it is not a participant bundle.

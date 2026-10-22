@@ -1,0 +1,314 @@
+# Run Game Founder — инструкция первого теста с нуля
+
+**Текущий статус:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / DEVICE_AND_FIELD_REVIEW_PENDING`)
+
+**Accepted Master Audio SHA-256:** `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`
+
+Это инструкция для владельца проекта. Приложение — локальный founder-only
+research instrument, не медицинская рекомендация и не публичный продукт.
+Fitness-сетка ещё не прошла профильный review. До внешних участников она не
+допускается.
+
+Активная фикстура — **Эль-Больсон**, со стартом в середине Avenida Patagonia
+Argentina. Подготовка и пробный круг описаны в [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md).
+
+На 2 октября 2026 года локальный offline bundle подготовлен и проверен.
+Physical-device smoke, дневной walk-through, полное
+lock-screen прослушивание и M1-A founder run ещё не считаются выполненными.
+Первый сюжетный run запрещён, пока приложение не показывает **3/3** и текущая
+попытка не прошла отдельный GPS/pre-run checklist.
+
+## Что делает и не делает текущая версия
+
+Приложение содержит offline master, сохранённую геометрию маршрута, пробный
+круг в симуляции, Apple Maps preview, локальный
+GPS→GPX, recovery checkpoints, route/audio gates и unique-run JSON-дебриф.
+
+Важное ограничение: master фиксирован по времени. Его 27 `NAV` cues —
+run/walk/start/finish команды, **не turn-by-turn navigation**. Три geo-сцены и
+их authored fallbacks не запускаются по live location. Поэтому маршрут перед
+run должен быть знаком после отдельного обхода, а фактические arrivals нужно
+проверить и при необходимости retime до сюжетного теста.
+
+У проекта нет backend, аккаунта или аналитики. GPX и evidence сохраняются в
+Documents приложения и никуда не отправляются автоматически. Сохранённая геометрия Эль-Больсона и схема работают без сети. Подложка карты
+использует Apple Maps; legacy bundles без геометрии также обращаются к Apple
+за pedestrian routing. Apple получает необходимые для этих функций запросы. Нажатие Share/Export передаёт выбранный файл в
+указанное вами место.
+
+## Часть A. Offline preflight на Mac
+
+1. Откройте Terminal в корне существующего репозитория `run_game`. Не создавайте
+   второй clone; проверяйте commit, указанный в локальном release manifest.
+2. Проверьте, что доступны Xcode command-line tools, Python 3 и хотя бы один
+   системный audio probe (`afinfo` уже входит в macOS; `ffprobe` подходит как
+   первый вариант):
+
+```bash
+xcode-select -p
+/usr/bin/python3 --version
+command -v ffprobe || command -v afinfo
+```
+
+`xcodegen` нужен только для явной регенерации project через `make ios-prepare`,
+но не для `make r02-preflight`.
+
+3. Выполните `make el-bolson-setup`, если материалы ещё не подготовлены.
+   Убедитесь, что локально существует папка
+   `research/r02/local/el_bolson/` с binding, snapshot, manifest и M4A.
+   Полный handoff также обязан содержать AIFF и пройти manifest verification.
+4. Выполните из точного manifest-bound commit:
+
+```bash
+/usr/bin/python3 -m pip install -r requirements-dev.txt
+make r02-handoff-verify HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+make verify-pretest
+make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+```
+
+Команда явно готовит iOS resources из Эль-Больсона и запускает offline integrity
+check. Продолжать можно только при JSON-статусе:
+
+```text
+READY_FOR_DEVICE_SMOKE
+```
+
+Этот статус означает лишь, что binding/snapshot/audio/manifest и подготовленный
+bundle согласованы. Он **не** означает route safety, workout approval, полное
+прослушивание или разрешение M1-A. Если команда не дошла до этого статуса,
+ничего не устанавливайте: сохраните текст ошибки и передайте его в Codex.
+
+## Часть B. Первичная установка на физический iPhone
+
+1. Разблокируйте iPhone, подключите его к Mac кабелем и подтвердите доверие.
+2. Сгенерируйте переносимый проект со своим bundle ID и Apple Team, затем
+   откройте его:
+
+```bash
+make ios-prepare \
+  IOS_BUNDLE_ID=com.example.rungame.founder \
+  IOS_DEVELOPMENT_TEAM=<APPLE_TEAM_ID>
+open ios/RunGameFounder/RunGameFounder.xcodeproj
+```
+
+3. В destination выберите подключённый iPhone, не Simulator.
+4. Нажмите ▶︎.
+5. Если Xcode просит signing, выберите проект `RunGameFounder` →
+   `Signing & Capabilities` → свой доступный Personal Team. Имя команды и
+   устройства может отличаться от прежнего Mac.
+6. Если iPhone просит Developer Mode, включите его в
+   `Настройки → Конфиденциальность и безопасность → Режим разработчика`,
+   подтвердите перезагрузку и снова запустите build.
+7. Дождитесь открытия Run Game. Если это не чистая установка, нажмите
+   «Сбросить локальную готовность», чтобы старое `3/3` не участвовало в новой
+   попытке.
+
+После чистого старта dashboard должен показывать **1/3**: bundle и SHA master
+проверены, route/audio approvals отсутствуют. Отдельная строка Mac field-review
+gate пока также остаётся незакрытой; она не входит в счётчик 3/3, но технически
+блокирует кнопку M1-A до повторного preflight без human blockers.
+
+## Часть C. Короткий device smoke дома
+
+1. Откройте «Проверить маршрут». Должны загрузиться **все четыре** сохранённых
+   сегмента между пятью route points. Для подложки Apple Maps может понадобиться
+   интернет; сама геометрия Эль-Больсона и схема «Попробовать маршрут» офлайн.
+   Partial preview считается ошибкой, а не маршрутом.
+2. Не ставьте route checklist дома: preview не проверяет безопасность и не
+   заменяет обход.
+3. В безопасном месте запустите короткую диагностическую GPX-запись, разрешите
+   location `While Using` и **Precise Location**, затем заблокируйте экран на
+   30–60 секунд. Не двигайтесь ради GPS. Вернитесь в app, убедитесь, что счётчик
+   accepted samples обновился, и завершите запись. Экспортируйте её только как
+   `smoke/aborted`, никогда как route evidence; checklist не отмечайте.
+4. Для проверки recovery начните ещё одну диагностическую запись, дождитесь
+   хотя бы одной accepted точки/checkpoint, принудительно закройте app и откройте
+   снова. Dashboard должен показать `.partial.gpx`; экспортируйте его как
+   incomplete diagnostic. Если recovery не появился, поле и M1 запрещены.
+5. Вернитесь и откройте «Прослушать дома».
+6. Нажмите Play, убедитесь, что слышны стартовый workout NAV и первая реплика
+   Леа, затем поставьте на паузу. Это только smoke; audio approval пока
+   недоступен.
+7. Заблокируйте экран, один раз проверьте Pause/Play, вернитесь и остановите
+   smoke; полное 30-минутное одобрение выполняется отдельно.
+8. Если bundle, карта, GPS/recovery или звук не открылись, не переходите в поле. Сохраните
+   скриншот/ошибку; raw location data для диагностики не нужна.
+
+## Часть D. Дневной walk-through — без сюжета и бега
+
+Делайте его днём, без наушников и без попытки попасть в время geo cue. Свет,
+погода, трафик и самочувствие важнее теста. Preview — лишь предложение; не
+следуйте ему через лестницу, закрытый участок, плохой переход или место, которое
+не хочется проходить во время run.
+
+1. Зарядите iPhone с запасом и доберитесь до публичной Plaza de la Victoria.
+2. Откройте «Проверить маршрут» и дождитесь подтверждения всех четырёх Apple
+   Maps segments.
+3. Нажмите «Начать дневной обход».
+4. На системном запросе разрешите location во время работы приложения и
+   **Precise Location**. Пока точного GPS нет, приложение показывает ожидание.
+5. Спокойно пройдите:
+
+   1. Plaza de la Victoria;
+   2. Arco Británico;
+   3. Parque Italia;
+   4. Plaza O'Higgins;
+   5. обратно к Plaza de la Victoria.
+
+6. Не ускоряйтесь ради cue и не открывайте сюжетное аудио.
+7. В конце нажмите «Завершить обход и сохранить GPX» и подтвердите остановку.
+8. Приложение покажет производные evidence metrics. Его минимальные технические
+   признаки полноты — не менее 20 accepted samples, не менее 120 секунд и
+   200 метров, не менее трёх accepted GPS samples у каждой контрольной точки в
+   радиусе 100 метров, максимальный разрыв между accepted samples не более
+   120 секунд и
+   start→finish closure не более 150 метров. Это **не safety verdict**.
+   Никогда не двигайтесь ради получения GPS-точки: безопасная остановка важнее,
+   а большой gap означает только необходимость повторить техническую запись.
+9. Экспортируйте GPX в Files/AirDrop на Mac. Храните его локально: raw GPX
+   содержит координаты и точное время.
+
+Если app показывает recovery `.partial.gpx`, экспортируйте его как
+`aborted/incomplete evidence`. Не используйте partial track для approval и не
+запускайте новую попытку, пока не сохраните нужную диагностику.
+
+### Локальный timing analysis
+
+Не прикладывайте raw GPX к LLM по умолчанию. На Mac выполните:
+
+```bash
+make r02-analyze-gpx GPX=/absolute/local/path/to/walkthrough.gpx
+```
+
+Эквивалентная явная команда:
+
+```bash
+/usr/bin/python3 tools/r02_analyze_gpx.py \
+  --gpx /absolute/local/path/to/walkthrough.gpx \
+  --mission ios/RunGameFounder/Resources/Local/mission.json \
+  --manifest ios/RunGameFounder/Resources/Local/m01_solo_founder_30min.manifest.json
+```
+
+Analyzer проверяет GPX chronology/accuracy/elevation, считает distance,
+unsmoothed elevation gain, четыре ordered leg distances, closure, closest
+approach, относительные arrivals и cue deltas. Готовые числовые значения для
+binding находятся в `binding_field_values`; elevation всё равно требует
+человеческой проверки из-за шума высоты устройства. JSON не содержит raw
+coordinates, place names, абсолютного времени старта или input path и не
+одобряет маршрут. Non-zero exit означает, что данных недостаточно/они
+невалидны; route approval запрещён.
+
+### Human route review
+
+После derived report отдельно проверьте четыре утверждения в приложении:
+
+- тротуары и покрытие подходят;
+- переходы понятны и безопасны;
+- рельеф подходит для выбранного личного research script;
+- знакомый маршрут можно пройти без взгляда на экран.
+
+Не ставьте галочку из вежливости. Если хотя бы одно утверждение неверно,
+остановите итерацию и передайте Codex derived report плюс текстовое описание
+проблемы. После изменения route/binding старое approval автоматически не должно
+переноситься, а walk-through повторяется.
+
+Даже при хорошем маршруте сначала проверьте cue deltas. Текущие пороги retiming
+ещё не являются field result: Codex/владелец должен решить, оставить ли master
+или пересобрать его. После изменения только audio повторяются bundle preflight и
+полная домашняя аудиопроверка; route walk повторяется, если изменился сам
+route/binding.
+
+Только после достаточного GPX evidence, timing review и всех четырёх честных
+галочек нажмите «Одобрить маршрут». Dashboard станет **2/3**. Это локальная
+approval record на устройстве, привязанная к route/workout fingerprint. Она не
+редактирует `current.binding.json`, не разрешает participant export и не
+считается production safety certification.
+
+Отдельно перенесите четыре значения из `binding_field_values`, честные
+`route_surface_notes`/`crossing_notes` и локальную ISO-8601 дату с timezone в
+`research/r02/local/el_bolson/current.binding.json`.
+Установите route/workout/human и три slot approvals в `true` только после
+реального review, затем снова выполните `make r02-preflight`. Перед M1-A массив
+`human_blockers_to_m1_a` должен быть пуст. После этого **не удаляйте приложение**:
+сделайте обычный Build & Run из Xcode поверх существующей установки, чтобы новый
+`m1HumanApprovalComplete=true` попал на iPhone, а fingerprint-bound device GPX
+approval сохранился. Перезапустите приложение и убедитесь, что отдельная строка
+Mac field-review gate закрыта. Эта machine-readable запись не заменяет
+device-local GPX approval — нужны обе.
+
+## Часть E. Полная домашняя проверка master
+
+Проверяйте именно тот audio SHA, который будет в run. После любой пересборки
+старое audio approval недействительно.
+
+1. Делайте проверку дома и подключите те наушники, которые планируются для run.
+2. Откройте «Прослушать дома» → Play и заблокируйте экран.
+3. Убедитесь, что видны название, Pause и Play. Seeking/перемотка намеренно
+   отключены.
+4. Один раз проверьте Pause/Play с lock screen. Во время реального движения
+   перед pause всегда нужно сначала остановиться.
+5. Прослушайте все 30 минут до естественного окончания.
+6. Зафиксируйте любую остановку, пропуск, слишком тихую/непонятную реплику,
+   конфликт workout cue/истории, Bluetooth disconnect или interruption.
+7. После окончания поставьте три подтверждения: экран блокировался, controls
+   работали, критичных инцидентов не было; затем нажмите «Подтвердить домашнюю
+   проверку».
+
+Если приложение показывает incident, проверка не засчитывается: устраните
+причину и начните новое полное прослушивание. Только чистое подтверждение делает
+dashboard **3/3**.
+
+## Часть F. Первый M1-A founder run
+
+Начинайте только при **3/3**, днём и на знакомом после walk-through маршруте.
+Fixed-time master не ведёт по поворотам: маршрут должен быть известен заранее.
+
+1. Откройте «Начать миссию».
+2. Честно подтвердите четыре pre-run пункта: маршрут знаком; условия и
+   самочувствие подходят; громкость сохраняет слышимость окружения; перед
+   экраном/pause вы сначала остановите движение.
+3. Заранее выберите время следующей тренировки в будущем. Это precommit, не
+   обещание продукта.
+4. Нажмите «Проверить GPS и начать». Аудио ещё не стартует: приложение ждёт до
+   30 секунд свежую точку с accuracy ≤35 м и расстоянием ≤100 м от публичного
+   старта.
+5. Если GPS/permission/audio не прошли проверку, запуск откатывается в Ready;
+   это не completed run. Сохраните recovery/partial GPX, если он появился.
+6. Только когда таймер и audio реально пошли, заблокируйте iPhone и уберите его
+   в карман.
+7. Следуйте workout cues и знакомому безопасному маршруту. Geo-текст может
+   прозвучать раньше/позже места; не меняйте темп или путь ради совпадения.
+   Fallback автоматически не выбирается — зафиксируйте miss/late cue в дебрифе.
+8. При боли, головокружении, плохом переходе, потере слышимости окружения или
+   необходимости смотреть на экран сначала остановите движение, затем нажмите
+   Pause/Stop. Lock-screen Stop и «Аварийно остановить» сохраняют попытку как
+   aborted, а не как провал человека.
+9. После естественного окончания app проверяет полноту GPX и отсутствие
+   audio/location incidents. Если результат помечен aborted/incomplete, не
+   повышайте его вручную до completed.
+10. Экспортируйте уникальный GPX, затем немедленно заполните обязательные поля
+    дебрифа до обсуждения сюжета и любых правок. Сохраните `immediate JSON` с тем
+    же run ID. При выходе раньше приложение сохраняет draft, но draft не равен
+    completed evidence.
+11. После сохранения `immediate JSON` вернитесь на dashboard и убедитесь, что
+    появился локальный queued «24-часовой recall» с тем же run ID. До указанного
+    `dueAt` форма заблокирована.
+12. Не раньше `dueAt`, не перечитывая immediate JSON, откройте queued recall,
+    заполните unaided story recall, place recall и желание M2 по шкале 1–7,
+    затем сохраните и экспортируйте отдельный `recall-24h JSON`. Он не
+    перезаписывает immediate evidence; храните оба файла парой по run ID.
+
+## Что передать в Codex после теста
+
+По умолчанию передавайте:
+
+- privacy-safe JSON от `r02_analyze_gpx.py`, а не raw GPX;
+- immediate evidence JSON и отдельный queued `recall-24h JSON` с тем же run ID;
+- screenshots/errors при визуальных или runtime проблемах;
+- модель iPhone, iOS, наушники и факт lock-screen использования;
+- текстом любое событие, из-за которого пришлось остановиться, смотреть на
+  экран, менять маршрут или пропустить cue.
+
+Raw GPX остаётся в локальной игнорируемой папке и не передаётся LLM без отдельного
+осознанного решения владельца. Evidence JSON тоже содержит timestamps/device
+metadata: просмотрите его перед внешней отправкой.

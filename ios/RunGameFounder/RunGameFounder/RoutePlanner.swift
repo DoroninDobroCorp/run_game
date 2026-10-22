@@ -1,0 +1,107 @@
+import MapKit
+
+@MainActor
+final class RoutePlanner: ObservableObject {
+    @Published private(set) var polylines: [MKPolyline] = []
+    @Published private(set) var distanceMeters: CLLocationDistance = 0
+    @Published private(set) var expectedTravelTime: TimeInterval = 0
+    @Published private(set) var completedLegs = 0
+    @Published private(set) var isLoading = false
+    @Published private(set) var errorMessage: String?
+    @Published private(set) var usesOfflineGeometry = false
+    private var generation = UUID()
+
+    var isComplete: Bool { completedLegs > 0 && completedLegs == polylines.count }
+
+    func load(points: [RoutePoint], offlineRoute: OfflineRoute? = nil) async {
+        let requestGeneration = UUID()
+        generation = requestGeneration
+        polylines = []
+        completedLegs = 0
+        distanceMeters = 0
+        expectedTravelTime = 0
+        errorMessage = nil
+        usesOfflineGeometry = false
+        isLoading = false
+        if let offlineRoute {
+            do {
+                try offlineRoute.validate(waypoints: points)
+                for (start, end) in zip(offlineRoute.waypointIndices, offlineRoute.waypointIndices.dropFirst()) {
+                    let coordinates = offlineRoute.coordinates[start...end].map(\.coordinate)
+                    polylines.append(MKPolyline(coordinates: coordinates, count: coordinates.count))
+                }
+                distanceMeters = offlineRoute.distanceMeters
+                expectedTravelTime = distanceMeters / 1.3
+                completedLegs = polylines.count
+                usesOfflineGeometry = true
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            return
+        }
+        guard points.count >= 2 else {
+            polylines = []
+            distanceMeters = 0
+            expectedTravelTime = 0
+            completedLegs = 0
+            errorMessage = "В bundle недостаточно точек для замкнутого маршрута."
+            return
+        }
+        isLoading = true
+        defer {
+            if generation == requestGeneration { isLoading = false }
+        }
+        errorMessage = nil
+        completedLegs = 0
+        var newPolylines: [MKPolyline] = []
+        var newDistance: CLLocationDistance = 0
+        var newTime: TimeInterval = 0
+
+        do {
+            for pair in zip(points, points.dropFirst()) {
+                try Task.checkCancellation()
+                let request = MKDirections.Request()
+                request.source = MKMapItem(placemark: MKPlacemark(coordinate: pair.0.coordinate))
+                request.destination = MKMapItem(placemark: MKPlacemark(coordinate: pair.1.coordinate))
+                request.transportType = .walking
+                request.requestsAlternateRoutes = false
+                let response = try await MKDirections(request: request).calculate()
+                guard generation == requestGeneration, !Task.isCancelled else { return }
+                guard let route = response.routes.first else {
+                    throw RoutePlannerError.missingLeg(pair.0.name, pair.1.name)
+                }
+                newPolylines.append(route.polyline)
+                newDistance += route.distance
+                newTime += route.expectedTravelTime
+            }
+            guard newPolylines.count == points.count - 1 else {
+                throw RoutePlannerError.incompleteRoute(newPolylines.count, points.count - 1)
+            }
+            polylines = newPolylines
+            distanceMeters = newDistance
+            expectedTravelTime = newTime
+            completedLegs = newPolylines.count
+        } catch {
+            guard generation == requestGeneration, !Task.isCancelled else { return }
+            polylines = []
+            distanceMeters = 0
+            expectedTravelTime = 0
+            completedLegs = 0
+            errorMessage = "Apple Maps не смог построить пешеходный preview: \(error.localizedDescription)"
+        }
+    }
+}
+
+private enum RoutePlannerError: LocalizedError {
+    case missingLeg(String, String)
+    case incompleteRoute(Int, Int)
+
+    var errorDescription: String? {
+        switch self {
+        case .missingLeg(let start, let end):
+            return "нет пешеходного сегмента «\(start)» → «\(end)»"
+        case .incompleteRoute(let actual, let expected):
+            return "построено только \(actual) из \(expected) сегментов"
+        }
+    }
+}

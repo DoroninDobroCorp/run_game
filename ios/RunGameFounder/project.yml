@@ -1,0 +1,58 @@
+name: RunGameFounder
+options:
+  bundleIdPrefix: ${RUN_GAME_BUNDLE_ID}
+  deploymentTarget:
+    iOS: "18.0"
+  createIntermediateGroups: true
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    SWIFT_TREAT_WARNINGS_AS_ERRORS: YES
+    DEVELOPMENT_TEAM: ${RUN_GAME_DEVELOPMENT_TEAM}
+    CODE_SIGN_STYLE: Automatic
+targets:
+  RunGameFounder:
+    type: application
+    platform: iOS
+    sources:
+      - path: RunGameFounder
+      - path: Resources/Local/mission.json
+        buildPhase: resources
+      - path: Resources/Local/m01_solo_founder_30min.m4a
+        buildPhase: resources
+      - path: Resources/Local/m01_solo_founder_30min.manifest.json
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${RUN_GAME_BUNDLE_ID}
+        INFOPLIST_FILE: RunGameFounder/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    scheme:
+      testTargets:
+        - RunGameFounderTests
+        - RunGameFounderUITests
+  RunGameFounderTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RunGameFounderTests
+    dependencies:
+      - target: RunGameFounder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${RUN_GAME_BUNDLE_ID}.tests
+        GENERATE_INFOPLIST_FILE: YES
+  RunGameFounderUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: RunGameFounderUITests
+    dependencies:
+      - target: RunGameFounder
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ${RUN_GAME_BUNDLE_ID}.uitests
+        GENERATE_INFOPLIST_FILE: YES

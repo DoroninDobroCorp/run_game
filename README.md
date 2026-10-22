@@ -1,50 +1,197 @@
-<div align="center">
+# Run Game — Geo-Narrative Running Companion
 
-# 🏃 Run Game · Geo-Narrative Audio Experience
-### Твой город становится игровым уровнем
 
-**Adaptive geo-narrative running audio game that transforms daily running routes into real-world story scenes.**
-
-[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
-[![Geo Narrative](https://img.shields.io/badge/Audio-Storytelling-blueviolet?style=flat-square)](#)
-[![Status](https://img.shields.io/badge/Status-Specification%20%26%20Research-blue?style=flat-square)](#)
-
-<br/>
-
-[🇬🇧 English](#-english) &nbsp;|&nbsp; [🇷🇺 Русский](#-русский) &nbsp;|&nbsp; [📚 Документация (docs/)](docs/README.md)
-
-</div>
-
----
-
-<h2 id="-english">🇬🇧 English</h2>
-
-### Concept
-
-> **Your city becomes the game level:** Run Game builds a personalized running route through real-world locations around your home and weaves them into the scenes of an immersive story that could only happen right here.
-
-Traditional fitness apps focus purely on timers, pace metrics, and GPS tracking. Run Game bridges physical conditioning with spatial interactive storytelling:
-
-1. **Deterministic Geo-Routing:** Analyzes surroundings, terrain, and desired running duration to create safe, loop routes around your starting point.
-2. **Contextual Story Placement:** Points of interest (parks, bridges, quiet alleys) are algorithmically assigned narrative roles.
-3. **Voice-Guided Immersion:** Audio cues and story developments trigger dynamically based on your physical location, timing, and running cadence.
-4. **Zero-Fatigue Setup:** Minimal decision fatigue — launch the app, confirm today's training session, and step into the story.
-
-Detailed architectural specifications, narrative graphs ("Zero Layer"), and competitor analyses are available in **[`docs/`](docs/)**.
+> **Active test route:** El Bolsón, Río Negro, Argentina. A 1.91 km loop starts
+> halfway along Avenida Patagonia Argentina and returns to the same point.
+> **Try it:** `make el-bolson-preview`, then **Попробовать маршрут** in the app.
+> [Russian walkthrough and setup guide](docs/EL_BOLSON_TEST_RUN.md).
+>
+> **Current status (2026-10-03):** Local iPhone test candidate with offline route
+> geometry, a separate accelerated rehearsal, and a newly rendered 30-minute
+> Russian audio master. Real-bundle Simulator verification: 94 Swift unit tests
+> and 7 UI tests pass. A simulated run is explicitly marked and does not create
+> field evidence or approve the route. Physical-iPhone audio/GPS checks and the
+> daylight route review remain pending.
+> Research stages: `R02 IN_PROGRESS`; `R03` and `R04 NOT_STARTED`.
+> Final audit: 271 Python tests (6 historical-asset skips), including an isolated
+> checkout without private assets. The package rebuilds byte-for-byte.
+> Failure tests cover GPX write errors, invalid player times and report recovery;
+> UI tests cover a full rehearsal, navigation and background pause/resume.
+> AddressSanitizer also passes all 94 unit tests.
+> Real-account setup is deferred by the owner.
+> See the [verification ledger](docs/PRE_FIRST_TEST_READINESS.md) for evidence
+> and the remaining physical-device checks.
+>
+> **Pinned El Bolsón audio SHA-256:**
+> `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`.
+> Historical Valparaíso assets and release hashes are retained separately.
+> Before installing on a physical iPhone, follow the
+> [device smoke protocol](HUMAN_FIRST_IPHONE_SMOKE_TEST.md).
 
 ---
 
-<h2 id="-русский">🇷🇺 Русский</h2>
+## 1. Product Thesis & Boundaries
 
-### Концепция
+### Primary Product Thesis
+> **Your city becomes the game level:** Run Game builds a Couch-to-5K training route through real physical locations near your starting point and transforms them into scenes of an immersive story that could only happen right here.
 
-> **Твой город становится игровым уровнем: приложение строит тренировочный маршрут через реальные места вокруг дома и превращает их в сцены истории, которая могла произойти только здесь.**
+### Architectural Rules & Invariants
+* **Pre-Compiled Offline Bundles:** Zero live LLM generation or cloud streaming during runs. All route geometry, audio narration, and narrative triggers are pre-compiled into an offline `RouteBundle` prior to workout start.
+* **Workout Grid Inviolability:** Beginner training intervals (Couch to 5K) take absolute priority. Narrative scenes wrap around the workout structure, never modifying physical training intensity or interval durations.
+* **Strict Privacy by Default:** Raw GPX coordinates and exact start locations remain strictly local to the device. LLMs receive no raw coordinate traces, and derived research reports strip precise start locations.
+* **Home-Territory Product Scope vs. Traveler Founder Research:**
+  * **Product Scope:** Home-territory-based. A user develops a single home territory over time. Cross-city continuity and travel mechanics are explicitly out of MVP scope.
+  * **Founder Research Scope:** Traveler-based. Current field research uses El Bolsón as an interchangeable field fixture without baking temporary cities into narrative canon.
 
-В отличие от стандартных трекеров бега, Run Game объединяет физиологически выверенную тренировку для новичков и продолжающих с интерактивной аудиоисторией:
+### Explicit Product Boundaries
+* **No Production Backend:** Operates entirely offline; no cloud server infrastructure.
+* **No Dynamic Cloud TTS:** Master audio is pre-rendered M4A narration.
+* **No TestFlight or Public Release:** Current iOS app (`ios/RunGameFounder`) is a local, founder-only research instrument. No public distribution, TestFlight, or multi-user accounts exist.
 
-1. **Умная геометрия маршрута:** детерминированный подбор замкнутых безопасных кругов под продолжительность сегодняшнего занятия без необходимости вручную кликать точки.
-2. **Драматургия реального пространства:** парки, мосты, переулки и городские ориентиры получают роли в сюжете.
-3. **Голосовое погружение в ушах:** сценарий адаптируется к темпу и активируется в нужных гео-точках.
-4. **Принцип минимального выбора:** никакой перегрузки каталогами перед выходом из дома — одна выверенная миссия на сегодня, подтверждение в один тап и старт.
+---
 
-Полный комплект продуктовой и технической документации, архитектурные спецификации и анализ рынка находятся в папке **[`docs/`](docs/)**.
+## 2. Hardened R02 Founder Research Instrument
+
+The local iOS slice (`ios/RunGameFounder`) provides a deterministic, offline-first instrument for executing field walkthroughs, a GPS-gated start with fixed-time offline narration, lock-screen audio checks, and post-run debriefs for Mission 1 (M1 - "Layer Zero" / *Нулевой слой* universe).
+
+### Key iOS Components
+* **`SessionStateMachine`:** Pure, state-driven execution engine managing pre-run validation, GPS acquisition, active tracking, audio playback, pause/resume, and mission completion with full state replay test coverage.
+* **`ActiveRunJournal`:** Atomic session state persistence ensuring crash recovery and context restoration without data loss.
+* **`LocationRecorder`:** GPS filter and distance accumulator with accuracy-gated waypoint matching (`START_DISTANCE_LIMIT_M = 100m`, `ROUTE_POINT_RADIUS_M = 100m`).
+* **`FileDurability`:** Fail-safe file writing helpers using atomic temporary writes and `.withoutOverwriting` protection.
+
+---
+
+## 3. Technical Tooling & Tool Chain
+
+The repository includes a Python-based utility suite in `tools/` for preflight verification, audio inspection, privacy auditing, GPX analysis, evidence locking, synthetic experimentation, and demand evaluation.
+
+| Tool | Path | Purpose |
+| :--- | :--- | :--- |
+| **Pre-Test Doctor** | `tools/r02_doctor.py` | Reports environment/tool availability and validates the exact private fixture inventory; `make quality` performs static checks. |
+| **Privacy Audit** | `tools/r02_audit_privacy.py` | Scans tracked files, JSON outputs, and git history for coordinate leaks, personal identifiers, or API keys. |
+| **Offline Preflight** | `tools/r02_preflight.py` | Verifies route bundle integrity, audio file presence, manifest checksums, and iOS resource alignment. |
+| **Audio QA Probe** | `tools/r02_audio_qa.py` | Validates master audio format (AAC/44.1kHz mono), exact 30-min duration (1800.0s), peak levels (-1.6dB), and the independently pinned route-specific SHA-256 fingerprint. |
+| **Offline GPX Analyzer** | `tools/r02_analyze_gpx.py` | Derives distance, pace, bounding box, and POI arrival timestamps from raw GPX tracks without saving raw coordinates in public artifacts. |
+| **Evidence Validator** | `tools/r02_validate_evidence.py` | Enforces fail-closed evidence locking rules (`evidenceCaptureLocked = true`) until all pending queues and human gates pass. |
+| **iOS Resource Sync** | `tools/r02_prepare_ios.py` | Packages research fixtures (`research/r02/local/el_bolson`) into iOS bundle resources (`ios/RunGameFounder/Resources/Local`). |
+| **Synthetic iOS Bundle** | `tools/r02_prepare_synthetic_ios.py` | Creates a visibly marked, fail-closed bundle for clean-clone compilation and CI only; it is forbidden for field use. |
+| **Private Handoff Manifest** | `tools/r02_handoff_manifest.py` | Binds the five private files and accepted audio hash to one full release commit without placing private data in Git. |
+| **Story Authoring** | `tools/r02_story.py` | Validates authoring graph nodes, clue setups, and deterministic linearization for the M1 narrative. |
+| **Synthetic R03 Engine** | `tools/r03_analyze.py` | Executes offline statistical analysis and metric simulation for synthetic A/B trial data against `research/r03/preregistration.v0.1.json`. |
+| **R04 Decision Template** | `research/r04/decision_template.md` | Decision-ready framework for preorder / deposit demand evaluation (`G0_DEMAND`) with explicit spend stop-loss and conversion rules. |
+
+---
+
+## 4. Cross-Language Contracts & Thresholds
+
+Physical limits and validation constants are strictly synchronized between Python tools and Swift components via `tools/domain_thresholds.py`:
+
+```python
+# Shared Domain Constants (tools/domain_thresholds.py <-> Swift Models.swift)
+MAX_EVIDENCE_ACCURACY_M = 50.0       # Max mean horizontal accuracy for track evidence (m)
+MISSION_START_ACCURACY_M = 35.0      # Max accuracy required for mission start fix (m)
+START_DISTANCE_LIMIT_M = 100.0       # Max distance from public start to begin mission (m)
+ROUTE_POINT_RADIUS_M = 100.0         # Arrival radius around POI waypoints (m)
+MIN_EVIDENCE_DISTANCE_M = 200.0      # Minimum required total track distance (m)
+MAX_START_FINISH_CLOSURE_M = 150.0   # Maximum start-to-finish closure distance (m)
+MIN_SAMPLES_PER_ROUTE_POINT = 3      # Required GPS samples inside POI radius
+MIN_EVIDENCE_SAMPLES = 20            # Minimum accepted GPS samples per track
+MIN_WALKTHROUGH_DURATION_SEC = 120.0 # Minimum duration for valid walkthrough (s)
+MAX_SAMPLE_GAP_SEC = 120.0           # Maximum allowed gap between GPS fixes (s)
+```
+
+Verified automatically via `tests/test_cross_contract.py`.
+
+---
+
+## 5. Synthetic R03 Analysis & R04 Demand Framework
+
+### Synthetic R03 Analysis Harness
+* **Preregistration Spec:** `research/r03/preregistration.v0.1.json` defines primary KPIs (Narrative Immersion Index, Completion Rate) and statistical testing protocols.
+* **Offline Analysis Engine:** `tools/r03_analyze.py` computes sample size requirements, effect size estimation, and confidence intervals on synthetic A/B trial datasets.
+* **Test Suite:** Fully tested via `tests/test_r03_analyze.py`.
+
+### R04 Decision-Ready Demand Template
+* **Template Spec:** `research/r04/decision_template.md` specifies refundable deposit / preorder smoke test rules for the demand gate (`G0_DEMAND`).
+* **Fail-Closed Guardrails:** Requires explicit founder sign-off on ad spend stop-loss, qualified visitor criteria, and deposit conversion targets (all parameters initialized to `UNSET`) **prior** to any landing page publication or marketing spend.
+
+---
+
+## 6. How to Run Tests & Verification Commands
+
+All project verification workflows are accessible via `Makefile` targets:
+
+### Core Verification Targets
+```bash
+# Install pinned static-analysis tools
+/usr/bin/python3 -m pip install -r requirements-dev.txt
+
+# Clean-clone verification without private field assets
+make verify-clean-room
+
+# Full maintainer verification; requires the prepared local El Bolsón bundle
+make verify-pretest
+
+# Run Pre-Test Environment Doctor
+make r02-doctor
+
+# Run Privacy & Security Audit
+make r02-audit-privacy
+
+# Run Preflight Bundle & Asset Checks
+make r02-preflight
+
+# Run Python Unit Tests & Synthetic Harness (includes route geometry, audio generation, and release-profile checks)
+make verify-synthetic
+
+# Run iOS Unit & UI Tests with the explicitly marked synthetic bundle
+make ios-synthetic-test IOS_DEVELOPMENT_TEAM=""
+
+# Validate the exact real tester package before device installation
+make verify-tester-package HANDOFF_MANIFEST=/secure/path/RELEASE_MANIFEST.json
+```
+
+On a newly created Simulator, wait for `xcrun simctl bootstatus <UDID> -b` to
+print `Finished` before judging an XCTest launch as stalled. The first iOS
+runtime initialization can take more than 90 seconds; test success still
+requires a non-zero executed-test count and exit 0.
+
+### Specialized Field Tools
+```bash
+# Validate Field Evidence JSON File
+make r02-validate-evidence EVIDENCE=/absolute/path/to/evidence.json
+
+# Analyze Raw GPX Track (Leads to derived privacy-safe report)
+make r02-analyze-gpx GPX=/absolute/path/to/track.gpx
+
+# Audio File Inspection & Quality Check
+make r02-audio-qa
+```
+
+---
+
+## 7. Fail-Closed Human Safety & Approval Gates
+
+The El Bolsón source bundle, offline geometry and new audio are prepared locally. `make el-bolson-prepare` validates the package. Simulator rehearsal does not establish physical field readiness; field testing retains the following human approval gates:
+
+1. **Human Route Approval (`binding.human_route_approved`):** Requires physical daylight walkthrough of the El Bolsón route by the founder.
+2. **Workout Approval (`binding.workout_approved`):** Requires physical verification of Couch-to-5K interval timing safety and ground conditions.
+3. **M1-A Human Approval (`binding.human_approved`):** Requires explicit founder confirmation following route and workout approval.
+4. **Public Start Confirmation (`binding.public_start`):** Requires physical check of starting location accessibility and GPS visibility.
+5. **Lock-Screen Audio Review:** Requires full 30-minute listening test of master audio on physical iPhone hardware with screen locked.
+
+---
+
+## 8. Documentation Index
+
+For detailed specifications and historical logs, consult the `docs/` directory:
+
+* [`docs/PRE_FIRST_TEST_READINESS.md`](./docs/PRE_FIRST_TEST_READINESS.md) — Master 18-lane readiness matrix and test summary.
+* [`docs/EXECUTION_STATUS.md`](./docs/EXECUTION_STATUS.md) — Single source of truth for phase progress, gates, and decision log.
+* [`TESTER_HANDOFF.md`](./TESTER_HANDOFF.md) — Release cover sheet, external-QA scope and severity rules.
+* [`HUMAN_FIRST_IPHONE_SMOKE_TEST.md`](./HUMAN_FIRST_IPHONE_SMOKE_TEST.md) — Exact manifest-bound first-device smoke protocol.
+* [`docs/GEO_NARRATIVE_PRODUCT_STRATEGY.md`](./docs/GEO_NARRATIVE_PRODUCT_STRATEGY.md) — Product vision, investment gates, and core constraints.
+* [`docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md`](./docs/R02_FOUNDER_IPHONE_TEST_GUIDE.md) — Protocol for physical iPhone walkthrough and field execution.
+* [`docs/GEO_NARRATIVE_TECHNICAL_SPEC.md`](./docs/GEO_NARRATIVE_TECHNICAL_SPEC.md) — System design and technical kill criteria.
+* [`research/r04/decision_template.md`](./research/r04/decision_template.md) — R04 demand test template and decision matrix.

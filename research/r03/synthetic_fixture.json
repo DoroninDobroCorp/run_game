@@ -1,0 +1,1367 @@
+{
+  "schema_version": "0.1",
+  "dataset_type": "synthetic_ab_trial",
+  "synthetic": true,
+  "seed": 42,
+  "n_total": 50,
+  "participants": [
+    {
+      "participant_id": "synth_user_001",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_001",
+        "aborted": true,
+        "route_completed": false,
+        "audio_duration_seconds": 327.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 568.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": null
+    },
+    {
+      "participant_id": "synth_user_002",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_002",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 294.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 6
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5719.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 6
+      }
+    },
+    {
+      "participant_id": "synth_user_003",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_003",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 399.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4392.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_004",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_004",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 7130.0,
+        "confound_delayed_debrief": true,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5417.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 1,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_005",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_005",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 4739.0,
+        "confound_delayed_debrief": true,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5749.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_006",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_006",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 177.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 6,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5637.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_007",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_007",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 42.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 5,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5881.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_008",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_008",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 281.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 6119.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_009",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_009",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 531.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 2
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5574.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 2
+      }
+    },
+    {
+      "participant_id": "synth_user_010",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_010",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 576.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 6
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5584.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 6
+      }
+    },
+    {
+      "participant_id": "synth_user_011",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_011",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 171.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 1463.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_012",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_012",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 213.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 6378.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_013",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_013",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 381.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 5,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 645.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_014",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_014",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 4126.0,
+        "confound_delayed_debrief": true,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4322.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_015",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_015",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 215.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 3698.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 1,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_016",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_016",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 235.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 552.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_017",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_017",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 4478.0,
+        "confound_delayed_debrief": true,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 2
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 3874.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 2
+      }
+    },
+    {
+      "participant_id": "synth_user_018",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_018",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 488.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5293.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_019",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_019",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 204.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 617.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_020",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_020",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 25.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 6
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 1362.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 6
+      }
+    },
+    {
+      "participant_id": "synth_user_021",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_021",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 12.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 6
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5984.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 6
+      }
+    },
+    {
+      "participant_id": "synth_user_022",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_022",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 69.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 2
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 468.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 2
+      }
+    },
+    {
+      "participant_id": "synth_user_023",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_023",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 530.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 982.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_024",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_024",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 588.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5867.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_025",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_025",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 84.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 5,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4144.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_026",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_026",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 171.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 6611.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_027",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_027",
+        "aborted": true,
+        "route_completed": false,
+        "audio_duration_seconds": 515.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 147.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": null
+    },
+    {
+      "participant_id": "synth_user_028",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_028",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 62.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 29.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_029",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_029",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 447.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 6
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 295.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 6
+      }
+    },
+    {
+      "participant_id": "synth_user_030",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_030",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 50.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 842.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_031",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_031",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 252.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 6033.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_032",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_032",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 264.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 7144.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_033",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_033",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 243.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 6335.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_034",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_034",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 38.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 2174.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_035",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_035",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 533.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 5,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4259.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_036",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_036",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 382.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 6
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 5104.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 6
+      }
+    },
+    {
+      "participant_id": "synth_user_037",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_037",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 428.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 3105.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_038",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_038",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 10.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 5,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4969.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_039",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_039",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 183.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 6153.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_040",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_040",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 496.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": null
+    },
+    {
+      "participant_id": "synth_user_041",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_041",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 161.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 3482.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_042",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_042",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 134.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4578.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 2,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_043",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_043",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 526.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 5,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 3686.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_044",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_044",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 254.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 2225.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 5
+      }
+    },
+    {
+      "participant_id": "synth_user_045",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_045",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 166.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 4
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 1694.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 4
+      }
+    },
+    {
+      "participant_id": "synth_user_046",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_046",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 599.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 4,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": null
+    },
+    {
+      "participant_id": "synth_user_047",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_047",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 569.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 3
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 3185.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 3,
+        "desire_for_m02_1_to_7": 3
+      }
+    },
+    {
+      "participant_id": "synth_user_048",
+      "condition": "A",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_048",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 0,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 140.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 2
+      },
+      "recall_24h": {
+        "schema_version": "0.2",
+        "completed": true,
+        "due_at_delta_seconds": 4848.0,
+        "is_early_recall": false,
+        "unaided_place_recall_count": 4,
+        "desire_for_m02_1_to_7": 2
+      }
+    },
+    {
+      "participant_id": "synth_user_049",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_049",
+        "aborted": true,
+        "route_completed": false,
+        "audio_duration_seconds": 584.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 61.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 2,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": null
+    },
+    {
+      "participant_id": "synth_user_050",
+      "condition": "B",
+      "synthetic": true,
+      "session": {
+        "run_id": "run_synth_050",
+        "aborted": false,
+        "route_completed": true,
+        "audio_duration_seconds": 1800.0
+      },
+      "actual_next_workout_start": 1,
+      "immediate_debrief": {
+        "schema_version": "0.3",
+        "completed": true,
+        "recording_delay_seconds": 562.0,
+        "confound_delayed_debrief": false,
+        "place_necessity_1_to_7": 3,
+        "desire_for_m02_1_to_7": 5
+      },
+      "recall_24h": null
+    }
+  ]
+}

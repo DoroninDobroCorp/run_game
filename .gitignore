@@ -1,6 +1,20 @@
 # R02 founder field fixtures may contain exact starts, routes, or raw traces.
 research/r02/local/
 research/r02/build/
+ios/RunGameFounder/Resources/Local/
+
+# Machine-specific readiness reports
+research/dependency_readiness_report.json
+research/validation_readiness_report.json
+
+ios/RunGameFounder/DerivedData/
+ios/RunGameFounder/DerivedDataReview/
+ios/RunGameFounder/*.xcresult
 
 __pycache__/
 *.pyc
+.mypy_cache/
+.ruff_cache/
+.venv/
+.venv-*/
+.DS_Store

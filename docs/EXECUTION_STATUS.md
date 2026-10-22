@@ -1,7 +1,95 @@
 # Журнал выполнения Run Game (EXECUTION_STATUS)
 
-**Последнее обновление:** 1 августа 2026 года
-**Текущая фаза:** Research Phase (`R02` — `IN_PROGRESS`, narrative foundation реализована)
+**Последнее обновление:** 3 октября 2026 года
+
+**Текущая фаза:** Stage `R02` `IN_PROGRESS` (`ENGINEERING_RC / TECHNICAL_HANDOFF_AND_DEVICE_PENDING`)
+
+**Текущий master (Эль-Больсон):** `4b9572d6807902f053da756a36448cd2277da38622b01d6457f83fdc4eee864e`
+
+**Исторический master (Valparaíso):** `17aece84537542363fc4950f82ff73355b2c8db70497e3b6121b7ecf3239eb22`
+
+**Текущая ветка:** `codex/el-bolson-finish`
+
+
+## Текущий результат: Эль-Больсон
+
+Финальная перепроверка 3 октября:
+
+- Исправлен повторный вход в остановку GPS при синхронной ошибке сохранения
+  GPX: попытка завершается один раз как aborted и создаёт один дебриф. Ошибка
+  записи больше не может запустить рекурсивную остановку или успешный финиш.
+- Форматирование времени защищено от NaN, Infinity и переполнения Int;
+  координатор хранит конечные значения в журнале и UI. События завершения
+  по-прежнему проверяют исходное время плеера, поэтому некорректное значение
+  не превращается в успешный результат.
+- Полный прогон на iOS 18.5: **94 unit tests + 7 UI tests — PASS**.
+  Проверены два отдельных сохранённых отчёта после пересоздания AppModel,
+  возврат к тесту, пауза при уходе в фон и полный виртуальный круг.
+- Отдельный прогон **AddressSanitizer: 94 unit tests — PASS**, ошибок памяти
+  не обнаружено. ThreadSanitizer в этой перепроверке не перезапускался.
+- Python/static/privacy/story/A-B проверки прошли. Отдельная Git-копия без
+  приватных данных также прошла **271 Python test (6 пропусков)** и собрала
+  настоящий синтетический AAC для CI. Дважды подготовленный пакет Эль-Больсона
+  побайтно совпал с активными ресурсами. Геопроверка OSM снова прошла.
+- Логи текущего прогона имеют префикс `final-audit-` в игнорируемой папке
+  `research/r02/local/el_bolson/`. Аккаунт и физический iPhone остаются
+  отложены пользователем. Ниже сохранена история подготовки и предыдущих проверок.
+
+- После `git fetch --all --prune` исходный HEAD `5ffe87a` совпал с последней
+  удалённой веткой `origin/codex/tester-readiness`; он содержит 73 коммита
+  сверх `origin/main`. Ни одна удалённая ветка не содержала отсутствующих
+  локально коммитов. Рабочее дерево перед началом было чистым.
+- Новая активная локальная фикстура: `research/r02/local/el_bolson`.
+  Старт — середина Avenida Patagonia Argentina по длине её OSM-геометрии;
+  замкнутый маршрут ≈1,91 км через Los Guindos, Cuyén и Pucará.
+- Сохранённая геометрия имеет отдельный SHA-256, проверяется Python и Swift
+  и входит в fingerprint маршрута. Схема и маршрут не требуют онлайн-роутинга.
+- Новый русский master: 1800,0 с, AAC/44,1 кГц/моно, 10 сюжетных сцен,
+  27 тренировочных подсказок. Техническая audio QA — PASS, пик −1,6 dB,
+  клиппинга нет. Фактическое прослушивание на физическом iPhone не заявлено.
+- Отдельная симуляция 1×/30×/120× проходит через штатный автомат сессии,
+  показывает прогресс и сохраняет явно помеченный отчёт без координат.
+  Она не пишет полевой GPS, не создаёт дебриф/recall и не меняет approvals.
+- Исправлены исчезновение кнопки дебрифа после завершения сессии,
+  обработка нечисловых GPS-значений и принятие преждевременного конца аудио.
+- На реальном El Bolsón bundle после перепроверки прошли 90 Swift unit tests и 6 UI tests.
+  Полный автоматический пробный круг посетил 5/5 точек с финишем,
+  завершил 8 интервалов и обработал 901 виртуальную GPS-точку.
+- Исправлен выбор Simulator: переименованный QA iPhone распознаётся по типу
+  устройства и используется повторно, без лишнего запуска второго runtime.
+- `make verify-synthetic`: 271 Python tests, 0 ошибок, 6 пропусков для
+  отсутствующих исторических приватных assets. `make quality py-compile` — PASS.
+- Перепроверка `make el-bolson-test`: 90 unit tests и 6 UI tests — PASS.
+  После очистки повреждённого кэша Xcode полный прогон прошёл без ошибок.
+  Лог сохранён в `research/r02/local/el_bolson/recheck-ios-tests.log`.
+  AddressSanitizer и ThreadSanitizer также ранее прошли по 86 тестов.
+- Исправлено сохранение прерванной сессии с NaN/Infinity/отрицательным временем.
+  Повторная запись отчёта симуляции после ошибки fsync использует тот же файл,
+  не создаёт дубликаты и не перезаписывает конфликтующие данные. Результат
+  остаётся в памяти при возврате на главный экран; новый старт предупреждает
+  о несохранённом отчёте. Таймер не зависит от перевода системных часов.
+- Подготовка фикстуры публикует четыре файла атомарно; отказ записи не оставляет
+  половину пакета. Тесты проверяют нехватку места и сохранность чужих заметок.
+  Отменённый онлайн-preview корректно снимает индикатор загрузки.
+- Свежая OSM-карта полностью совпала с геометрией сохранённого круга и серединой
+  авеню. Геопроверка теперь различает русские подписи, исходное имя улицы и
+  безымянные перекрёстки; defaults и текущие инструкции переведены на Эль-Больсон.
+- Повторный `git fetch --all --prune` подтвердил: все удалённые ветки содержатся
+  локально. До коммита этой перепроверки `be4f823` опережал последнюю удалённую
+  ветку на 6 коммитов, `origin/main` — на 79; недостающих коммитов нет.
+- Дополнительно выполнена Debug ARM64-сборка для `generic/platform=iOS` с
+  `CODE_SIGNING_ALLOWED=NO` — PASS. Подписанная сборка остановилась на
+  отклонённой авторизации Apple ID в Xcode и отсутствии provisioning profile.
+  Это результаты предыдущей проверки. Пользователь отложил настоящий аккаунт
+  и установку на физический iPhone; в этой перепроверке авторизация не повторялась.
+- Запуск: `make el-bolson-preview`. Подробности:
+  [EL_BOLSON_TEST_RUN.md](EL_BOLSON_TEST_RUN.md).
+
+Полевые проверки, установка с собственной Apple Team, реальный GPS и
+lock-screen audio на физическом iPhone остаются незавершёнными. Ни один
+симуляторный результат не закрывает их. Ниже сохранён исторический журнал
+этапов и доказательств Valparaíso; его старые blockers не означают отсутствия
+нового пакета Эль-Больсона.
 
 ---
 
@@ -11,17 +99,28 @@
 Основные правила:
 * Никакой живой генерации LLM во время бега. Вся миссия компилируется до старта в офлайн-бандл (`RouteBundle`).
 * Тренировочная сетка (beginner Couch to 5K) имеет абсолютный приоритет и не меняется под сценарий. Сюжет адаптируется под структуру тренировки.
-* Приватность: точный дом и GPS-треки не передаются на сервер и не светятся в LLM.
+* Приватность: у founder slice нет project backend или analytics; raw GPX по
+  умолчанию остаётся локально и не передаётся LLM. Apple Maps routing использует
+  онлайн-сервис Apple и отправляет необходимые ему map/route requests.
 
 ---
 
 ## 2. Founder Decisions
 * **География продукта:** Home-territory-based. Один пользователь развивает одну активную домашнюю территорию; travel и cross-city continuity не являются фичами MVP.
-* **География founder research:** Traveler-based. Текущий город основателя — сменный полевой fixture без попадания города в канон/story state. Бар — только frozen R01 fixture и не ограничивает R02–R03.
+* **География founder research:** Traveler-based. Текущий город основателя —
+  сменный полевой fixture без попадания города в канон/story state. Активная R02
+  fixture — Эль-Больсон; Valparaíso и Santiago неактивны, а Бар остаётся frozen
+  R01 fixture.
 * **Стартовый канон:** Выбрана оригинальная вселенная «Нулевой слой», Напарник Леа и центральный поворот «маршруты игрока не спасали, а создавали её». До production engine используется минимальный трёхмиссионный authoring graph; полностью производится пока только M1.
 * **Stop-loss:** Проект развивается в режиме хобби для личного использования. Бюджет — личные ИИ-подписки (до $200/мес), бесплатные/дешевые лимиты API.
 * **Разрешенные провайдеры:** GraphHopper (маршруты, бесплатный тариф), Overpass API (OSM, бесплатно), Wikipedia API (бесплатно), персональные API-ключи LLM (OpenAI/Anthropic/Gemini) через `.env`.
-* **Контроль безопасности:** Двухуровневый. Автоматический ИИ-фильтр (Smart AI Safety Validator) + ручной аппрув основателя перед каждым выходом.
+* **Контроль безопасности:** production-намерение остаётся двухуровневым:
+  автоматическая проверка плюс ручной аппрув. Текущий founder shell реализует
+  только offline integrity checks и ручные route/audio/pre-run gates; ни один
+  автоматический статус не является safety или workout approval.
+* **Native research exception:** локальный SwiftUI founder-only slice разрешён
+  как инструмент R02. Он не открывает production gates и не разрешает
+  TestFlight, внешних участников, backend или расширение product scope.
 
 ---
 
@@ -38,34 +137,47 @@
 
 ---
 
-## 4. Stage Table
+## 4. Historical Stage Table (22 августа 2026)
 
 | ID | Статус | Prerequisites | Доказательства (Evidence) | Обновлено | Следующее действие |
 | :-: | :-: | :--- | :--- | :-: | :--- |
 | **P00** | `COMPLETE` | Нет | Созданы `DOCUMENT_AUDIT.md` и `EXECUTION_STATUS.md`. Проведен аудит `TerraIncognita`. | 15.07.2026 | Переход к R01. |
 | **R01** | `COMPLETE` | `G0_DOCS=GO` | Создан `R01_FEASIBILITY_REPORT.md`, сохранён `r01_raw_results.json`: все 20 точек дали минимум два POI-кандидата. Это POI-density signal, а не доказательство production L2; заявленные script/cache/GPX/manual-route-QA assets в текущем repo отсутствуют. | 15.07.2026 | Бар сохранён как frozen fixture; каждый маршрут R02 проверяется заново. |
-| **R02** | `IN_PROGRESS`| `R01` | Созданы `R02_NARRATIVE_PROOF.md`, scorecard трёх миров, выбран «Нулевой слой», M1–M3 graph (32 nodes, 38 edges, 8 paths), M1 A/B beat draft, stdlib validator (19 passing tests). Сформирован активный provisional draft для г. Сантьяго, Чили возле Metro Cumming (OSM candidates: `node/253281419`, `way/592372641`, `way/180191510`, `way/23389924`); сгенерирован 1800.0s master audio (`m01_solo_founder_30min.m4a`/`.aiff`) с 27 NAV сигналом и manifest. Ла-Пас сохранён как frozen historical fixture. Статус: `audio clips generated; 30-minute master and route walk-through pending`. Human approvals остаются `false`. | 01.08.2026 | Дневной пеший проход маршрута основателем возле Metro Cumming с открытой картой для записи GPX ➔ замер дистанции и высоты ➔ домашний тест 30-мин трека ➔ solo founder run (R02 не отмечается COMPLETE до забега). |
-| **R03** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02. |
-| **R04** | `NOT_STARTED`| `R02` | Нет. | 15.07.2026 | Ожидает выполнения R02 (может идти параллельно с R03). |
+| **R02** | `IN_PROGRESS` (`ENGINEERING_RC`) | `R01` | Подготовлены clean-clone workflow, CI, privacy/history audit, переносимый signing, приватный handoff manifest и fail-closed durable queue recovery. На текущем checkout прошли 245 Python-тестов (6 fixture-dependent skips), static analysis, privacy audit, synthetic iOS build, 76 Swift unit tests и 5 UI tests. Оригинальная Valparaíso fixture потеряна; отдельный local technical-only replacement из retained app projection и accepted M4A проходит handoff/preflight/audio checks с выключенными approvals. | 22.08.2026 | Передать manifest-bound private package → physical-device smoke → founder-only field gates. |
+| **R03** | `NOT_STARTED`| `R02` | Созданы `research/r03/preregistration.v0.1.json`, `tools/r03_analyze.py` и `tests/test_r03_analyze.py` для офлайн-анализа синтетических A/B данных. | 11.08.2026 | Ожидает завершения физического этапа R02. |
+| **R04** | `NOT_STARTED`| `R02` | Создан `research/r04/decision_template.md` (decision-ready шаблон с описанием аудитории, оффера, stop-loss и метрик конверсии). | 11.08.2026 | Ожидает основательского решения по запуску тестов спроса (может идти параллельно с R03). |
 
 *(Этапы P01–P22 находятся в статусе `NOT_STARTED` и ожидают прохождения ворот G0).*
 
 ---
 
-## 5. Command Evidence
-Ниже фиксируются запущенные в процессе разработки команды проверки:
-1. `git status` — чистый статус репозитория перед добавлением документов.
-2. `git clone https://github.com/DoroninDobroCorp/TerraIncognita.git` — успешный импорт и аудит существующего кода карт/маршрутов основателя.
-3. `python3 scratch/r01_feasibility_bar.py` — успешный запуск скрипта гео-аудита и сбор кэша Overpass по г. Бар, Черногория.
-4. `python3 tools/r02_story.py validate` — graph, M1 beats, scorecard и draft binding прошли semantic validation; graph содержит 8 путей.
-5. `python3 -m unittest discover -s tests -p 'test_*.py' -v` — 19/19 passing unit tests прошли.
-6. `python3 tools/r02_verify_santiago_geo.py` — 4/4 live OSM objects verified online.
-7. `python3 tools/r02_verify_field.py --audio-dir research/r02/local/santiago_cumming/audio` — PASSED.
+## 5. Historical Command Evidence (22 августа 2026)
+
+Доказательства для предыдущего engineering candidate:
+
+* `make quality py-compile`: `PASS` — `ruff`, `mypy`, Python bytecode compile.
+* `/usr/bin/python3 -m unittest discover -s tests`: `PASS` — 245 тестов, 0 ошибок, 6 пропусков только для отсутствующего приватного master/fixture.
+* `tools/r02_audit_privacy.py`: `PASS` — 5/5 проверок, включая reachable Git patch history; public R01 OSM coordinates явно отделены от private R02 scope.
+* `make ios-synthetic-build IOS_DEVELOPMENT_TEAM=""`: `PASS` на Xcode 26.3 / iOS 26.2 Simulator.
+* `make ios-synthetic-unit-test IOS_DEVELOPMENT_TEAM=""`: `PASS` — 76 тестов выполнено, 0 ошибок, iPhone 16 Pro Simulator / iOS 18.5.
+* `make ios-synthetic-ui-test IOS_DEVELOPMENT_TEAM=""`: `PASS` — 5 тестов выполнено, 0 ошибок, iPhone 16 Pro Simulator / iOS 18.5.
+* XCTest evidence: macOS 26.0 / Xcode 26.3; свежий Simulator полностью завершил `bootstatus` перед запуском. `.xcresult` хранится локально в `ios/RunGameFounder/DerivedData/Logs/Test/`.
+* `make verify-pretest`: `BLOCKED`, ожидаемо — приватных Valparaíso source assets нет на этой машине.
+* GitHub Actions: `BLOCKED_ACCOUNT_BILLING` — [run #1](https://github.com/DoroninDobroCorp/run_game/actions/runs/31917107276) создал два job, но GitHub не запустил ни один из-за billing lock аккаунта.
 
 ---
 
 ## 6. Open Blockers
-Нет критических блокеров для продолжения R02. Для завершения этапа отсутствуют реальные human-approved route binding, временное аудио, founder dry run и A/B parity evidence. Точная fitness-сетка остаётся narrative fixture до review профильного специалиста.
+До передачи на physical device остаются инженерные и человеческие блокеры:
+
+1. **Technical handoff transfer:** пересоздать `RELEASE_MANIFEST.json` для финального release commit, передать manifest и private technical-only fixture по зашифрованному каналу. Historical private source bundle не восстановлен.
+2. **Signing/device:** выбрать Apple Team, установить ровно manifest-bound commit и выполнить внешний QA smoke.
+
+3. **GitHub Actions billing:** владелец организации должен снять billing lock и повторно запустить workflow; текущий failed badge не является test failure, потому что runner не выдавался.
+
+4. **Human Route Approval (`binding.human_route_approved`):** только основатель после реального дневного обхода.
+5. **Workout/M1/Public Start approvals:** только основатель; внешний QA-тестер не должен их выставлять.
+6. **Full Audio Lock-Screen Review:** полное 30-минутное прослушивание принятого M4A на физическом iPhone.
 
 ---
 
@@ -73,6 +185,11 @@
 * **15.07.2026 (P00):** Принято решение использовать код `TerraIncognita` (а именно парсеры OSM/Overpass и логику коридорной маршрутизации) как основу для адаптеров `PoiProvider` и `RouteProvider` в Run Game.
 * **15.07.2026 (P00):** Переориентирован фокус проекта на персональное использование (хобби) с минимизацией серверных костов и распараллеливанием тестов спроса (R04) и опыта (R03).
 * **15.07.2026 (R01):** Бар использован как первый research fixture. Все 20 стартов дали минимум два POI-кандидата (исторически это было названо «100% L2»); текущий технический L2 дополнительно требует route candidates, scorer и bundle, поэтому R01 трактуется только как POI-density signal.
-* **16.07.2026 (R02):** Разделены `home-territory product behavior` и `traveler-based founder research`. Бар перестал быть обязательной географией R02–R03; смена города не стала продуктовой или сюжетной механикой.
+* **16.07.2026 (R02):** Разделены `home-territory product behavior` and `traveler-based founder research`. Бар перестал быть обязательной географией R02–R03; смена города не стала продуктовой или сюжетной механикой.
 * **16.07.2026 (R02):** Принято story-first решение: authoring graph обязателен сейчас, production runtime graph engine откладывается. Сравнены Dracula-inspired, future-frequency и erased-trace concepts; provisional winner — оригинальный «Нулевой слой» (93/100). Это редакционная гипотеза, не field evidence.
 * **16.07.2026 (R02):** Зафиксированы Леа, M1–M3 micro-arc, три enum-state, четыре setup clues и reveal «игрок своими маршрутами создал Леа». Реализованы детерминированная линеаризация, A/B contract и запрет participant export до human approval.
+* **07.08.2026 (R02):** Разрешён локальный founder-only SwiftUI slice как research exception для повторяемых M1 device/audio/GPS итераций. Production investment gates и запрет внешних участников не изменены.
+* **10.08.2026 (R02):** Активной полевой фикстурой закреплён центральный Вальпараисо; Santiago переведён в неактивный локальный архив. Fixed-time master не считается geo-triggered runtime: первый walk-through и retiming review обязательны до founder run. Raw GPX по умолчанию остаётся локально; для разбора используется derived report без координат и точного старта.
+* **11.08.2026 (R02):** Исторический baseline заявил `READY_FOR_DEVICE_SMOKE`; последующий полный аудит обнаружил, что локальные приватные assets отсутствуют, а текущий Xcode runner не даёт воспроизводимого runtime PASS. Заявление заменено evidence-based статусом.
+* **21.08.2026 (R02):** Оригинальные private binding/snapshot/AIFF признаны утраченными после проверки local migration backups. Из retained installed-app projection и verified accepted M4A создан отдельный `RECONSTITUTED_TECHNICAL_FIXTURE_NOT_FIELD_APPROVED`; до передачи остаются его final handoff checks, независимый Swift runtime и physical-device gates.
+* **22.08.2026 (R02):** После полного first boot нового iOS 18.5 Simulator локально выполнены 76/76 unit tests и 5/5 UI tests с exit 0. Reconstituted technical fixture прошёл manifest, doctor, privacy, preflight, audio QA и build gates; остаются private transfer, signing/physical-device smoke и founder-only field approvals.

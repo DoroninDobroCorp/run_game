@@ -1,17 +1,27 @@
 # Run Game — индекс продуктовой документации
 
-**Актуальность:** 16 июля 2026 года
+**Актуальность:** 2 октября 2026 года
 
 Этот файл — точка входа для человека или нового Codex-чата, который не видел предыдущую переписку.
 
+Текущий персональный тест: [Эль-Больсон — запуск и маршрут](EL_BOLSON_TEST_RUN.md).
+
 ## Читать в таком порядке
 
-1. [GEO_NARRATIVE_PRODUCT_STRATEGY.md](./GEO_NARRATIVE_PRODUCT_STRATEGY.md) — текущее продуктовое решение, обещание и инвестиционные ворота.
-2. [R02_NARRATIVE_PROOF.md](./R02_NARRATIVE_PROOF.md) — текущее story-first решение R02, выбранная вселенная «Нулевой слой», трёхмиссионный граф и полевой следующий шаг.
-3. [GEO_NARRATIVE_TECHNICAL_SPEC.md](./GEO_NARRATIVE_TECHNICAL_SPEC.md) — реалистичная архитектура географического MVP и технические kill criteria.
-4. [AI_RUNNING_COMPETITOR_RESEARCH_2026.md](./AI_RUNNING_COMPETITOR_RESEARCH_2026.md) — актуальный срез прямых и смежных конкурентов, traction и коммерческие выводы.
-5. [AI_FIRST_EXECUTION_PLAN.md](./AI_FIRST_EXECUTION_PLAN.md) — последовательность автономных задач с готовыми промптами для отдельных Codex-чатов.
-6. [EXECUTION_STATUS.md](./EXECUTION_STATUS.md) — единственный журнал фактического выполнения, доказательств и текущих blockers.
+1. [HUMAN_FIRST_IPHONE_SMOKE_TEST.md](../HUMAN_FIRST_IPHONE_SMOKE_TEST.md) —
+   короткая передача человеку: checkout, локальные артефакты, установка и
+   первый безопасный device smoke.
+2. [GEO_NARRATIVE_PRODUCT_STRATEGY.md](./GEO_NARRATIVE_PRODUCT_STRATEGY.md) — текущее продуктовое решение, обещание и инвестиционные ворота.
+3. [R02_NARRATIVE_PROOF.md](./R02_NARRATIVE_PROOF.md) — текущее story-first решение R02, выбранная вселенная «Нулевой слой», трёхмиссионный граф и полевой следующий шаг.
+4. [GEO_NARRATIVE_TECHNICAL_SPEC.md](./GEO_NARRATIVE_TECHNICAL_SPEC.md) — реалистичная архитектура географического MVP и технические kill criteria.
+5. [AI_RUNNING_COMPETITOR_RESEARCH_2026.md](./AI_RUNNING_COMPETITOR_RESEARCH_2026.md) — актуальный срез прямых и смежных конкурентов, traction и коммерческие выводы.
+6. [AI_FIRST_EXECUTION_PLAN.md](./AI_FIRST_EXECUTION_PLAN.md) — последовательность автономных задач с готовыми промптами для отдельных Codex-чатов.
+7. [EXECUTION_STATUS.md](./EXECUTION_STATUS.md) — единственный журнал фактического выполнения, доказательств и текущих blockers.
+8. [R02_FOUNDER_IPHONE_TEST_GUIDE.md](./R02_FOUNDER_IPHONE_TEST_GUIDE.md) —
+   установка, offline preflight, дневной обход, audio/GPS gates, recovery и
+   debrief для первого founder test.
+9. [R02B_FIELD_VERIFICATION_MEMO.md](./R02B_FIELD_VERIFICATION_MEMO.md) —
+   граница уже существующих артефактов и ещё отсутствующего field evidence.
 
 ## Текущий тезис
 
@@ -44,4 +54,19 @@ GEO_NARRATIVE_PRODUCT_STRATEGY
 
 ## Текущая граница работ
 
-На этом этапе разрешены исследование, спецификации, тест-дизайн и планирование. Разработка приложения не начинается, пока владелец проекта явно не даст команду запустить конкретный промпт из AI-first плана.
+На этом этапе разрешены исследование, спецификации, тест-дизайн и локальный
+**founder-only native slice одной M1** как узкое исключение для повторяемого
+device/audio/GPS/walk-through исследования. Он не является production iOS,
+TestFlight или публичным продуктом: в нём нет аккаунтов, backend, аналитики,
+набора участников или разрешения на следующие production-этапы.
+
+Активная полевая фикстура — Эль-Больсон со стартом в середине Avenida Patagonia
+Argentina; Valparaíso и Santiago остаются неактивными локальными архивами.
+Аккаунт и установка на физический iPhone отложены пользователем.
+Offline preflight может подтвердить лишь
+целостность bundle и статус `READY_FOR_DEVICE_SMOKE`. Физическая установка,
+device/audio проверка, дневной обход, route/workout approval и M1-A founder run
+пока не считаются выполненными без соответствующего human evidence.
+
+Production-разработка по-прежнему начинается только по инвестиционным воротам
+и отдельным промптам [AI-first плана](./AI_FIRST_EXECUTION_PLAN.md).

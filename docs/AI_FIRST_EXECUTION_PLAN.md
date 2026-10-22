@@ -37,7 +37,7 @@
 - Hard filters и маршрутная пригодность детерминированы и объяснимы. Единого непрозрачного `AI safety/route score` нет.
 - Точный дом, raw GPS trace и health data не попадают в обычную аналитику или LLM.
 - Основная миссия после компиляции должна исполняться без сети. Live LLM никогда не блокирует навигацию или тренировку.
-- До реального однокомпонентного geo-story field gate и deposit/preorder gate запрещены production contracts/pipeline и iOS. Apple Watch, Android, multiplayer, свободный NPC dialogue, погода, computer vision, 27 миссий и marketplace запрещены до Paid MVP.
+- До реального однокомпонентного geo-story field gate и deposit/preorder gate запрещены production contracts/pipeline и публичный/многопользовательский iOS-продукт. По founder decision от 7 августа 2026 года разрешён локальный нативный iPhone vertical slice для повторяемых личных итераций M1: offline master, route preview, ручной safety gate, background audio, локальный GPX и дебриф без сервера/аккаунта/аналитики. Apple Watch, Android, multiplayer, свободный NPC dialogue, погода, computer vision, 27 миссий и marketplace запрещены до Paid MVP.
 - Есть три разные проверки, которые нельзя сливать: **одна Wizard-of-Oz миссия проверяет ценность места**, **шесть сессий проверяют реальное возвращение к тренировке**, **Paid MVP проверяет willingness to pay и экономику**.
 - Главная поведенческая метрика продукта — фактический старт следующей запланированной тренировки. Ответ «эта миссия потеряла бы смысл в другом районе» и recall мест — manipulation checks географического компонента, а не North Star.
 
@@ -175,13 +175,13 @@ Acceptance criteria:
 ```text
 Ты работаешь в репозитории Run Game. Этот чат не знает предыдущую переписку.
 
-Обязательный старт: полностью прочитай docs/README.md, актуальные GEO_NARRATIVE документы, AI_FIRST_EXECUTION_PLAN, DOCUMENT_AUDIT и EXECUTION_STATUS. Проверь R01=COMPLETE. Инспектируй git status --short, rg --files, manifests/tests и research assets; сохраняй несвязанные изменения. Карты и маршруты идут через research adapters либо founder adapter; при отсутствии founder code не строй production замену. Проверяй GPX/GeoJSON/provider/TTS contracts по official docs. Не расширяй scope и не начинай iOS. Добавь tests, запусти их и обнови R02.
+Обязательный старт: полностью прочитай docs/README.md, актуальные GEO_NARRATIVE документы, AI_FIRST_EXECUTION_PLAN, DOCUMENT_AUDIT и EXECUTION_STATUS. Проверь R01=COMPLETE. Инспектируй git status --short, rg --files, manifests/tests и research assets; сохраняй несвязанные изменения. Карты и маршруты идут через research adapters либо founder adapter; при отсутствии founder code не строй production замену. Проверяй GPX/GeoJSON/provider/TTS contracts по official docs. Локальный founder-only iPhone vertical slice разрешён только в границах решения от 7 августа 2026 года; production iOS не начинай. Добавь tests, запусти их и обнови R02.
 
 Задача: сначала зафиксировать сильный авторский позвоночник, затем сделать один author-reviewed mission template и Wizard-of-Oz package для component proof. Откладывается production runtime graph engine, а не минимальный authoring graph.
 
 Внутренняя последовательность R02:
 1. `R02A Narrative Foundation`: одинаковой рубрикой сравнить минимум три мира, зафиксировать provisional winner и для победителя создать трёхмиссионный DAG с одним backbone, ограниченными choices/state, setup/payoff ledger центрального поворота и схождением ветвей. Полностью не писать M2–M3.
-2. `R02B Playable M1`: написать полную M1, вручную привязать её к текущему городу основателя, собрать cue sheet/audio и пройти founder dry run.
+2. `R02B Playable M1`: написать полную M1, вручную привязать её к текущему городу основателя, собрать cue sheet/audio, упаковать в локальный founder iPhone vertical slice и пройти founder dry run.
 3. `R02C External-ready`: закрыть critical defects и заморозить A/B parity для R03.
 
 Продуктовая география остаётся `home_territory`: одна активная домашняя территория пользователя и повторное значение мест. Меняющийся город путешествующего основателя — только `traveler_fixture`; travel/cross-city continuity не входят в канон, story state или продуктовые фичи. Бар остаётся историческим R01 fixture и не обязан быть площадкой R02–R03.
@@ -206,7 +206,7 @@ Authoring graph до route binding должен иметь:
 - geo roles без конкретного города и полный authored fallback;
 - детерминированную линеаризацию одного пути без live LLM.
 
-Не делай: production compiler, 6 миссий, live LLM, recruitment, iOS.
+Не делай: production compiler, 6 миссий, live LLM, recruitment, App Store/TestFlight/public iOS, backend accounts или analytics. Локальный founder-only SwiftUI shell с одной M1 разрешён.
 
 Acceptance criteria:
 - выбранная вселенная, scorecard и её главный red-team риск сохранены; AI-выбор прямо назван редакционной гипотезой, а не пользовательским доказательством;
@@ -217,6 +217,7 @@ Acceptance criteria:
 - participant export невозможен без human_approved=true;
 - AI/TTS failure имеет authored fallback;
 - exact start/end скрыты из share/research artifacts;
+- founder iPhone build собирается в симуляторе, блокирует M1 до route/audio approval и сохраняет raw GPX только локально;
 - один полный dry run проходит по cue sheet;
 - R02 COMPLETE только после закрытия critical review defects.
 
